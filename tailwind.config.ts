@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,13 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				platform: {
+					'airbnb': '#FF5A5F',
+					'booking': '#003580',
+					'vrbo': '#3D67FF',
+					'manual': '#4CAF50',
+					'other': '#9E9E9E'
 				}
 			},
 			borderRadius: {

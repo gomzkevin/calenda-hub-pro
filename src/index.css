@@ -1,3 +1,6 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 220 91% 54%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -35,19 +38,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -97,5 +93,44 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+@layer components {
+  .calendar-day {
+    @apply h-24 border border-gray-200 p-1 relative hover:bg-gray-50 transition-colors;
+  }
+  
+  .calendar-header {
+    @apply h-10 border border-gray-200 flex items-center justify-center font-medium;
+  }
+  
+  .booking-event {
+    @apply text-xs text-white rounded px-1 py-0.5 mb-1 truncate cursor-pointer;
+  }
+  
+  .booking-airbnb {
+    @apply bg-platform-airbnb;
+  }
+  
+  .booking-booking {
+    @apply bg-platform-booking;
+  }
+  
+  .booking-vrbo {
+    @apply bg-platform-vrbo;
+  }
+  
+  .booking-manual {
+    @apply bg-platform-manual;
+  }
+  
+  .booking-other {
+    @apply bg-platform-other;
   }
 }
