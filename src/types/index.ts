@@ -30,6 +30,12 @@ export interface Property {
   address: string;
   internalCode: string;
   notes?: string;
+  imageUrl?: string;
+  bedrooms: number;
+  bathrooms: number;
+  capacity: number;
+  type?: string;
+  description?: string;
   createdAt: Date;
 }
 

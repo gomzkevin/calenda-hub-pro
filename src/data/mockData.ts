@@ -1,4 +1,3 @@
-
 import { ICalLink, Operator, Platform, Property, Reservation, User } from '@/types';
 
 // Sample operator
@@ -41,6 +40,12 @@ export const sampleProperties: Property[] = [
     address: '123 Ocean Drive',
     internalCode: 'BFV-001',
     notes: 'Premium property with ocean views',
+    imageUrl: 'https://images.unsplash.com/photo-1524230572899-a752b3835840',
+    bedrooms: 3,
+    bathrooms: 2,
+    capacity: 6,
+    type: 'Villa',
+    description: 'Luxurious beachfront villa with stunning ocean views, private pool, and direct beach access. Perfect for family vacations.',
     createdAt: new Date('2023-01-10')
   },
   {
@@ -50,6 +55,12 @@ export const sampleProperties: Property[] = [
     address: '456 Main Street',
     internalCode: 'DTA-002',
     notes: 'Central location, walking distance to shops',
+    imageUrl: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d',
+    bedrooms: 2,
+    bathrooms: 1,
+    capacity: 4,
+    type: 'Apartment',
+    description: 'Modern apartment in the heart of downtown. Walking distance to restaurants, shops, and attractions.',
     createdAt: new Date('2023-01-15')
   },
   {
@@ -59,6 +70,12 @@ export const sampleProperties: Property[] = [
     address: '789 Forest Road',
     internalCode: 'MTC-003',
     notes: 'Rustic cabin with hiking trails nearby',
+    imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158',
+    bedrooms: 1,
+    bathrooms: 1,
+    capacity: 2,
+    type: 'Cabin',
+    description: 'Cozy cabin nestled in the mountains. Perfect for a romantic getaway or nature lovers.',
     createdAt: new Date('2023-01-20')
   }
 ];
