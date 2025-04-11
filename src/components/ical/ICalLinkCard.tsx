@@ -14,9 +14,10 @@ import { useQueryClient } from '@tanstack/react-query';
 interface ICalLinkCardProps {
   icalLink: ICalLink;
   onSyncComplete?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete }) => {
+const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, onDelete }) => {
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -81,6 +82,12 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+  
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(icalLink.id);
     }
   };
   
@@ -150,7 +157,12 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
           </Button>
-          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-red-500 hover:text-red-700"
+            onClick={handleDelete}
+          >
             <Trash className="w-4 h-4" />
           </Button>
         </div>
