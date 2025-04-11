@@ -1,28 +1,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as ical from "npm:ical@0.8.0";
+import * as ical from "npm:ical";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface RequestBody {
-  icalUrl: string;
-}
-
-interface AirbnbAdditionalInfo {
-  phoneLastDigits?: string;
-  reservationUrl?: string;
-}
-
-interface VrboAdditionalInfo {
-  guestName?: string;
-}
-
-interface BookingAdditionalInfo {
-  // Additional Booking.com specific data
-}
 
 interface Reservation {
   checkIn: string;
@@ -30,7 +13,7 @@ interface Reservation {
   platform: string;
   status: string;
   reservationId: string;
-  additionalInfo?: AirbnbAdditionalInfo | VrboAdditionalInfo | BookingAdditionalInfo;
+  additionalInfo?: any;
 }
 
 interface ResponseData {
@@ -154,20 +137,34 @@ serve(async (req) => {
   try {
     console.log("[PROCESS-ICAL] Function started");
     
-    // Parse request body
-    let body: RequestBody;
-    try {
-      body = await req.json();
-      console.log("[PROCESS-ICAL] Request body:", JSON.stringify(body));
-    } catch (parseError) {
-      console.error("[PROCESS-ICAL] Error parsing request body:", parseError);
+    let icalUrl: string = "";
+    
+    // Handle both GET and POST requests
+    if (req.method === 'GET') {
+      // Get icalUrl from query parameters
+      const url = new URL(req.url);
+      icalUrl = url.searchParams.get('icalUrl') || "";
+      console.log("[PROCESS-ICAL] GET request received with icalUrl:", icalUrl);
+    } else if (req.method === 'POST') {
+      // Parse request body (for backward compatibility)
+      try {
+        const body = await req.json();
+        icalUrl = body.icalUrl || "";
+        console.log("[PROCESS-ICAL] POST request body:", JSON.stringify(body));
+      } catch (parseError) {
+        console.error("[PROCESS-ICAL] Error parsing request body:", parseError);
+        return new Response(
+          JSON.stringify({ error: "Invalid request body" }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Method not allowed
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Method not allowed" }),
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    const { icalUrl } = body;
 
     if (!icalUrl) {
       console.error("[PROCESS-ICAL] Missing required parameter: icalUrl");

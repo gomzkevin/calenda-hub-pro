@@ -68,11 +68,12 @@ export const processICalLink = async (icalUrl: string): Promise<{
       throw new Error("URL de iCal no proporcionada");
     }
     
-    // Make sure the icalUrl is properly encoded if it contains special characters
+    // Use GET request with URL as query parameter
+    // Encode the URL to handle special characters
+    const encodedUrl = encodeURIComponent(icalUrl);
     const { data, error } = await supabase.functions.invoke('process-ical', {
-      body: {
-        icalUrl
-      }
+      method: 'GET',
+      queryParams: { icalUrl: encodedUrl }
     });
     
     if (error) {
