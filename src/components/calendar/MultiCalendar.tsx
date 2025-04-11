@@ -212,7 +212,7 @@ const MultiCalendar: React.FC = () => {
   }, [properties, reservations]);
   
   // Pre-calculate row heights and positions using useLayoutEffect
-  // Key fix: Changed useLayoutEffect dependencies to avoid loops
+  // Critical Fix: Remove propertyReservationLanes from dependencies to break the update loop
   useLayoutEffect(() => {
     if (isLoadingProperties || isLoadingReservations || properties.length === 0) return;
     
@@ -223,10 +223,47 @@ const MultiCalendar: React.FC = () => {
     let currentPosition = 10; // Header height
     
     properties.forEach((property) => {
-      const propertyLanes = propertyReservationLanes[property.id] || {};
+      // Instead of using propertyReservationLanes, recalculate max lanes directly
+      const propertyReservations = getReservationsForProperty(property.id);
+      
+      // Get max lane number by counting overlapping reservations
+      let maxLane = 0;
+      
+      // Simple algorithm to determine lane count based on overlapping dates
+      const sortedReservations = [...propertyReservations].sort(
+        (a, b) => a.startDate.getTime() - b.startDate.getTime()
+      );
+      
+      // Create a basic lane allocation to determine max lanes
+      const lanes: Reservation[][] = [];
+      
+      sortedReservations.forEach(reservation => {
+        // Try to find a lane where this reservation fits
+        let laneIndex = 0;
+        let foundLane = false;
+        
+        while (!foundLane && laneIndex < lanes.length) {
+          const lane = lanes[laneIndex];
+          const lastReservation = lane[lane.length - 1];
+          
+          // If this reservation starts after the last one in this lane ends
+          if (lastReservation.endDate < reservation.startDate) {
+            lane.push(reservation);
+            foundLane = true;
+          } else {
+            laneIndex++;
+          }
+        }
+        
+        // If we couldn't find a lane, create a new one
+        if (!foundLane) {
+          lanes.push([reservation]);
+        }
+      });
+      
+      maxLane = Math.max(0, lanes.length - 1);
       
       // Calculate appropriate row height based on number of lanes
-      const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane as number), 0);
       const laneHeight = 12; // Height for each reservation lane in pixels
       const baseRowHeight = 48; // Base height for property row
       const rowHeight = baseRowHeight + (maxLane * laneHeight);
@@ -241,8 +278,8 @@ const MultiCalendar: React.FC = () => {
     setRowPositions(newRowPositions);
     setIsInitialRender(false);
     
-  // Key fix: Only depend on stable references and primitives, not on derived state
-  }, [properties, propertyReservationLanes, isLoadingProperties, isLoadingReservations]);
+  // Fix: Only depend on stable references and primitives, not derived state
+  }, [properties, reservations, isLoadingProperties, isLoadingReservations]);
   
   // Limit visible days based on screen size
   const visibleMonthDays = monthDays.slice(0, visibleDays);
