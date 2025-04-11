@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, Platform, ReservationSource, ReservationStatus } from "@/types";
 
@@ -46,7 +45,8 @@ export const getReservations = async (filters?: {
       query = query.lte("end_date", endDate);
     }
     
-    if (filters.searchText) {
+    if (filters.searchText && filters.searchText.trim() !== '') {
+      // Only filter if we have non-empty search text
       query = query.ilike("guest_name", `%${filters.searchText}%`);
     }
   }

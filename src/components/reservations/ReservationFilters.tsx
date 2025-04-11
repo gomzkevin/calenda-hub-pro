@@ -97,7 +97,7 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
               <SelectValue placeholder="Alojamiento" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los alojamientos</SelectItem>
+              <SelectItem value="all">Todos los alojamientos</SelectItem>
               {properties.map((property) => (
                 <SelectItem key={property.id} value={property.id}>
                   {property.name}
@@ -117,7 +117,7 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
               <SelectValue placeholder="Plataforma" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las plataformas</SelectItem>
+              <SelectItem value="all">Todas las plataformas</SelectItem>
               <SelectItem value="Airbnb">Airbnb</SelectItem>
               <SelectItem value="Booking">Booking</SelectItem>
               <SelectItem value="VRBO">VRBO</SelectItem>

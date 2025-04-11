@@ -41,7 +41,17 @@ const ReservationsPage: React.FC = () => {
   
   const { data: reservations = [], isLoading: isLoadingReservations } = useQuery({
     queryKey: ['reservations', filters],
-    queryFn: () => getReservations(filters as any),
+    queryFn: () => {
+      // Only pass non-empty values to the API
+      const apiFilters: any = {};
+      if (filters.propertyId && filters.propertyId !== 'all') apiFilters.propertyId = filters.propertyId;
+      if (filters.platform && filters.platform !== 'all') apiFilters.platform = filters.platform;
+      if (filters.startDate) apiFilters.startDate = filters.startDate;
+      if (filters.endDate) apiFilters.endDate = filters.endDate;
+      if (filters.searchText) apiFilters.searchText = filters.searchText;
+      
+      return getReservations(Object.keys(apiFilters).length > 0 ? apiFilters : undefined);
+    },
   });
   
   // Property lookup map
