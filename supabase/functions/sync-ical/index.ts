@@ -25,7 +25,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[SYNC-ICAL] Starting sync for property ${propertyId} from ${icalUrl}`);
+    console.log(`[SYNC-ICAL] Starting sync for property ${propertyId} from ${icalUrl} (platform: ${platform})`);
 
     // Fetch the iCal data
     try {
@@ -62,7 +62,7 @@ serve(async (req) => {
       let parsed;
       try {
         parsed = parse(icalData);
-        console.log(`[SYNC-ICAL] Successfully parsed iCal data`);
+        console.log(`[SYNC-ICAL] Successfully parsed iCal data, found ${Object.keys(parsed).length} events`);
       } catch (parseError) {
         console.error("[SYNC-ICAL] Error parsing iCal data:", parseError);
         return new Response(
@@ -93,6 +93,29 @@ serve(async (req) => {
       // Process each event
       for (const event of validEvents) {
         const eventUid = event.uid;
+        const summary = event.summary || '';
+        const description = event.description || '';
+        
+        // Determine if this is a blocked date or actual reservation
+        const isBlocked = summary.includes('Not available');
+        
+        // Extract reservation URL and phone number from description if available
+        let reservationUrl = '';
+        let phoneNumber = '';
+        
+        if (description) {
+          // Extract reservation URL
+          const urlMatch = description.match(/Reservation URL: (https:\/\/[^\s\n]+)/);
+          if (urlMatch && urlMatch[1]) {
+            reservationUrl = urlMatch[1];
+          }
+          
+          // Extract phone number
+          const phoneMatch = description.match(/Phone Number \(Last 4 Digits\): (\d+)/);
+          if (phoneMatch && phoneMatch[1]) {
+            phoneNumber = phoneMatch[1];
+          }
+        }
         
         // Ensure dates are valid
         if (!event.start || !event.end) {
@@ -104,9 +127,19 @@ serve(async (req) => {
         // Format dates correctly for database
         const startDate = event.start.toISOString().split('T')[0];
         const endDate = event.end.toISOString().split('T')[0];
-        const summary = event.summary || '';
         
         console.log(`[SYNC-ICAL] Processing event: ${eventUid} (${startDate} to ${endDate}): ${summary}`);
+        if (reservationUrl) {
+          console.log(`[SYNC-ICAL] Reservation URL: ${reservationUrl}`);
+        }
+        
+        // Prepare notes with additional information
+        let notes = summary;
+        if (reservationUrl || phoneNumber) {
+          notes = `${summary}\n`;
+          if (reservationUrl) notes += `Reservation URL: ${reservationUrl}\n`;
+          if (phoneNumber) notes += `Phone: XXXX-XXXX-${phoneNumber}`;
+        }
         
         // Check if this event already exists in our database
         const { data: existingReservations, error: queryError } = await supabase
@@ -130,7 +163,7 @@ serve(async (req) => {
             .update({
               start_date: startDate,
               end_date: endDate,
-              notes: summary,
+              notes: notes,
               updated_at: new Date().toISOString()
             })
             .eq("id", existingReservations[0].id);
@@ -153,7 +186,7 @@ serve(async (req) => {
             platform: platform,
             source: "iCal",
             ical_url: icalUrl,
-            notes: summary,
+            notes: notes,
             external_id: eventUid
           };
           
