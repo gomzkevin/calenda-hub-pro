@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,26 @@ import { getProperties } from '@/services/propertyService';
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  
+  // Resize listener for responsive layout
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Calculate cell width based on screen size
+  const calculateCellWidth = () => {
+    if (windowWidth < 640) return 40; // Mobile
+    if (windowWidth < 1024) return 45; // Tablet
+    return 50; // Desktop
+  };
+  
+  const cellWidth = calculateCellWidth();
   
   // Fetch reservations
   const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
@@ -182,8 +202,11 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="relative">
-          <div className="grid" style={{ gridTemplateColumns: `200px repeat(${monthDays.length}, minmax(40px, 1fr))` }}>
+        <div className="relative overflow-x-auto">
+          <div className="grid" style={{ 
+            gridTemplateColumns: `200px repeat(${monthDays.length}, ${cellWidth}px)`,
+            minWidth: `max(100%, ${200 + (monthDays.length * cellWidth)}px)`
+          }}>
             {/* Header row with dates */}
             <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
               Properties
@@ -278,10 +301,9 @@ const MultiCalendar: React.FC = () => {
                       endPosition += 1;
                     }
                     
-                    // Calculate width and left position
-                    const cellWidth = 100 / monthDays.length;
-                    const left = `calc(200px + (${startPosition} * ${cellWidth}%))`;
-                    const width = `calc(${(endPosition - startPosition)} * ${cellWidth}%)`;
+                    // Calculate left position and width using cell width
+                    const left = `calc(200px + (${startPosition} * ${cellWidth}px))`;
+                    const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
                     
                     // Determine border radius style
                     const isStartTruncated = startDate < monthStart;
