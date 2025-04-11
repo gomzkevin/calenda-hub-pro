@@ -199,29 +199,32 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     }
                     
                     if (isSameDay(currentDay, endDate)) {
-                      endPos = i + 1;
+                      endPos = i;
                       break;
                     }
                   }
                   
                   if (startPos === -1) startPos = 0;
+                  if (endPos === 7 && startPos !== -1) endPos = 7;
                   
-                  // Calculate width and position with half-day offsets
+                  // Calculate width and position with half-day offsets for check-in and check-out
+                  // For check-in: Start the bar from the middle of the day cell
+                  // For check-out: End the bar at the middle of the day cell
                   const adjustedStartPos = isSameDay(week[startPos], startDate) ? startPos + 0.5 : startPos;
-                  const adjustedEndPos = (endPos < 7 && isSameDay(week[endPos-1], endDate)) ? endPos - 0.5 : endPos;
+                  const adjustedEndPos = (endPos < 7 && isSameDay(week[endPos], endDate)) ? endPos + 0.5 : endPos + 1;
                   
                   const reservationWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
                   const reservationLeft = `${(adjustedStartPos / 7) * 100}%`;
                   
                   // Skip if it doesn't fit in this week
-                  if (startPos >= 7 || endPos <= 0) return null;
+                  if (startPos >= 7 || endPos < 0) return null;
                   
                   return (
                     <TooltipProvider key={`res-${weekIndex}-${resIndex}`}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div 
-                            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-md flex items-center pl-2 text-white font-medium text-sm z-10`}
+                            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-full flex items-center pl-2 text-white font-medium text-sm z-10 transition-all`}
                             style={{
                               top: `${-84 + (resIndex * 10)}px`,
                               left: reservationLeft,
@@ -235,7 +238,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                         <TooltipContent>
                           <div className="text-xs">
                             <p><strong>Platform:</strong> {reservation.platform}</p>
-                            <p><strong>Dates:</strong> {format(new Date(reservation.startDate), 'MMM d')} - {format(new Date(reservation.endDate), 'MMM d, yyyy')}</p>
+                            <p><strong>Check-in:</strong> {format(new Date(reservation.startDate), 'MMM d')}</p>
+                            <p><strong>Check-out:</strong> {format(new Date(reservation.endDate), 'MMM d, yyyy')}</p>
                             {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
                           </div>
                         </TooltipContent>

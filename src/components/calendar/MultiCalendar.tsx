@@ -136,6 +136,8 @@ const MultiCalendar: React.FC = () => {
                     }
                     
                     // Adjust positions to start and end at mid-day
+                    // For check-in day: Add 0.5 to start from middle of the cell
+                    // For check-out day: Add 0.5 to end at middle of the cell
                     const adjustedStartIndex = isSameDay(monthDays[startDayIndex], startDate) ? startDayIndex + 0.5 : startDayIndex;
                     const adjustedEndIndex = isSameDay(monthDays[endDayIndex], endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
                     
@@ -148,7 +150,7 @@ const MultiCalendar: React.FC = () => {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
-                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-md flex items-center pl-2 text-white font-medium text-sm z-10`}
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-full flex items-center pl-2 text-white font-medium text-sm z-10 transition-all`}
                               style={{
                                 top: `${56 + (properties.indexOf(property) * 48)}px`,
                                 left: `calc(200px + ${left}%)`,
@@ -163,7 +165,8 @@ const MultiCalendar: React.FC = () => {
                             <div className="text-xs">
                               <p><strong>{property.name}</strong></p>
                               <p><strong>Platform:</strong> {reservation.platform}</p>
-                              <p><strong>Dates:</strong> {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}</p>
+                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d')}</p>
+                              <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
                               {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
                             </div>
                           </TooltipContent>

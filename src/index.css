@@ -129,4 +129,13 @@
   .bg-platform-other {
     @apply bg-gray-600/70;
   }
+  
+  /* New classes for reservation bars */
+  .reservation-bar {
+    @apply rounded-full transition-all;
+  }
+  
+  .reservation-bar:hover {
+    @apply brightness-90 shadow-md;
+  }
 }
