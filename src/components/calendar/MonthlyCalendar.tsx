@@ -194,7 +194,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     const currentDay = week[i];
                     if (!currentDay) continue;
                     
-                    // Check if current day is the start date or after it
+                    // Check if current day is the start date
                     if (startPos === -1 && isSameDay(currentDay, startDate)) {
                       startPos = i;
                     } else if (startPos === -1 && currentDay > startDate) {

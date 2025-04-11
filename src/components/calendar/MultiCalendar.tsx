@@ -139,19 +139,33 @@ const MultiCalendar: React.FC = () => {
                     }
                     
                     // Calculate grid column positions (0.5 represents middle of the cell)
-                    const startPosition = startDayIndex;
-                    const endPosition = endDayIndex + 1; // +1 because endDayIndex is inclusive
+                    const startPosition = isSameDay(visibleStartDate, startDate) ? startDayIndex + 0.5 : startDayIndex;
+                    const endPosition = isSameDay(visibleEndDate, endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
                     
-                    // Calculate width and left position as percentage
-                    const left = `calc(200px + (${startPosition + 0.5} * 100% / ${monthDays.length}))`;
-                    const width = `calc(${(endPosition - startPosition - 0.5)} * 100% / ${monthDays.length})`;
+                    // Calculate width and left position
+                    const cellWidth = 100 / monthDays.length;
+                    const left = `calc(200px + (${startPosition} * ${cellWidth}%))`;
+                    const width = `calc(${(endPosition - startPosition)} * ${cellWidth}%)`;
+                    
+                    // Determine border radius style
+                    const isStartTruncated = startDate < monthStart;
+                    const isEndTruncated = endDate > monthEnd;
+                    
+                    let borderRadiusStyle = 'rounded-full';
+                    if (isStartTruncated && isEndTruncated) {
+                      borderRadiusStyle = 'rounded-none';
+                    } else if (isStartTruncated) {
+                      borderRadiusStyle = 'rounded-r-full rounded-l-none';
+                    } else if (isEndTruncated) {
+                      borderRadiusStyle = 'rounded-l-full rounded-r-none';
+                    }
                     
                     return (
                       <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
-                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-full flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
                                 top: `${56 + (properties.indexOf(property) * 48)}px`,
                                 left: left,
