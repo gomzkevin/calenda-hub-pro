@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Property } from "@/types";
+import { Property, PropertyType } from "@/types";
 
 /**
  * Fetch all properties from the database
@@ -26,7 +26,7 @@ export const getProperties = async (): Promise<Property[]> => {
     bedrooms: prop.bedrooms,
     bathrooms: prop.bathrooms,
     capacity: prop.capacity,
-    type: prop.type || undefined,
+    type: prop.type as PropertyType || undefined,
     description: prop.description || undefined,
     createdAt: new Date(prop.created_at)
   })) : [];
@@ -63,7 +63,7 @@ export const getPropertyById = async (propertyId: string): Promise<Property | nu
     bedrooms: data.bedrooms,
     bathrooms: data.bathrooms,
     capacity: data.capacity,
-    type: data.type || undefined,
+    type: data.type as PropertyType || undefined,
     description: data.description || undefined,
     createdAt: new Date(data.created_at)
   };

@@ -7,7 +7,8 @@ export type ReservationSource = 'iCal' | 'Manual';
 
 export type ReservationStatus = 'Reserved' | 'Blocked' | 'Tentative';
 
-export type PropertyType = 'standalone' | 'parent' | 'child';
+// Expand PropertyType to include both relationship types and actual property types
+export type PropertyType = 'standalone' | 'parent' | 'child' | 'Villa' | 'Apartment' | 'Cabin' | 'Other';
 
 export interface Operator {
   id: string;
