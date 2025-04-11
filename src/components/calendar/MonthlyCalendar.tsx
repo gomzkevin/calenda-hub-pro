@@ -63,11 +63,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       const reservationStart = new Date(reservation.startDate);
       const reservationEnd = new Date(reservation.endDate);
       
-      return (
-        (day >= reservationStart && day <= reservationEnd) ||
-        (format(day, 'yyyy-MM-dd') === format(reservationStart, 'yyyy-MM-dd')) ||
-        (format(day, 'yyyy-MM-dd') === format(reservationEnd, 'yyyy-MM-dd'))
-      );
+      return isWithinInterval(day, { start: reservationStart, end: reservationEnd }) ||
+        isSameDay(day, reservationStart) || 
+        isSameDay(day, reservationEnd);
     });
   };
 

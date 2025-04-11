@@ -100,7 +100,7 @@ const createDate = (year: number, month: number, day: number): Date => {
   return new Date(year, month - 1, day);
 };
 
-// Sample reservations
+// Sample reservations - Now with dates in April and May 2025 to be visible on the calendar
 export const sampleReservations: Reservation[] = [
   {
     id: 'res-1',
@@ -156,6 +156,28 @@ export const sampleReservations: Reservation[] = [
     source: 'Manual',
     notes: 'Direct booking by phone',
     createdAt: new Date('2025-02-10')
+  },
+  // Add more reservations for visual testing
+  {
+    id: 'res-6',
+    propertyId: 'prop-2',
+    userId: 'user-1',
+    startDate: createDate(2025, 4, 18),
+    endDate: createDate(2025, 4, 25),
+    platform: 'Booking',
+    source: 'iCal',
+    notes: 'Family of 4',
+    createdAt: new Date('2025-02-15')
+  },
+  {
+    id: 'res-7',
+    propertyId: 'prop-3',
+    userId: 'user-2',
+    startDate: createDate(2025, 4, 3),
+    endDate: createDate(2025, 4, 8),
+    platform: 'VRBO',
+    source: 'iCal',
+    createdAt: new Date('2025-02-20')
   }
 ];
 
@@ -168,9 +190,17 @@ export const getReservationsForMonth = (
   const endOfMonth = new Date(year, month, 0);
   
   return sampleReservations.filter(reservation => {
+    const startDate = reservation.startDate instanceof Date ? 
+      reservation.startDate : 
+      new Date(reservation.startDate);
+    
+    const endDate = reservation.endDate instanceof Date ? 
+      reservation.endDate : 
+      new Date(reservation.endDate);
+    
     return (
-      (reservation.startDate <= endOfMonth && reservation.endDate >= startOfMonth) ||
-      (reservation.startDate >= startOfMonth && reservation.startDate <= endOfMonth)
+      (startDate <= endOfMonth && endDate >= startOfMonth) ||
+      (startDate >= startOfMonth && startDate <= endOfMonth)
     );
   });
 };

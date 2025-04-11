@@ -82,24 +82,24 @@
     @apply text-xs px-1 py-0.5 mb-1 rounded truncate;
   }
   
-  .platform-airbnb {
-    @apply bg-platform-airbnb text-white;
+  .booking-airbnb {
+    @apply bg-red-500 text-white;
   }
   
-  .platform-booking {
-    @apply bg-platform-booking text-white;
+  .booking-booking {
+    @apply bg-blue-600 text-white;
   }
   
-  .platform-vrbo {
-    @apply bg-platform-vrbo text-white;
+  .booking-vrbo {
+    @apply bg-green-600 text-white;
   }
   
-  .platform-manual {
-    @apply bg-platform-manual text-white;
+  .booking-manual {
+    @apply bg-purple-600 text-white;
   }
   
-  .platform-other {
-    @apply bg-platform-other text-white;
+  .booking-other {
+    @apply bg-gray-600 text-white;
   }
   
   .calendar-header {
