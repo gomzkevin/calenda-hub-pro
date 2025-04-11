@@ -16,6 +16,13 @@ interface MonthlyCalendarProps {
 const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
+  // Helper to ensure date is set to noon to avoid timezone issues
+  const normalizeDate = (date: Date): Date => {
+    const newDate = new Date(date);
+    newDate.setHours(12, 0, 0, 0);
+    return newDate;
+  };
+
   // Use React Query to fetch reservations
   const { data: allReservations = [], isLoading } = useQuery({
     queryKey: ['reservations', currentMonth.getMonth() + 1, currentMonth.getFullYear(), propertyId],
@@ -23,8 +30,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       if (propertyId) {
         const allReservations = await getReservationsForProperty(propertyId);
         return allReservations.filter(res => {
-          const resStartDate = new Date(res.startDate);
-          const resEndDate = new Date(res.endDate);
+          const resStartDate = normalizeDate(new Date(res.startDate));
+          const resEndDate = normalizeDate(new Date(res.endDate));
           const monthStart = startOfMonth(currentMonth);
           const monthEnd = endOfMonth(currentMonth);
           
@@ -80,8 +87,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     if (!day) return [];
     
     return reservations.filter(reservation => {
-      const reservationStart = new Date(reservation.startDate);
-      const reservationEnd = new Date(reservation.endDate);
+      const reservationStart = normalizeDate(new Date(reservation.startDate));
+      const reservationEnd = normalizeDate(new Date(reservation.endDate));
       
       return isWithinInterval(day, { start: reservationStart, end: reservationEnd }) ||
         isSameDay(day, reservationStart) || 
@@ -94,7 +101,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return false;
     
-    const startDate = new Date(reservation.startDate);
+    const startDate = normalizeDate(new Date(reservation.startDate));
     return isSameDay(day, startDate);
   };
 
@@ -103,7 +110,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return false;
     
-    const endDate = new Date(reservation.endDate);
+    const endDate = normalizeDate(new Date(reservation.endDate));
     return isSameDay(day, endDate);
   };
 
@@ -113,8 +120,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     if (validDays.length === 0) return [];
 
     return reservations.filter(reservation => {
-      const reservationStart = new Date(reservation.startDate);
-      const reservationEnd = new Date(reservation.endDate);
+      const reservationStart = normalizeDate(new Date(reservation.startDate));
+      const reservationEnd = normalizeDate(new Date(reservation.endDate));
 
       return validDays.some(day => {
         if (!day) return false;
@@ -183,8 +190,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
               {/* Reservation bars */}
               <div className="col-span-7 relative h-0">
                 {week[0] && getReservationsForWeek(week).map((reservation, resIndex) => {
-                  const startDate = new Date(reservation.startDate);
-                  const endDate = new Date(reservation.endDate);
+                  const startDate = normalizeDate(new Date(reservation.startDate));
+                  const endDate = normalizeDate(new Date(reservation.endDate));
                   
                   // Find position of start and end days in this week
                   let startPos = -1;
@@ -267,8 +274,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                         <TooltipContent>
                           <div className="text-xs">
                             <p><strong>Platform:</strong> {reservation.platform}</p>
-                            <p><strong>Check-in:</strong> {format(new Date(reservation.startDate), 'MMM d')}</p>
-                            <p><strong>Check-out:</strong> {format(new Date(reservation.endDate), 'MMM d, yyyy')}</p>
+                            <p><strong>Check-in:</strong> {format(startDate, 'MMM d')}</p>
+                            <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
                             {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
                           </div>
                         </TooltipContent>

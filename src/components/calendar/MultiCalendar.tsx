@@ -50,6 +50,13 @@ const MultiCalendar: React.FC = () => {
 
   const isLoading = isLoadingReservations || isLoadingProperties;
 
+  // Helper to ensure date is set to noon to avoid timezone issues
+  const normalizeDate = (date: Date): Date => {
+    const newDate = new Date(date);
+    newDate.setHours(12, 0, 0, 0);
+    return newDate;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow overflow-auto">
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
@@ -119,8 +126,9 @@ const MultiCalendar: React.FC = () => {
 
                   {/* Reservation bars */}
                   {propertyReservations.map((reservation, resIndex) => {
-                    const startDate = new Date(reservation.startDate);
-                    const endDate = new Date(reservation.endDate);
+                    // Normalize the dates to noon to avoid timezone issues
+                    const startDate = normalizeDate(new Date(reservation.startDate));
+                    const endDate = normalizeDate(new Date(reservation.endDate));
                     
                     // Check if reservation overlaps with current month view
                     if (endDate < monthStart || startDate > monthEnd) {
