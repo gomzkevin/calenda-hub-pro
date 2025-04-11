@@ -228,7 +228,7 @@ const MultiCalendar: React.FC = () => {
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col h-full w-full"
+      className="flex flex-col h-full w-full max-w-full"
     >
       {/* Month navigation header */}
       <div className="flex items-center justify-between mb-2">
@@ -257,198 +257,200 @@ const MultiCalendar: React.FC = () => {
         </div>
       ) : (
         <ScrollArea className="h-full w-full overflow-hidden border rounded-md">
-          <div className="relative w-full">
-            <div className="grid" style={{ 
-              gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
-            }}>
-              {/* Header row with dates */}
-              <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
-                Properties
-              </div>
-              
-              {visibleMonthDays.map((day, index) => (
-                <div 
-                  key={index}
-                  className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
-                >
-                  <span>{format(day, 'EEE')}</span>
-                  <span>{format(day, 'd')}</span>
+          <div className="w-full h-full">
+            <div className="relative w-full">
+              <div className="grid" style={{ 
+                gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
+              }}>
+                {/* Header row with dates */}
+                <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
+                  Properties
                 </div>
-              ))}
-              
-              {/* Property rows */}
-              {properties.map((property: Property, propertyIndex: number) => {
-                const propertyReservations = getReservationsForProperty(property.id);
-                const propertyLanes = propertyReservationLanes[property.id] || {};
-                const laneHeight = 12; // Height for each reservation lane in pixels
-                const baseRowHeight = 48; // Base height for property row
                 
-                // Calculate appropriate row height based on number of lanes
-                const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
-                const rowHeight = baseRowHeight + (maxLane * laneHeight);
+                {visibleMonthDays.map((day, index) => (
+                  <div 
+                    key={index}
+                    className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
+                  >
+                    <span>{format(day, 'EEE')}</span>
+                    <span>{format(day, 'd')}</span>
+                  </div>
+                ))}
                 
-                // Calculate the starting vertical position for this property row
-                let rowTopPosition = 10; // Header height
-                for (let i = 0; i < propertyIndex; i++) {
-                  const prevPropertyLanes = propertyReservationLanes[properties[i].id] || {};
-                  const prevMaxLane = Object.values(prevPropertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
-                  const prevRowHeight = baseRowHeight + (prevMaxLane * laneHeight);
-                  rowTopPosition += prevRowHeight;
-                }
-                
-                return (
-                  <React.Fragment key={property.id}>
-                    {/* Property name (first column) */}
-                    <div 
-                      className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate"
-                      style={{ height: `${rowHeight}px` }}
-                    >
-                      {property.name}
-                    </div>
-                    
-                    {/* Calendar cells */}
-                    {visibleMonthDays.map((day, dayIndex) => {
-                      const isToday = isSameDay(day, new Date());
+                {/* Property rows */}
+                {properties.map((property: Property, propertyIndex: number) => {
+                  const propertyReservations = getReservationsForProperty(property.id);
+                  const propertyLanes = propertyReservationLanes[property.id] || {};
+                  const laneHeight = 12; // Height for each reservation lane in pixels
+                  const baseRowHeight = 48; // Base height for property row
+                  
+                  // Calculate appropriate row height based on number of lanes
+                  const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
+                  const rowHeight = baseRowHeight + (maxLane * laneHeight);
+                  
+                  // Calculate the starting vertical position for this property row
+                  let rowTopPosition = 10; // Header height
+                  for (let i = 0; i < propertyIndex; i++) {
+                    const prevPropertyLanes = propertyReservationLanes[properties[i].id] || {};
+                    const prevMaxLane = Object.values(prevPropertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
+                    const prevRowHeight = baseRowHeight + (prevMaxLane * laneHeight);
+                    rowTopPosition += prevRowHeight;
+                  }
+                  
+                  return (
+                    <React.Fragment key={property.id}>
+                      {/* Property name (first column) */}
+                      <div 
+                        className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate"
+                        style={{ height: `${rowHeight}px` }}
+                      >
+                        {property.name}
+                      </div>
                       
-                      return (
-                        <div
-                          key={dayIndex}
-                          className={`border ${isToday ? 'bg-blue-50' : ''}`}
-                          style={{ height: `${rowHeight}px` }}
-                        />
-                      );
-                    })}
+                      {/* Calendar cells */}
+                      {visibleMonthDays.map((day, dayIndex) => {
+                        const isToday = isSameDay(day, new Date());
+                        
+                        return (
+                          <div
+                            key={dayIndex}
+                            className={`border ${isToday ? 'bg-blue-50' : ''}`}
+                            style={{ height: `${rowHeight}px` }}
+                          />
+                        );
+                      })}
 
-                    {/* Reservation bars */}
-                    {propertyReservations.map((reservation) => {
-                      // Get normalized dates
-                      const startDate = reservation.startDate;
-                      const endDate = reservation.endDate;
-                      
-                      // Check if reservation overlaps with visible days
-                      if (endDate < visibleMonthDays[0] || startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
-                        return null;
-                      }
-                      
-                      // Calculate start and end positions
-                      const visibleStartDate = startDate < visibleMonthDays[0] ? visibleMonthDays[0] : startDate;
-                      const visibleEndDate = endDate > visibleMonthDays[visibleMonthDays.length - 1] ? 
-                        visibleMonthDays[visibleMonthDays.length - 1] : endDate;
-                      
-                      // Find day index for start and end in the visible days array
-                      const startDayIndex = visibleMonthDays.findIndex(d => 
-                        isSameDay(normalizeDate(d), visibleStartDate)
-                      );
-                      
-                      let endDayIndex = visibleMonthDays.findIndex(d => 
-                        isSameDay(normalizeDate(d), visibleEndDate)
-                      );
-                      
-                      if (endDayIndex === -1) {
-                        endDayIndex = visibleMonthDays.length - 1;
-                      }
-                      
-                      // Calculate grid column positions with proper spacing
-                      let startPosition = startDayIndex;
-                      let endPosition = endDayIndex;
-                      
-                      // If this is the actual check-in day (not a continuation), start at 60% of cell
-                      if (isSameDay(visibleStartDate, startDate)) {
-                        startPosition += 0.6; // Start at 60% of the cell width
-                      }
-                      
-                      // If this is the actual check-out day (not a continuation), end at 40% of cell
-                      if (isSameDay(visibleEndDate, endDate)) {
-                        endPosition += 0.4; // End at 40% of the cell width
-                      } else {
-                        // If not the actual check-out day, bar should extend to the end of the day
-                        endPosition += 1;
-                      }
-                      
-                      // Calculate left position and width using cell width
-                      const left = `calc(160px + (${startPosition} * ${cellWidth}px))`;
-                      const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
-                      
-                      // Determine border radius style
-                      const isStartTruncated = startDate < visibleMonthDays[0];
-                      const isEndTruncated = endDate > visibleMonthDays[visibleMonthDays.length - 1];
-                      
-                      let borderRadiusStyle = 'rounded-full';
-                      if (isStartTruncated && isEndTruncated) {
-                        borderRadiusStyle = 'rounded-none';
-                      } else if (isStartTruncated) {
-                        borderRadiusStyle = 'rounded-r-full rounded-l-none';
-                      } else if (isEndTruncated) {
-                        borderRadiusStyle = 'rounded-l-full rounded-r-none';
-                      }
-                      
-                      // Get the lane assigned to this reservation
-                      const lane = propertyLanes[reservation.id] || 0;
-                      
-                      // Calculate the vertical position within the property row
-                      // Center the reservation bar vertically in the property row
-                      const laneOffset = lane * laneHeight;
-                      const verticalPosition = rowTopPosition + (rowHeight / 2) - 4 + laneOffset;
-                      
-                      // Determine text size based on bar width
-                      const isShortReservation = endPosition - startPosition < 1;
-                      
-                      // Get style based on reservation type
-                      const reservationClass = getReservationStyle(reservation);
-                      
-                      // Find source property name for blocks
-                      let sourcePropertyInfo = '';
-                      if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
-                        const sourceReservation = allReservations.find(r => r.id === reservation.sourceReservationId);
-                        if (sourceReservation) {
-                          const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
-                          if (sourceProperty) {
-                            sourcePropertyInfo = `Bloqueado por reserva en: ${sourceProperty.name}`;
+                      {/* Reservation bars */}
+                      {propertyReservations.map((reservation) => {
+                        // Get normalized dates
+                        const startDate = reservation.startDate;
+                        const endDate = reservation.endDate;
+                        
+                        // Check if reservation overlaps with visible days
+                        if (endDate < visibleMonthDays[0] || startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
+                          return null;
+                        }
+                        
+                        // Calculate start and end positions
+                        const visibleStartDate = startDate < visibleMonthDays[0] ? visibleMonthDays[0] : startDate;
+                        const visibleEndDate = endDate > visibleMonthDays[visibleMonthDays.length - 1] ? 
+                          visibleMonthDays[visibleMonthDays.length - 1] : endDate;
+                        
+                        // Find day index for start and end in the visible days array
+                        const startDayIndex = visibleMonthDays.findIndex(d => 
+                          isSameDay(normalizeDate(d), visibleStartDate)
+                        );
+                        
+                        let endDayIndex = visibleMonthDays.findIndex(d => 
+                          isSameDay(normalizeDate(d), visibleEndDate)
+                        );
+                        
+                        if (endDayIndex === -1) {
+                          endDayIndex = visibleMonthDays.length - 1;
+                        }
+                        
+                        // Calculate grid column positions with proper spacing
+                        let startPosition = startDayIndex;
+                        let endPosition = endDayIndex;
+                        
+                        // If this is the actual check-in day (not a continuation), start at 60% of cell
+                        if (isSameDay(visibleStartDate, startDate)) {
+                          startPosition += 0.6; // Start at 60% of the cell width
+                        }
+                        
+                        // If this is the actual check-out day (not a continuation), end at 40% of cell
+                        if (isSameDay(visibleEndDate, endDate)) {
+                          endPosition += 0.4; // End at 40% of the cell width
+                        } else {
+                          // If not the actual check-out day, bar should extend to the end of the day
+                          endPosition += 1;
+                        }
+                        
+                        // Calculate left position and width using cell width
+                        const left = `calc(160px + (${startPosition} * ${cellWidth}px))`;
+                        const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
+                        
+                        // Determine border radius style
+                        const isStartTruncated = startDate < visibleMonthDays[0];
+                        const isEndTruncated = endDate > visibleMonthDays[visibleMonthDays.length - 1];
+                        
+                        let borderRadiusStyle = 'rounded-full';
+                        if (isStartTruncated && isEndTruncated) {
+                          borderRadiusStyle = 'rounded-none';
+                        } else if (isStartTruncated) {
+                          borderRadiusStyle = 'rounded-r-full rounded-l-none';
+                        } else if (isEndTruncated) {
+                          borderRadiusStyle = 'rounded-l-full rounded-r-none';
+                        }
+                        
+                        // Get the lane assigned to this reservation
+                        const lane = propertyLanes[reservation.id] || 0;
+                        
+                        // Calculate the vertical position within the property row
+                        // Center the reservation bar vertically in the property row
+                        const laneOffset = lane * laneHeight;
+                        const verticalPosition = rowTopPosition + (rowHeight / 2) - 4 + laneOffset;
+                        
+                        // Determine text size based on bar width
+                        const isShortReservation = endPosition - startPosition < 1;
+                        
+                        // Get style based on reservation type
+                        const reservationClass = getReservationStyle(reservation);
+                        
+                        // Find source property name for blocks
+                        let sourcePropertyInfo = '';
+                        if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
+                          const sourceReservation = allReservations.find(r => r.id === reservation.sourceReservationId);
+                          if (sourceReservation) {
+                            const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
+                            if (sourceProperty) {
+                              sourcePropertyInfo = `Bloqueado por reserva en: ${sourceProperty.name}`;
+                            }
                           }
                         }
-                      }
-                      
-                      // Only render reservation if it's within the visible range
-                      if (startPosition < 0 && endPosition < 0) return null;
-                      if (startPosition >= visibleMonthDays.length && endPosition >= visibleMonthDays.length) return null;
-                      
-                      return (
-                        <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div 
-                                className={`absolute h-8 ${reservationClass} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
-                                style={{
-                                  top: `${verticalPosition}px`,
-                                  left: left,
-                                  width: width,
-                                  minWidth: '40px'
-                                }}
-                              >
-                                {reservation.platform}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs">
-                                <p><strong>{property.name}</strong></p>
-                                <p><strong>Platform:</strong> {reservation.platform}</p>
-                                <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
-                                <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                                {sourcePropertyInfo && (
-                                  <p className="mt-1 text-gray-500"><em>{sourcePropertyInfo}</em></p>
-                                )}
-                                {reservation.notes && reservation.notes !== 'Blocked' && (
-                                  <p><strong>Notes:</strong> {reservation.notes}</p>
-                                )}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })}
-                  </React.Fragment>
-                );
-              })}
+                        
+                        // Only render reservation if it's within the visible range
+                        if (startPosition < 0 && endPosition < 0) return null;
+                        if (startPosition >= visibleMonthDays.length && endPosition >= visibleMonthDays.length) return null;
+                        
+                        return (
+                          <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div 
+                                  className={`absolute h-8 ${reservationClass} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                                  style={{
+                                    top: `${verticalPosition}px`,
+                                    left: left,
+                                    width: width,
+                                    minWidth: '40px'
+                                  }}
+                                >
+                                  {reservation.platform}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs">
+                                  <p><strong>{property.name}</strong></p>
+                                  <p><strong>Platform:</strong> {reservation.platform}</p>
+                                  <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
+                                  <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
+                                  {sourcePropertyInfo && (
+                                    <p className="mt-1 text-gray-500"><em>{sourcePropertyInfo}</em></p>
+                                  )}
+                                  {reservation.notes && reservation.notes !== 'Blocked' && (
+                                    <p><strong>Notes:</strong> {reservation.notes}</p>
+                                  )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </ScrollArea>
