@@ -74,7 +74,9 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     setSyncError(null);
     
     try {
+      console.log("Procesando calendario:", icalLink.url);
       const data = await processICalLink(icalLink.url);
+      console.log("Datos recibidos:", data);
       setIcalDetails(data);
       return data;
     } catch (error) {
@@ -98,20 +100,26 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     setSyncError(null);
     
     // First, process the iCal data to get detailed information
-    const processedData = await processICalData();
-    
-    // If processing failed, stop here
-    if (!processedData) {
-      setIsSyncing(false);
-      return;
-    }
-    
-    toast({
-      title: "Sincronizando calendario",
-      description: `Encontradas ${processedData.reservations.length} reservas. Actualizando base de datos...`
-    });
-    
     try {
+      console.log("Iniciando sincronización para:", icalLink);
+      toast({
+        title: "Sincronizando calendario",
+        description: "Obteniendo datos del calendario..."
+      });
+      
+      const processedData = await processICalData();
+      
+      // If processing failed, stop here
+      if (!processedData) {
+        setIsSyncing(false);
+        return;
+      }
+      
+      toast({
+        title: "Sincronizando calendario",
+        description: `Encontradas ${processedData.reservations.length} reservas. Actualizando base de datos...`
+      });
+      
       const result = await syncICalLink(icalLink);
       
       if (result.success && result.results) {
@@ -176,13 +184,23 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
         description: "Obteniendo detalles del calendario..."
       });
       
-      const data = await processICalData();
-      
-      if (data) {
-        showCalendarDetailsToast(data);
+      try {
+        console.log("Procesando calendario para detalles:", icalLink.url);
+        const data = await processICalData();
+        
+        if (data) {
+          showCalendarDetailsToast(data);
+        }
+      } catch (error) {
+        console.error("Error al procesar detalles:", error);
+        toast({
+          variant: "destructive",
+          title: "Error en detalles",
+          description: "No se pudieron obtener los detalles del calendario."
+        });
+      } finally {
+        setIsProcessing(false);
       }
-      
-      setIsProcessing(false);
     }
   };
   
