@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, parseISO, isWithinInterval } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getReservationsForMonth, getPlatformColorClass } from '@/data/mockData';
 import { Reservation } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Avatar } from "@/components/ui/avatar";
+import { getPlatformColorClass, getReservationsForMonth } from '@/data/mockData';
 
 interface MonthlyCalendarProps {
   propertyId?: string;
@@ -70,11 +69,6 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
         (format(day, 'yyyy-MM-dd') === format(reservationEnd, 'yyyy-MM-dd'))
       );
     });
-  };
-
-  // Get reservations that span multiple days
-  const getReservationsForMonth = (): Reservation[] => {
-    return filteredReservations;
   };
 
   // Check if a day is start of a reservation
