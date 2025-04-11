@@ -220,10 +220,8 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="relative overflow-x-auto" style={{ overflowY: 'visible' }}>
-          <div className="min-w-[100%]" style={{ 
-            width: `max(100%, ${200 + (monthDays.length * cellWidth)}px)`,
-          }}>
+        <div className="relative overflow-auto flex-1 h-full" style={{ maxHeight: "calc(100% - 60px)" }}>
+          <div className="min-w-max">
             <div className="grid" style={{ 
               gridTemplateColumns: `200px repeat(${monthDays.length}, ${cellWidth}px)`,
             }}>

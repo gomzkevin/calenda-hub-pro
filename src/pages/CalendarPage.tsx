@@ -16,8 +16,10 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const initialPropertyId = queryParams.get('property') || '';
+  const initialView = queryParams.get('view') || 'monthly';
   
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
+  const [activeView, setActiveView] = useState<string>(initialView);
   
   // Fetch properties from Supabase
   const { data: properties = [], isLoading } = useQuery({
@@ -32,25 +34,33 @@ const CalendarPage: React.FC = () => {
       setSelectedPropertyId(firstPropertyId);
       
       // Update URL with the first property
-      const params = new URLSearchParams(location.search);
-      params.set('property', firstPropertyId);
-      navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+      updateUrlParams(firstPropertyId, activeView);
     }
-  }, [properties, selectedPropertyId, location.pathname, location.search, navigate]);
+  }, [properties, selectedPropertyId, activeView]);
+  
+  // Update URL when view or property changes
+  const updateUrlParams = (propertyId: string, view: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('property', propertyId);
+    params.set('view', view);
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  };
   
   // Handle property selection change
   const handlePropertyChange = (propertyId: string) => {
     setSelectedPropertyId(propertyId);
-    
-    // Update URL with the selected property
-    const params = new URLSearchParams(location.search);
-    params.set('property', propertyId);
-    navigate(`${location.pathname}?${params.toString()}`);
+    updateUrlParams(propertyId, activeView);
+  };
+  
+  // Handle view change
+  const handleViewChange = (view: string) => {
+    setActiveView(view);
+    updateUrlParams(selectedPropertyId, view);
   };
   
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
           <div className="w-full sm:w-64">
@@ -81,13 +91,13 @@ const CalendarPage: React.FC = () => {
         </div>
       </div>
       
-      <Tabs defaultValue="monthly" className="w-full">
+      <Tabs value={activeView} onValueChange={handleViewChange} className="w-full">
         <TabsList className="w-full grid grid-cols-2 sm:w-auto">
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
           <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="monthly">
+        <TabsContent value="monthly" className="w-full h-[calc(100vh-220px)]">
           <Card>
             <CardHeader>
               <CardTitle>Monthly Calendar</CardTitle>
@@ -103,15 +113,15 @@ const CalendarPage: React.FC = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="multi" className="w-full">
-          <Card className="w-full">
+        <TabsContent value="multi" className="w-full h-[calc(100vh-220px)]">
+          <Card className="w-full h-full">
             <CardHeader>
               <CardTitle>Multi-Property View</CardTitle>
               <CardDescription>
                 Operational view showing all properties by day
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0 sm:p-6">
+            <CardContent className="p-0 sm:p-6 h-[calc(100%-85px)] overflow-hidden">
               <MultiCalendar />
             </CardContent>
           </Card>
