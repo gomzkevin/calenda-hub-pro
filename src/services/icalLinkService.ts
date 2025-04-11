@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ICalLink } from "@/types";
 
@@ -132,17 +133,20 @@ export const storeReservations = async (
   let skipped = 0;
   
   try {
+    console.log(`Almacenando ${reservations.length} reservaciones para la propiedad ${propertyId}`);
+    
     // Process each reservation
     for (const reservation of reservations) {
-      const externalId = reservation.reservationId || reservation.uid || '';
-      const startDate = reservation.checkIn;
-      const endDate = reservation.checkOut;
-      
-      if (!startDate || !endDate) {
+      // Ensure we have the required data
+      if (!reservation.checkIn || !reservation.checkOut) {
         console.warn("Skipping reservation with missing dates:", reservation);
         skipped++;
         continue;
       }
+      
+      const externalId = reservation.reservationId || reservation.uid || '';
+      const startDate = reservation.checkIn;
+      const endDate = reservation.checkOut;
       
       // Prepare notes with additional information
       let notes = reservation.status || '';
@@ -186,6 +190,7 @@ export const storeReservations = async (
           console.error("Error updating reservation:", updateError);
           skipped++;
         } else {
+          console.log(`Actualizada reservación: ${startDate} - ${endDate}`);
           updated++;
         }
       } else {
@@ -201,6 +206,8 @@ export const storeReservations = async (
           external_id: externalId
         };
         
+        console.log("Insertando nueva reservación:", reservationData);
+        
         const { error: insertError } = await supabase
           .from("reservations")
           .insert(reservationData);
@@ -209,11 +216,13 @@ export const storeReservations = async (
           console.error("Error inserting reservation:", insertError);
           skipped++;
         } else {
+          console.log(`Añadida nueva reservación: ${startDate} - ${endDate}`);
           added++;
         }
       }
     }
     
+    console.log(`Resultados de sincronización: ${added} añadidas, ${updated} actualizadas, ${skipped} omitidas`);
     return { added, updated, skipped };
   } catch (error) {
     console.error("Error storing reservations:", error);
