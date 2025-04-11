@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -18,13 +19,14 @@ const MultiCalendar: React.FC = () => {
   
   const [cellWidth, setCellWidth] = useState<number>(50);
   const [visibleDays, setVisibleDays] = useState<number>(31);
-  const [isMounted, setIsMounted] = useState<boolean>(false);
   
   useLayoutEffect(() => {
     const calculateLayout = () => {
       if (!containerRef.current) return;
       
       const containerWidth = containerRef.current.clientWidth;
+      console.log("Container width:", containerWidth);
+      
       const availableWidth = Math.max(0, containerWidth - 160);
       
       let newCellWidth;
@@ -41,9 +43,11 @@ const MultiCalendar: React.FC = () => {
         daysToShow = Math.max(15, Math.floor(availableWidth / newCellWidth));
       }
       
+      console.log("Calculated cell width:", newCellWidth);
+      console.log("Calculated visible days:", daysToShow);
+      
       setCellWidth(newCellWidth);
       setVisibleDays(Math.min(daysToShow, 31));
-      setIsMounted(true);
     };
     
     calculateLayout();
@@ -89,13 +93,17 @@ const MultiCalendar: React.FC = () => {
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
-  const visibleMonthDays = monthDays.slice(0, visibleDays);
+  const visibleMonthDays = monthDays.slice(0, visibleDays || 31);
+  console.log("Month days:", monthDays.length);
+  console.log("Visible month days:", visibleMonthDays.length);
   
   const getReservationsForProperty = (propertyId: string): Reservation[] => {
     return reservations.filter(res => res.propertyId === propertyId);
   };
 
-  const isLoading = isLoadingReservations || isLoadingProperties || !isMounted;
+  const isLoading = isLoadingReservations || isLoadingProperties;
+  console.log("isLoading:", isLoading);
+  console.log("Properties count:", properties.length);
 
   const normalizeDate = (date: Date): Date => {
     const newDate = new Date(date);
@@ -214,14 +222,6 @@ const MultiCalendar: React.FC = () => {
     return getPlatformColorClass(reservation.platform);
   };
 
-  if (!isMounted) {
-    return (
-      <div className="flex justify-center items-center h-full w-full p-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   console.log("MultiCalendar rendering with properties:", properties.length);
   console.log("MultiCalendar rendering with reservations:", reservations.length);
 
@@ -317,7 +317,10 @@ const MultiCalendar: React.FC = () => {
                         const startDate = reservation.startDate;
                         const endDate = reservation.endDate;
                         
-                        if (endDate < visibleMonthDays[0] || startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
+                        // Skip reservations completely outside visible range
+                        if (!visibleMonthDays.length || 
+                            endDate < visibleMonthDays[0] || 
+                            startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
                           return null;
                         }
                         
@@ -325,6 +328,7 @@ const MultiCalendar: React.FC = () => {
                         const visibleEndDate = endDate > visibleMonthDays[visibleMonthDays.length - 1] ? 
                           visibleMonthDays[visibleMonthDays.length - 1] : endDate;
                         
+                        // Find index of the dates in visible month days
                         const startDayIndex = visibleMonthDays.findIndex(d => 
                           isSameDay(normalizeDate(d), normalizeDate(visibleStartDate))
                         );
@@ -335,6 +339,11 @@ const MultiCalendar: React.FC = () => {
                         
                         if (endDayIndex === -1) {
                           endDayIndex = visibleMonthDays.length - 1;
+                        }
+                        
+                        // If startDayIndex is still -1, skip this reservation
+                        if (startDayIndex === -1) {
+                          return null;
                         }
                         
                         let startPosition = startDayIndex;
