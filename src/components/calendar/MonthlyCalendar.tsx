@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -116,10 +117,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       const reservationEnd = new Date(reservation.endDate);
 
       return validDays.some(day => {
-        return day && (
-          isSameDay(day, reservationStart) || 
-          (day > reservationStart && day <= reservationEnd)
-        );
+        if (!day) return false;
+        return day <= reservationEnd && day >= reservationStart;
       });
     });
   };
@@ -195,42 +194,70 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     const currentDay = week[i];
                     if (!currentDay) continue;
                     
-                    if (startPos === -1 && 
-                        (isSameDay(currentDay, startDate) || currentDay > startDate)) {
+                    // Check if current day is the start date or after it
+                    if (startPos === -1 && isSameDay(currentDay, startDate)) {
+                      startPos = i;
+                    } else if (startPos === -1 && currentDay > startDate) {
+                      // If we're past the start date but haven't set it yet, set it to this cell
                       startPos = i;
                     }
                     
+                    // Check if current day is the end date
                     if (isSameDay(currentDay, endDate)) {
                       endPos = i;
                       break;
                     }
                   }
                   
+                  // Handle cases where the reservation doesn't start or end in this week
                   if (startPos === -1) startPos = 0;
-                  if (endPos === 7 && startPos !== -1) endPos = 7;
+                  if (endPos === 7 && startPos !== -1) endPos = 6;
                   
-                  // Calculate width and position with half-day offsets for check-in and check-out
-                  // For check-in: Start the bar from the middle of the day cell
-                  // For check-out: End the bar at the middle of the day cell
-                  const adjustedStartPos = isSameDay(week[startPos], startDate) ? startPos + 0.5 : startPos;
-                  const adjustedEndPos = (endPos < 7 && isSameDay(week[endPos], endDate)) ? endPos + 0.5 : endPos + 1;
+                  // Check if the reservation continues to the next or from the previous week
+                  const continuesFromPrevious = startPos === 0 && !isSameDay(week[0], startDate);
+                  const continuesToNext = endPos === 6 && !isSameDay(week[6], endDate);
                   
-                  const reservationWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
-                  const reservationLeft = `${(adjustedStartPos / 7) * 100}%`;
+                  // Calculate start/end adjustments
+                  // For check-in day (start): Add 0.5 to start from middle of cell
+                  // For check-out day (end): Add 0.5 to end at middle of cell
+                  let adjustedStartPos = startPos;
+                  let adjustedEndPos = endPos + 1; // +1 because endPos is inclusive
+                  
+                  // Only adjust for actual check-in/out, not for week continuations
+                  if (isSameDay(week[startPos], startDate)) {
+                    adjustedStartPos += 0.5; // Start from middle of check-in cell
+                  }
+                  
+                  if (isSameDay(week[endPos], endDate)) {
+                    adjustedEndPos = endPos + 0.5; // End at middle of check-out cell
+                  }
+                  
+                  const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
+                  const barLeft = `${(adjustedStartPos / 7) * 100}%`;
+                  
+                  // Set border radius based on continuation
+                  let borderRadiusStyle = 'rounded-full';
+                  if (continuesFromPrevious && continuesToNext) {
+                    borderRadiusStyle = 'rounded-none'; // No rounded corners on both sides
+                  } else if (continuesFromPrevious) {
+                    borderRadiusStyle = 'rounded-r-full rounded-l-none'; // Rounded right corner only
+                  } else if (continuesToNext) {
+                    borderRadiusStyle = 'rounded-l-full rounded-r-none'; // Rounded left corner only
+                  }
                   
                   // Skip if it doesn't fit in this week
-                  if (startPos >= 7 || endPos < 0) return null;
+                  if (startPos > 6 || endPos < 0) return null;
                   
                   return (
                     <TooltipProvider key={`res-${weekIndex}-${resIndex}`}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div 
-                            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-full flex items-center pl-2 text-white font-medium text-sm z-10 transition-all`}
+                            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
                             style={{
                               top: `${-84 + (resIndex * 10)}px`,
-                              left: reservationLeft,
-                              width: reservationWidth,
+                              left: barLeft,
+                              width: barWidth,
                               minWidth: '40px'
                             }}
                           >

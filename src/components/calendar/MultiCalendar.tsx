@@ -131,33 +131,31 @@ const MultiCalendar: React.FC = () => {
                     const visibleStartDate = startDate < monthStart ? monthStart : startDate;
                     const visibleEndDate = endDate > monthEnd ? monthEnd : endDate;
                     
-                    // Find day index for start and end
+                    // Find day index for start and end in the month days array
                     const startDayIndex = monthDays.findIndex(d => isSameDay(d, visibleStartDate));
                     let endDayIndex = monthDays.findIndex(d => isSameDay(d, visibleEndDate));
                     if (endDayIndex === -1) {
                       endDayIndex = monthDays.length - 1;
                     }
                     
-                    // Adjust positions to start and end at mid-day
-                    // For check-in day: Add 0.5 to start from middle of the cell
-                    // For check-out day: Add 0.5 to end at middle of the cell
-                    const adjustedStartIndex = isSameDay(monthDays[startDayIndex], startDate) ? startDayIndex + 0.5 : startDayIndex;
-                    const adjustedEndIndex = isSameDay(monthDays[endDayIndex], endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
+                    // Calculate grid column positions (0.5 represents middle of the cell)
+                    const startPosition = startDayIndex;
+                    const endPosition = endDayIndex + 1; // +1 because endDayIndex is inclusive
                     
-                    // Calculate positioning with adjusted values
-                    const left = (adjustedStartIndex * 100 / monthDays.length);
-                    const width = ((adjustedEndIndex - adjustedStartIndex) * 100 / monthDays.length);
+                    // Calculate width and left position as percentage
+                    const left = `calc(200px + (${startPosition + 0.5} * 100% / ${monthDays.length}))`;
+                    const width = `calc(${(endPosition - startPosition - 0.5)} * 100% / ${monthDays.length})`;
                     
                     return (
                       <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
-                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-full flex items-center pl-2 text-white font-medium text-sm z-10 transition-all`}
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-full flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
                                 top: `${56 + (properties.indexOf(property) * 48)}px`,
-                                left: `calc(200px + ${left}%)`,
-                                width: `${width}%`,
+                                left: left,
+                                width: width,
                                 minWidth: '40px'
                               }}
                             >
