@@ -18,6 +18,13 @@ const ReservationLane = ({
   monthDays, 
   lanes, 
   laneHeight 
+}: {
+  reservation: Reservation,
+  property: Property,
+  startDay: number,
+  monthDays: Date[],
+  lanes: Record<string, number>,
+  laneHeight: number
 }) => {
   // Only render the reservation in its starting column
   const startDayIndex = monthDays.findIndex(d => 
@@ -119,11 +126,11 @@ const MultiCalendar: React.FC = () => {
   
   // Pre-calculate lane assignments for all properties
   const propertyLaneAssignments = useMemo(() => {
-    const allLaneAssignments = {};
+    const allLaneAssignments: Record<string, Record<string, number>> = {};
     
     properties.forEach(property => {
       const propertyReservations = getReservationsForProperty(property.id);
-      const laneAssignments = {};
+      const laneAssignments: Record<string, number> = {};
       
       const sortedReservations = [...propertyReservations].sort(
         (a, b) => a.startDate.getTime() - b.startDate.getTime()
@@ -165,13 +172,13 @@ const MultiCalendar: React.FC = () => {
   
   // Pre-calculate row heights for all properties
   const propertyRowHeights = useMemo(() => {
-    const heights = {};
+    const heights: Record<string, number> = {};
     const laneHeight = 14;
     const baseHeight = 48;
     
     properties.forEach(property => {
       const lanes = propertyLaneAssignments[property.id] || {};
-      const maxLane = Object.values(lanes).reduce((max, lane: any) => Math.max(max, lane), 0);
+      const maxLane = Object.values(lanes).reduce((max, lane) => Math.max(max, lane), 0);
       heights[property.id] = Math.max(baseHeight, (maxLane + 1) * laneHeight + 16);
     });
     
