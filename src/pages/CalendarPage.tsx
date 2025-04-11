@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
-import { sampleProperties } from '@/data/mockData';
 import { Property } from '@/types';
 import { useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getProperties } from '@/services/propertyService';
 
 const CalendarPage: React.FC = () => {
   const location = useLocation();
@@ -15,29 +16,38 @@ const CalendarPage: React.FC = () => {
   const initialPropertyId = queryParams.get('property') || 'all';
   
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
-  const properties = sampleProperties;
+  
+  // Fetch properties from Supabase
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties
+  });
   
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="sm:w-64">
-          <Select
-            value={selectedPropertyId}
-            onValueChange={setSelectedPropertyId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a property" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Properties</SelectItem>
-              {properties.map((property: Property) => (
-                <SelectItem key={property.id} value={property.id}>
-                  {property.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isLoading ? (
+            <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
+          ) : (
+            <Select
+              value={selectedPropertyId}
+              onValueChange={setSelectedPropertyId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a property" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Properties</SelectItem>
+                {properties.map((property: Property) => (
+                  <SelectItem key={property.id} value={property.id}>
+                    {property.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
       
@@ -54,7 +64,7 @@ const CalendarPage: React.FC = () => {
               <CardDescription>
                 {selectedPropertyId === 'all' 
                   ? 'Showing all properties' 
-                  : `Showing ${properties.find(p => p.id === selectedPropertyId)?.name}`}
+                  : `Showing ${properties.find(p => p.id === selectedPropertyId)?.name || 'selected property'}`}
               </CardDescription>
             </CardHeader>
             <CardContent>

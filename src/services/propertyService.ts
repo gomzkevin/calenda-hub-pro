@@ -33,18 +33,21 @@ export const getProperties = async (): Promise<Property[]> => {
 };
 
 /**
- * Fetch a property by ID
+ * Fetch a single property by ID
  */
-export const getPropertyById = async (id: string): Promise<Property | null> => {
+export const getPropertyById = async (propertyId: string): Promise<Property | null> => {
   const { data, error } = await supabase
     .from("properties")
     .select("*")
-    .eq("id", id)
+    .eq("id", propertyId)
     .single();
   
   if (error) {
-    console.error(`Error fetching property with id ${id}:`, error);
-    return null;
+    if (error.code === "PGRST116") { // No rows returned
+      return null;
+    }
+    console.error(`Error fetching property ${propertyId}:`, error);
+    throw error;
   }
   
   if (!data) return null;

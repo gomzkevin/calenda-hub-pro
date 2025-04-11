@@ -3,17 +3,30 @@ import React, { useState } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getReservationsForMonth, getPlatformColorClass, sampleProperties } from '@/data/mockData';
+import { getPlatformColorClass } from '@/data/mockData';
 import { Reservation, Property } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useQuery } from '@tanstack/react-query';
+import { getReservationsForMonth } from '@/services/reservationService';
+import { getProperties } from '@/services/propertyService';
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const reservations = getReservationsForMonth(
-    currentMonth.getMonth() + 1, 
-    currentMonth.getFullYear()
-  );
-  const properties = sampleProperties;
+  
+  // Fetch reservations
+  const { data: reservations = [], isLoading: isLoadingReservations } = useQuery({
+    queryKey: ['reservations', 'multi', currentMonth.getMonth() + 1, currentMonth.getFullYear()],
+    queryFn: () => getReservationsForMonth(
+      currentMonth.getMonth() + 1, 
+      currentMonth.getFullYear()
+    )
+  });
+  
+  // Fetch properties
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties
+  });
   
   const nextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1));
@@ -31,6 +44,8 @@ const MultiCalendar: React.FC = () => {
   const getReservationsForProperty = (propertyId: string): Reservation[] => {
     return reservations.filter(res => res.propertyId === propertyId);
   };
+
+  const isLoading = isLoadingReservations || isLoadingProperties;
 
   return (
     <div className="bg-white rounded-lg shadow overflow-auto">
@@ -54,108 +69,114 @@ const MultiCalendar: React.FC = () => {
         </div>
       </div>
       
-      <div className="relative">
-        <div className="grid" style={{ gridTemplateColumns: `200px repeat(${monthDays.length}, minmax(40px, 1fr))` }}>
-          {/* Header row with dates */}
-          <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
-            Properties
-          </div>
-          
-          {monthDays.map((day, index) => (
-            <div 
-              key={index}
-              className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
-            >
-              <span>{format(day, 'EEE')}</span>
-              <span>{format(day, 'd')}</span>
-            </div>
-          ))}
-          
-          {/* Property rows */}
-          {properties.map((property: Property) => {
-            const propertyReservations = getReservationsForProperty(property.id);
-            
-            return (
-              <React.Fragment key={property.id}>
-                {/* Property name (first column) */}
-                <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate">
-                  {property.name}
-                </div>
-                
-                {/* Calendar cells */}
-                {monthDays.map((day, dayIndex) => {
-                  const isToday = isSameDay(day, new Date());
-                  
-                  return (
-                    <div
-                      key={dayIndex}
-                      className={`border ${isToday ? 'bg-blue-50' : ''} h-12 relative`}
-                    />
-                  );
-                })}
-
-                {/* Reservation bars */}
-                {propertyReservations.map((reservation, resIndex) => {
-                  const startDate = new Date(reservation.startDate);
-                  const endDate = new Date(reservation.endDate);
-                  
-                  // Check if reservation overlaps with current month view
-                  if (endDate < monthStart || startDate > monthEnd) {
-                    return null;
-                  }
-                  
-                  // Calculate start and end positions
-                  const visibleStartDate = startDate < monthStart ? monthStart : startDate;
-                  const visibleEndDate = endDate > monthEnd ? monthEnd : endDate;
-                  
-                  // Find day index for start and end
-                  const startDayIndex = monthDays.findIndex(d => isSameDay(d, visibleStartDate));
-                  let endDayIndex = monthDays.findIndex(d => isSameDay(d, visibleEndDate));
-                  if (endDayIndex === -1) {
-                    endDayIndex = monthDays.length - 1;
-                  }
-                  
-                  // Adjust positions to start and end at mid-day
-                  const adjustedStartIndex = isSameDay(monthDays[startDayIndex], startDate) ? startDayIndex + 0.5 : startDayIndex;
-                  const adjustedEndIndex = isSameDay(monthDays[endDayIndex], endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
-                  
-                  // Calculate positioning with adjusted values
-                  const left = (adjustedStartIndex * 100 / monthDays.length);
-                  const width = ((adjustedEndIndex - adjustedStartIndex) * 100 / monthDays.length);
-                  
-                  return (
-                    <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-md flex items-center pl-2 text-white font-medium text-sm z-10`}
-                            style={{
-                              top: `${56 + (properties.indexOf(property) * 48)}px`,
-                              left: `calc(200px + ${left}%)`,
-                              width: `${width}%`,
-                              minWidth: '40px'
-                            }}
-                          >
-                            {reservation.platform}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="text-xs">
-                            <p><strong>{property.name}</strong></p>
-                            <p><strong>Platform:</strong> {reservation.platform}</p>
-                            <p><strong>Dates:</strong> {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}</p>
-                            {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
+      {isLoading ? (
+        <div className="flex justify-center items-center p-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
-      </div>
+      ) : (
+        <div className="relative">
+          <div className="grid" style={{ gridTemplateColumns: `200px repeat(${monthDays.length}, minmax(40px, 1fr))` }}>
+            {/* Header row with dates */}
+            <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
+              Properties
+            </div>
+            
+            {monthDays.map((day, index) => (
+              <div 
+                key={index}
+                className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
+              >
+                <span>{format(day, 'EEE')}</span>
+                <span>{format(day, 'd')}</span>
+              </div>
+            ))}
+            
+            {/* Property rows */}
+            {properties.map((property: Property) => {
+              const propertyReservations = getReservationsForProperty(property.id);
+              
+              return (
+                <React.Fragment key={property.id}>
+                  {/* Property name (first column) */}
+                  <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate">
+                    {property.name}
+                  </div>
+                  
+                  {/* Calendar cells */}
+                  {monthDays.map((day, dayIndex) => {
+                    const isToday = isSameDay(day, new Date());
+                    
+                    return (
+                      <div
+                        key={dayIndex}
+                        className={`border ${isToday ? 'bg-blue-50' : ''} h-12 relative`}
+                      />
+                    );
+                  })}
+
+                  {/* Reservation bars */}
+                  {propertyReservations.map((reservation, resIndex) => {
+                    const startDate = new Date(reservation.startDate);
+                    const endDate = new Date(reservation.endDate);
+                    
+                    // Check if reservation overlaps with current month view
+                    if (endDate < monthStart || startDate > monthEnd) {
+                      return null;
+                    }
+                    
+                    // Calculate start and end positions
+                    const visibleStartDate = startDate < monthStart ? monthStart : startDate;
+                    const visibleEndDate = endDate > monthEnd ? monthEnd : endDate;
+                    
+                    // Find day index for start and end
+                    const startDayIndex = monthDays.findIndex(d => isSameDay(d, visibleStartDate));
+                    let endDayIndex = monthDays.findIndex(d => isSameDay(d, visibleEndDate));
+                    if (endDayIndex === -1) {
+                      endDayIndex = monthDays.length - 1;
+                    }
+                    
+                    // Adjust positions to start and end at mid-day
+                    const adjustedStartIndex = isSameDay(monthDays[startDayIndex], startDate) ? startDayIndex + 0.5 : startDayIndex;
+                    const adjustedEndIndex = isSameDay(monthDays[endDayIndex], endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
+                    
+                    // Calculate positioning with adjusted values
+                    const left = (adjustedStartIndex * 100 / monthDays.length);
+                    const width = ((adjustedEndIndex - adjustedStartIndex) * 100 / monthDays.length);
+                    
+                    return (
+                      <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} rounded-md flex items-center pl-2 text-white font-medium text-sm z-10`}
+                              style={{
+                                top: `${56 + (properties.indexOf(property) * 48)}px`,
+                                left: `calc(200px + ${left}%)`,
+                                width: `${width}%`,
+                                minWidth: '40px'
+                              }}
+                            >
+                              {reservation.platform}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs">
+                              <p><strong>{property.name}</strong></p>
+                              <p><strong>Platform:</strong> {reservation.platform}</p>
+                              <p><strong>Dates:</strong> {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}</p>
+                              {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
