@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reservation } from '@/types';
@@ -73,35 +73,6 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     daysInGrid.push(null);
   }
   
-  // Get reservations for a day
-  const getReservationsForDay = (day: Date): Reservation[] => {
-    if (!day) return [];
-    
-    return reservations.filter(reservation => {
-      const reservationStart = reservation.startDate;
-      const reservationEnd = reservation.endDate;
-      
-      return isWithinInterval(day, { start: reservationStart, end: reservationEnd }) ||
-        isSameDay(day, reservationStart) || 
-        isSameDay(day, reservationEnd);
-    });
-  };
-
-  // Get reservations that overlap with a specific week
-  const getReservationsForWeek = (weekDays: (Date | null)[]): Reservation[] => {
-    const validDays = weekDays.filter(day => day !== null) as Date[];
-    if (validDays.length === 0) return [];
-
-    return reservations.filter(reservation => {
-      return validDays.some(day => {
-        if (!day) return false;
-        // Normalize both dates for comparison
-        const normalizedDay = normalizeDate(day);
-        return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
-      });
-    });
-  };
-
   // Helper to normalize date to noon UTC to avoid timezone issues
   const normalizeDate = (date: Date): Date => {
     const newDate = new Date(date);
@@ -114,6 +85,69 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   for (let i = 0; i < daysInGrid.length; i += 7) {
     weeks.push(daysInGrid.slice(i, i + 7));
   }
+
+  // Calculate reservation lanes for each week
+  const weekReservationLanes = useMemo(() => {
+    const lanes: Record<number, Record<string, number>> = {};
+    
+    weeks.forEach((week, weekIndex) => {
+      const weekLanes: Record<string, number> = {};
+      
+      // Filter reservations that overlap with this week
+      const weekReservations = reservations.filter(reservation => {
+        return week.some(day => {
+          if (!day) return false;
+          const normalizedDay = normalizeDate(day);
+          return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+        });
+      });
+      
+      // Sort reservations by start date to ensure consistent lane assignment
+      const sortedReservations = [...weekReservations].sort(
+        (a, b) => a.startDate.getTime() - b.startDate.getTime()
+      );
+      
+      // Assign lanes to each reservation
+      sortedReservations.forEach(reservation => {
+        // Find the first available lane for this reservation
+        let lane = 0;
+        let laneFound = false;
+        
+        while (!laneFound) {
+          laneFound = true;
+          
+          // Check if any existing reservation in this lane overlaps with current reservation
+          for (const existingResId in weekLanes) {
+            const existingLane = weekLanes[existingResId];
+            if (existingLane !== lane) continue;
+            
+            const existingRes = weekReservations.find(r => r.id === existingResId);
+            if (!existingRes) continue;
+            
+            // Check for date overlap
+            if (
+              (reservation.startDate <= existingRes.endDate && 
+               reservation.endDate >= existingRes.startDate)
+            ) {
+              laneFound = false;
+              break;
+            }
+          }
+          
+          if (!laneFound) {
+            lane++;
+          }
+        }
+        
+        // Assign this lane to the reservation
+        weekLanes[reservation.id] = lane;
+      });
+      
+      lanes[weekIndex] = weekLanes;
+    });
+    
+    return lanes;
+  }, [weeks, reservations]);
   
   return (
     <div className="bg-white rounded-lg shadow">
@@ -149,140 +183,160 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
             </div>
           ))}
           
-          {weeks.map((week, weekIndex) => (
-            <React.Fragment key={`week-${weekIndex}`}>
-              {week.map((day, dayIndex) => (
-                <div 
-                  key={`day-${weekIndex}-${dayIndex}`} 
-                  className={`calendar-day min-h-[100px] border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''}`}
-                >
-                  {day && (
-                    <>
-                      <div className="text-sm font-medium p-1">
-                        {format(day, 'd')}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+          {weeks.map((week, weekIndex) => {
+            // Determine max lane for this week to calculate appropriate height
+            const weekLanes = weekReservationLanes[weekIndex] || {};
+            const maxLane = Object.values(weekLanes).reduce((max, lane) => Math.max(max, lane), 0);
+            const laneHeight = 14; // Height for each reservation lane
+            const minCellHeight = 100; // Minimum height for calendar cells
+            const cellHeight = Math.max(minCellHeight, 80 + (maxLane * laneHeight));
+            
+            return (
+              <React.Fragment key={`week-${weekIndex}`}>
+                {week.map((day, dayIndex) => (
+                  <div 
+                    key={`day-${weekIndex}-${dayIndex}`} 
+                    className={`calendar-day border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''}`}
+                    style={{ height: `${cellHeight}px` }}
+                  >
+                    {day && (
+                      <>
+                        <div className="text-sm font-medium p-1">
+                          {format(day, 'd')}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
 
-              {/* Reservation bars */}
-              <div className="col-span-7 relative h-0">
-                {week[0] && getReservationsForWeek(week).map((reservation, resIndex) => {
-                  // Trabajamos con las fechas normalizadas para evitar problemas de zona horaria
-                  const startDate = reservation.startDate;
-                  const endDate = reservation.endDate;
-                  
-                  // Determinamos cómo se posiciona esta reserva en la semana actual
-                  let startPos = -1;
-                  let endPos = -1;
-                  
-                  // Buscamos la posición exacta del día de inicio y fin en esta semana
-                  for (let i = 0; i < week.length; i++) {
-                    const day = week[i];
-                    if (!day) continue;
+                {/* Reservation bars */}
+                <div className="col-span-7 relative h-0">
+                  {week[0] && reservations.filter(reservation => {
+                    return week.some(day => {
+                      if (!day) return false;
+                      const normalizedDay = normalizeDate(day);
+                      return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+                    });
+                  }).map((reservation) => {
+                    // Work with normalized dates to avoid timezone issues
+                    const startDate = reservation.startDate;
+                    const endDate = reservation.endDate;
                     
-                    const normalizedDay = normalizeDate(day);
+                    // Find exact positions for this reservation in the current week
+                    let startPos = -1;
+                    let endPos = -1;
                     
-                    // Si este día es exactamente el día de inicio o está después del inicio
-                    // y aún no hemos establecido startPos, lo establecemos ahora
-                    if (startPos === -1) {
-                      if (isSameDay(normalizedDay, startDate)) {
-                        startPos = i;
-                      } else if (normalizedDay > startDate) {
-                        startPos = i;
+                    // Find the exact position of the start and end days in this week
+                    for (let i = 0; i < week.length; i++) {
+                      const day = week[i];
+                      if (!day) continue;
+                      
+                      const normalizedDay = normalizeDate(day);
+                      
+                      // Check if this day is the start date or after it
+                      if (startPos === -1) {
+                        if (isSameDay(normalizedDay, startDate)) {
+                          startPos = i;
+                        } else if (normalizedDay > startDate) {
+                          startPos = i;
+                        }
+                      }
+                      
+                      // Check if this day is the end date
+                      if (isSameDay(normalizedDay, endDate)) {
+                        endPos = i;
+                        break;
+                      }
+                      // If we're at the last day of the week and haven't found endPos,
+                      // but we know the reservation continues, set this as endPos
+                      else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
+                        endPos = i;
                       }
                     }
                     
-                    // Si este día es exactamente el día de fin, establecemos endPos y terminamos
-                    if (isSameDay(normalizedDay, endDate)) {
-                      endPos = i;
-                      break;
+                    // If we didn't find a starting position in this week, don't render anything
+                    if (startPos === -1) return null;
+                    
+                    // If we found a starting position but no ending, use the end of the week
+                    if (endPos === -1 && startPos !== -1) {
+                      endPos = 6; // Last day of week
                     }
-                    // Si estamos procesando el último día de la semana y aún no hemos encontrado endPos,
-                    // pero sabemos que la reserva continúa, establecemos este día como endPos
-                    else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
-                      endPos = i;
+                    
+                    // Determine if the reservation continues from/to other weeks
+                    const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
+                    const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
+                    
+                    // Calculate bar width and position
+                    let barStartPos = startPos;
+                    let barEndPos = endPos;
+                    
+                    // If this is the actual check-in day, start from the middle
+                    if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
+                      barStartPos += 0.5;
                     }
-                  }
-                  
-                  // Si no encontramos una posición de inicio en esta semana, no renderizamos nada
-                  if (startPos === -1) return null;
-                  
-                  // Si no encontramos una posición de fin pero tenemos un inicio, usamos el final de la semana
-                  if (endPos === -1 && startPos !== -1) {
-                    endPos = 6; // Último día de la semana
-                  }
-                  
-                  // Determinamos si la reserva continúa desde/hacia otras semanas
-                  const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
-                  const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
-                  
-                  // Calculamos el ancho y posición de la barra
-                  let barStartPos = startPos;
-                  let barEndPos = endPos;
-                  
-                  // Si este es el día de check-in real, comenzamos desde la mitad del día
-                  if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-                    barStartPos += 0.5;
-                  }
-                  
-                  // Si este es el día de check-out real, terminamos en la mitad del día
-                  if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-                    barEndPos += 0.5;
-                  } else {
-                    // Si no es el día de check-out real, la barra debe extenderse hasta el final del día
-                    barEndPos += 1;
-                  }
-                  
-                  const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-                  const barLeft = `${(barStartPos / 7) * 100}%`;
-                  
-                  // Definimos el estilo de borde redondeado basado en si la reserva continúa
-                  let borderRadiusStyle = 'rounded-full';
-                  if (continuesFromPrevious && continuesToNext) {
-                    borderRadiusStyle = 'rounded-none';
-                  } else if (continuesFromPrevious) {
-                    borderRadiusStyle = 'rounded-r-full rounded-l-none';
-                  } else if (continuesToNext) {
-                    borderRadiusStyle = 'rounded-l-full rounded-r-none';
-                  }
-                  
-                  // Calculamos la posición vertical para evitar superposiciones
-                  // Usamos una separación constante entre barras para mantenerlas bien alineadas
-                  const verticalPosition = -84 + (resIndex * 12);
-                  
-                  return (
-                    <TooltipProvider key={`res-${weekIndex}-${resIndex}`}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
-                            style={{
-                              top: `${verticalPosition}px`,
-                              left: barLeft,
-                              width: barWidth,
-                              minWidth: '40px'
-                            }}
-                          >
-                            {reservation.platform}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="text-xs">
-                            <p><strong>Platform:</strong> {reservation.platform}</p>
-                            <p><strong>Check-in:</strong> {format(startDate, 'MMM d')}</p>
-                            <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                            {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
-              </div>
-            </React.Fragment>
-          ))}
+                    
+                    // If this is the actual check-out day, end at the middle
+                    if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
+                      barEndPos += 0.5;
+                    } else {
+                      // If not the actual check-out day, bar should extend to the end of the day
+                      barEndPos += 1;
+                    }
+                    
+                    const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
+                    const barLeft = `${(barStartPos / 7) * 100}%`;
+                    
+                    // Define border radius style based on if the reservation continues
+                    let borderRadiusStyle = 'rounded-full';
+                    if (continuesFromPrevious && continuesToNext) {
+                      borderRadiusStyle = 'rounded-none';
+                    } else if (continuesFromPrevious) {
+                      borderRadiusStyle = 'rounded-r-full rounded-l-none';
+                    } else if (continuesToNext) {
+                      borderRadiusStyle = 'rounded-l-full rounded-r-none';
+                    }
+                    
+                    // Get the lane assigned to this reservation
+                    const weekLanes = weekReservationLanes[weekIndex] || {};
+                    const lane = weekLanes[reservation.id] || 0;
+                    
+                    // Calculate consistent vertical position based on lane
+                    const laneHeight = 14; // Height per lane
+                    const baseOffset = -70; // Base offset from top
+                    const verticalPosition = baseOffset - (lane * laneHeight);
+                    
+                    return (
+                      <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                              style={{
+                                top: `${verticalPosition}px`,
+                                left: barLeft,
+                                width: barWidth,
+                                minWidth: '40px'
+                              }}
+                            >
+                              {reservation.platform}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs">
+                              <p><strong>Platform:</strong> {reservation.platform}</p>
+                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d')}</p>
+                              <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
+                              {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
       )}
     </div>

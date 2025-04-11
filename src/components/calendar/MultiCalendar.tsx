@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,67 @@ const MultiCalendar: React.FC = () => {
     return newDate;
   };
 
+  // Compute reservation lanes for each property
+  const propertyReservationLanes = useMemo(() => {
+    const lanes: Record<string, Record<string, number>> = {};
+    
+    properties.forEach(property => {
+      const propertyId = property.id;
+      const propertyReservations = getReservationsForProperty(propertyId);
+      
+      // Sort reservations by start date to ensure consistent lane assignment
+      const sortedReservations = [...propertyReservations].sort(
+        (a, b) => a.startDate.getTime() - b.startDate.getTime()
+      );
+      
+      // Track lane assignments for this property
+      const propertyLanes: Record<string, number> = {};
+      
+      // Assign lanes to each reservation
+      sortedReservations.forEach(reservation => {
+        // Generate a unique ID for this reservation
+        const resId = reservation.id;
+        
+        // Find the first available lane for this reservation
+        let lane = 0;
+        let laneFound = false;
+        
+        while (!laneFound) {
+          laneFound = true;
+          
+          // Check if any existing reservation in this lane overlaps with current reservation
+          for (const existingResId in propertyLanes) {
+            const existingLane = propertyLanes[existingResId];
+            if (existingLane !== lane) continue;
+            
+            const existingRes = propertyReservations.find(r => r.id === existingResId);
+            if (!existingRes) continue;
+            
+            // Check for date overlap
+            if (
+              (reservation.startDate <= existingRes.endDate && 
+               reservation.endDate >= existingRes.startDate)
+            ) {
+              laneFound = false;
+              break;
+            }
+          }
+          
+          if (!laneFound) {
+            lane++;
+          }
+        }
+        
+        // Assign this lane to the reservation
+        propertyLanes[resId] = lane;
+      });
+      
+      lanes[propertyId] = propertyLanes;
+    });
+    
+    return lanes;
+  }, [properties, reservations]);
+
   return (
     <div className="bg-white rounded-lg shadow overflow-auto">
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
@@ -104,11 +165,21 @@ const MultiCalendar: React.FC = () => {
             {/* Property rows */}
             {properties.map((property: Property) => {
               const propertyReservations = getReservationsForProperty(property.id);
+              const propertyLanes = propertyReservationLanes[property.id] || {};
+              const laneHeight = 14; // Height for each reservation lane
+              const baseRowHeight = 48; // Base height for property row
+              
+              // Calculate appropriate row height based on number of lanes
+              const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
+              const rowHeight = baseRowHeight + (maxLane * laneHeight);
               
               return (
                 <React.Fragment key={property.id}>
                   {/* Property name (first column) */}
-                  <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate">
+                  <div 
+                    className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate"
+                    style={{ height: `${rowHeight}px` }}
+                  >
                     {property.name}
                   </div>
                   
@@ -119,14 +190,15 @@ const MultiCalendar: React.FC = () => {
                     return (
                       <div
                         key={dayIndex}
-                        className={`border ${isToday ? 'bg-blue-50' : ''} h-12 relative`}
+                        className={`border ${isToday ? 'bg-blue-50' : ''}`}
+                        style={{ height: `${rowHeight}px` }}
                       />
                     );
                   })}
 
                   {/* Reservation bars */}
-                  {propertyReservations.map((reservation, resIndex) => {
-                    // Las fechas ya vienen normalizadas del servicio
+                  {propertyReservations.map((reservation) => {
+                    // Get normalized dates
                     const startDate = reservation.startDate;
                     const endDate = reservation.endDate;
                     
@@ -156,17 +228,16 @@ const MultiCalendar: React.FC = () => {
                     let startPosition = startDayIndex;
                     let endPosition = endDayIndex;
                     
-                    // Ajustes precisos para inicio y fin
-                    // Si este es el día real de check-in (no un día de continuación), comenzamos desde la mitad
+                    // If this is the actual check-in day (not a continuation), start from the middle
                     if (isSameDay(visibleStartDate, startDate)) {
                       startPosition += 0.5;
                     }
                     
-                    // Si este es el día real de check-out (no un día de continuación), terminamos en la mitad
+                    // If this is the actual check-out day (not a continuation), end at the middle
                     if (isSameDay(visibleEndDate, endDate)) {
                       endPosition += 0.5;
                     } else {
-                      // Si no es el día real de check-out, la barra debe extenderse hasta el final del día
+                      // If not the actual check-out day, bar should extend to the end of the day
                       endPosition += 1;
                     }
                     
@@ -188,8 +259,12 @@ const MultiCalendar: React.FC = () => {
                       borderRadiusStyle = 'rounded-l-full rounded-r-none';
                     }
                     
-                    // Calculate vertical position with consistent spacing
-                    const verticalPosition = 56 + (properties.indexOf(property) * 48) + (resIndex * 12);
+                    // Get the lane assigned to this reservation
+                    const lane = propertyLanes[reservation.id] || 0;
+                    
+                    // Calculate vertical position with consistent spacing based on lane
+                    const laneOffset = lane * laneHeight;
+                    const verticalPosition = 24 + laneOffset; // 24px baseline offset from top of row
                     
                     return (
                       <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
