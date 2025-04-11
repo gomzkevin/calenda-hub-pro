@@ -7,6 +7,8 @@ export type ReservationSource = 'iCal' | 'Manual';
 
 export type ReservationStatus = 'Reserved' | 'Blocked' | 'Tentative';
 
+export type PropertyType = 'standalone' | 'parent' | 'child';
+
 export interface Operator {
   id: string;
   name: string;
@@ -36,7 +38,8 @@ export interface Property {
   bedrooms: number;
   bathrooms: number;
   capacity: number;
-  type?: string;
+  type?: PropertyType;
+  parentId?: string;
   description?: string;
   createdAt: Date;
 }
@@ -65,5 +68,7 @@ export interface Reservation {
   icalUrl?: string;
   notes?: string;
   externalId?: string;
+  isBlocking?: boolean;
+  sourceReservationId?: string;
   createdAt: Date;
 }

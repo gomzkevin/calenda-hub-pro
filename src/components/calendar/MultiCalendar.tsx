@@ -45,8 +45,11 @@ const MultiCalendar: React.FC = () => {
     )
   });
   
-  // Filter out reservations with "Blocked" in notes
-  const reservations = allReservations.filter(res => res.notes !== 'Blocked');
+  // Only filter out reservations with specifically "Blocked" in notes that are not relationship-based blocks
+  const reservations = allReservations.filter(res => {
+    // Show if not blocked or if it's a relationship-based block
+    return res.notes !== 'Blocked' || res.sourceReservationId || res.isBlocking;
+  });
   
   // Fetch properties
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
@@ -177,6 +180,17 @@ const MultiCalendar: React.FC = () => {
     
     return lanes;
   }, [properties, reservations]);
+  
+  // Get reservation style based on type
+  const getReservationStyle = (reservation: Reservation) => {
+    // If it's a block from a related property
+    if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
+      return 'bg-gray-400 opacity-70 border border-dashed border-white';
+    }
+    
+    // Normal reservation
+    return getPlatformColorClass(reservation.platform);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -238,13 +252,13 @@ const MultiCalendar: React.FC = () => {
                 const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
                 const rowHeight = baseRowHeight + (maxLane * laneHeight);
                 
-                // Calculate the absolute vertical position for the start of this property row
-                let propertyTopPosition = 10; // Header height
+                // Calculate the starting vertical position for this property row
+                let rowTopPosition = 10; // Header height
                 for (let i = 0; i < propertyIndex; i++) {
                   const prevPropertyLanes = propertyReservationLanes[properties[i].id] || {};
                   const prevMaxLane = Object.values(prevPropertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
                   const prevRowHeight = baseRowHeight + (prevMaxLane * laneHeight);
-                  propertyTopPosition += prevRowHeight;
+                  rowTopPosition += prevRowHeight;
                 }
                 
                 return (
@@ -298,7 +312,7 @@ const MultiCalendar: React.FC = () => {
                         endDayIndex = monthDays.length - 1;
                       }
                       
-                      // Calculate grid column positions with new spacing
+                      // Calculate grid column positions with proper spacing
                       let startPosition = startDayIndex;
                       let endPosition = endDayIndex;
                       
@@ -335,20 +349,35 @@ const MultiCalendar: React.FC = () => {
                       // Get the lane assigned to this reservation
                       const lane = propertyLanes[reservation.id] || 0;
                       
-                      // Calculate the centered vertical position within the row
-                      // We take half of the row height and adjust by the lane offset
+                      // Calculate the vertical position within the property row
+                      // Center the reservation bar vertically in the property row
                       const laneOffset = lane * laneHeight;
-                      const verticalPosition = propertyTopPosition + (rowHeight / 2) - 4 + laneOffset;
+                      const verticalPosition = rowTopPosition + (rowHeight / 2) - 4 + laneOffset;
                       
                       // Determine text size based on bar width
                       const isShortReservation = endPosition - startPosition < 1;
+                      
+                      // Get style based on reservation type
+                      const reservationClass = getReservationStyle(reservation);
+                      
+                      // Find source property name for blocks
+                      let sourcePropertyInfo = '';
+                      if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
+                        const sourceReservation = allReservations.find(r => r.id === reservation.sourceReservationId);
+                        if (sourceReservation) {
+                          const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
+                          if (sourceProperty) {
+                            sourcePropertyInfo = `Bloqueado por reserva en: ${sourceProperty.name}`;
+                          }
+                        }
+                      }
                       
                       return (
                         <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div 
-                                className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                                className={`absolute h-8 ${reservationClass} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
                                 style={{
                                   top: `${verticalPosition}px`,
                                   left: left,
@@ -365,7 +394,12 @@ const MultiCalendar: React.FC = () => {
                                 <p><strong>Platform:</strong> {reservation.platform}</p>
                                 <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
                                 <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                                {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
+                                {sourcePropertyInfo && (
+                                  <p className="mt-1 text-gray-500"><em>{sourcePropertyInfo}</em></p>
+                                )}
+                                {reservation.notes && reservation.notes !== 'Blocked' && (
+                                  <p><strong>Notes:</strong> {reservation.notes}</p>
+                                )}
                               </div>
                             </TooltipContent>
                           </Tooltip>
