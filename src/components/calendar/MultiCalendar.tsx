@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -16,6 +16,7 @@ const DAYS_TO_SHOW = 15;
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [dayOffset, setDayOffset] = useState<number>(0);
   
   // Fetch reservations
   const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
@@ -40,19 +41,55 @@ const MultiCalendar: React.FC = () => {
   
   const nextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1));
+    setDayOffset(0); // Reset offset when changing month
   };
   
   const prevMonth = () => {
     setCurrentMonth(addMonths(currentMonth, -1));
+    setDayOffset(0); // Reset offset when changing month
+  };
+
+  // Next set of days within the same month
+  const nextDays = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const daysInMonth = monthEnd.getDate();
+    
+    // Calculate the next offset, ensuring we don't go beyond the month's bounds
+    const nextOffset = Math.min(dayOffset + DAYS_TO_SHOW, daysInMonth - DAYS_TO_SHOW);
+    
+    // Only update if we're not already at the end
+    if (nextOffset > dayOffset) {
+      setDayOffset(nextOffset);
+    }
+  };
+  
+  // Previous set of days within the same month
+  const prevDays = () => {
+    // Calculate the previous offset, ensuring we don't go below 0
+    const prevOffset = Math.max(dayOffset - DAYS_TO_SHOW, 0);
+    
+    // Only update if we're not already at the beginning
+    if (prevOffset < dayOffset) {
+      setDayOffset(prevOffset);
+    }
   };
   
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
+  // Get the days to display based on the offset
+  const startDay = addDays(monthStart, dayOffset);
+  const endInterval = dayOffset + DAYS_TO_SHOW - 1 < monthDays.length 
+    ? addDays(monthStart, dayOffset + DAYS_TO_SHOW - 1)
+    : monthEnd;
+  
+  const visibleDays = eachDayOfInterval({ start: startDay, end: endInterval });
+  
   // Create a fixed array of 15 days (null for days beyond month length)
   const fixedDaysArray = Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
-    return i < monthDays.length ? monthDays[i] : null;
+    return i < visibleDays.length ? visibleDays[i] : null;
   });
   
   // Get reservations for a specific property
@@ -80,24 +117,73 @@ const MultiCalendar: React.FC = () => {
     return getPlatformColorClass(reservation.platform);
   };
 
+  // Get the month and date range for display
+  const getDateRangeDisplay = () => {
+    if (fixedDaysArray.length === 0 || !fixedDaysArray[0]) return '';
+    
+    const firstDay = fixedDaysArray[0];
+    const lastVisibleDay = fixedDaysArray[fixedDaysArray.length - 1] || fixedDaysArray[0];
+    
+    // If first and last day are in the same month
+    if (firstDay.getMonth() === lastVisibleDay.getMonth()) {
+      return `${format(firstDay, 'MMMM yyyy')} (${format(firstDay, 'd')}-${format(lastVisibleDay, 'd')})`;
+    }
+    
+    // If they span different months
+    return `${format(firstDay, 'MMMM d')} - ${format(lastVisibleDay, 'MMMM d, yyyy')}`;
+  };
+
+  // Determine if the "next" button should be enabled
+  const canGoNext = dayOffset + DAYS_TO_SHOW < monthDays.length;
+  
+  // Determine if the "prev" button should be enabled
+  const canGoPrev = dayOffset > 0;
+
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with month title and navigation buttons */}
       <div className="sticky top-0 z-30 bg-white border-b">
         <div className="flex items-center justify-between p-4">
-          <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+          <h2 className="text-xl font-semibold">{getDateRangeDisplay()}</h2>
           <div className="flex space-x-2">
             <Button 
               variant="outline" 
               size="icon"
               onClick={prevMonth}
+              title="Previous Month"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
+            
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={prevDays}
+              disabled={!canGoPrev}
+              title="Previous Days"
+            >
+              <div className="flex">
+                <ChevronLeft className="h-4 w-4" />
+              </div>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={nextDays}
+              disabled={!canGoNext}
+              title="Next Days"
+            >
+              <div className="flex">
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </Button>
+            
             <Button 
               variant="outline" 
               size="icon"
               onClick={nextMonth}
+              title="Next Month"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
