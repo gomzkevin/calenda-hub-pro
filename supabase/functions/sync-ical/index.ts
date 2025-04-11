@@ -15,10 +15,25 @@ serve(async (req) => {
   }
 
   try {
-    const { icalUrl, propertyId, platform, icalLinkId } = await req.json();
+    console.log("[SYNC-ICAL] Function started");
+    
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+      console.log("[SYNC-ICAL] Request body:", JSON.stringify(body));
+    } catch (parseError) {
+      console.error("[SYNC-ICAL] Error parsing request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { icalUrl, propertyId, platform, icalLinkId } = body;
 
     if (!icalUrl || !propertyId || !platform || !icalLinkId) {
-      console.error("Missing required parameters:", { icalUrl, propertyId, platform, icalLinkId });
+      console.error("[SYNC-ICAL] Missing required parameters:", { icalUrl, propertyId, platform, icalLinkId });
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,11 +44,17 @@ serve(async (req) => {
 
     // Fetch the iCal data
     try {
+      console.log(`[SYNC-ICAL] Attempting to fetch iCal from URL: ${icalUrl}`);
+      
       const response = await fetch(icalUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; Lovable/1.0; +https://lovable.dev)'
-        }
+        },
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       });
+      
+      console.log(`[SYNC-ICAL] Fetch response status: ${response.status}`);
       
       if (!response.ok) {
         const errorMessage = `Failed to fetch iCal data: ${response.statusText} (${response.status})`;

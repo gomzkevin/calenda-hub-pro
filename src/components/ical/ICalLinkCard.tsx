@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Trash, RefreshCw } from 'lucide-react';
+import { ExternalLink, Trash, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
@@ -10,6 +10,12 @@ import { toast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ICalLinkCardProps {
   icalLink: ICalLink;
@@ -21,6 +27,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   
   useEffect(() => {
@@ -45,6 +52,8 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
   
   const refreshICalLink = async () => {
     setIsSyncing(true);
+    setSyncError(null);
+    
     toast({
       title: "Sincronizando calendario",
       description: "Esto puede tardar unos momentos..."
@@ -67,6 +76,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
         }
       } else {
         console.error('Error syncing iCal:', result.error);
+        setSyncError(result.error || "Error desconocido");
         toast({
           variant: "destructive",
           title: "Error al sincronizar",
@@ -75,6 +85,8 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
       }
     } catch (error) {
       console.error('Error syncing iCal:', error);
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+      setSyncError(errorMessage);
       toast({
         variant: "destructive",
         title: "Error al sincronizar",
@@ -123,7 +135,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
   }
   
   return (
-    <Card>
+    <Card className={syncError ? "border-red-300" : ""}>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center">
           <div className={`w-3 h-3 rounded-full mr-2 bg-platform-${icalLink.platform.toLowerCase()}`} />
@@ -135,8 +147,24 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
         <div className="text-sm truncate text-gray-500" title={icalLink.url}>
           {icalLink.url}
         </div>
-        <div className="text-xs text-gray-400 mt-1">
-          {getLastSyncedText()}
+        <div className="text-xs text-gray-400 mt-1 flex items-center">
+          {syncError ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center text-red-500">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Error de sincronización
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">{syncError}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            getLastSyncedText()
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex justify-between pt-2">
