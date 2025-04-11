@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,10 @@ const MultiCalendar: React.FC = () => {
   
   const [cellWidth, setCellWidth] = useState<number>(50);
   const [visibleDays, setVisibleDays] = useState<number>(31);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
   
-  useEffect(() => {
+  // Use useLayoutEffect for initial measurements before rendering
+  useLayoutEffect(() => {
     const calculateLayout = () => {
       if (!containerRef.current) return;
       
@@ -43,6 +45,7 @@ const MultiCalendar: React.FC = () => {
       
       setCellWidth(newCellWidth);
       setVisibleDays(Math.min(daysToShow, 31));
+      setIsMounted(true);
     };
     
     calculateLayout();
@@ -94,7 +97,7 @@ const MultiCalendar: React.FC = () => {
     return reservations.filter(res => res.propertyId === propertyId);
   };
 
-  const isLoading = isLoadingReservations || isLoadingProperties;
+  const isLoading = isLoadingReservations || isLoadingProperties || !isMounted;
 
   const normalizeDate = (date: Date): Date => {
     const newDate = new Date(date);
@@ -184,6 +187,28 @@ const MultiCalendar: React.FC = () => {
     
     return lanes;
   }, [properties, reservations]);
+
+  // Calculate row positions to correctly place reservation lanes
+  const calculateRowPositions = useMemo(() => {
+    const positions: Record<string, number> = {};
+    let currentPosition = 40; // Starting position after header
+    
+    properties.forEach((property, index) => {
+      positions[property.id] = currentPosition;
+      
+      const propertyLanes = propertyReservationLanes[property.id] || {};
+      const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
+      const totalLanes = maxLane + 1;
+      const laneHeight = 16;
+      const baseRowHeight = 48;
+      const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 12);
+      
+      // Add current row height to get next row position
+      currentPosition += rowHeight;
+    });
+    
+    return positions;
+  }, [properties, propertyReservationLanes]);
   
   const getReservationStyle = (reservation: Reservation) => {
     if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
@@ -192,6 +217,14 @@ const MultiCalendar: React.FC = () => {
     
     return getPlatformColorClass(reservation.platform);
   };
+
+  if (!isMounted) {
+    return (
+      <div className="flex justify-center items-center h-full w-full p-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -223,11 +256,12 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="h-full w-full overflow-hidden border rounded-md">
-          <div className="w-auto min-w-full">
+        <div className="h-full w-full overflow-auto border rounded-md">
+          <div className="min-w-full" style={{ 
+            width: `max(100%, ${160 + (visibleMonthDays.length * cellWidth)}px)`
+          }}>
             <div className="grid" style={{ 
               gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
-              width: `calc(160px + ${visibleMonthDays.length * cellWidth}px)`
             }}>
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
                 Properties
@@ -246,12 +280,13 @@ const MultiCalendar: React.FC = () => {
               {properties.map((property: Property, propertyIndex: number) => {
                 const propertyReservations = getReservationsForProperty(property.id);
                 const propertyLanes = propertyReservationLanes[property.id] || {};
-                const laneHeight = 12;
+                const laneHeight = 16;
                 const baseRowHeight = 48;
                 
                 const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
                 const totalLanes = maxLane + 1;
                 const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 12);
+                const rowTopPosition = calculateRowPositions[property.id] || 0;
                 
                 return (
                   <React.Fragment key={property.id}>
@@ -328,17 +363,17 @@ const MultiCalendar: React.FC = () => {
                       
                       const lane = propertyLanes[reservation.id] || 0;
                       
-                      const totalLanes = maxLane + 1;
+                      // Calculate the vertical offset for each lane
+                      // Start from the middle of the row and distribute lanes evenly
                       let verticalPosition;
                       
                       if (totalLanes <= 1) {
-                        // Center it vertically if there's only one lane
-                        verticalPosition = (rowHeight / 2) - 4;
+                        // If there's only one lane, center it vertically within the row
+                        verticalPosition = rowTopPosition + (rowHeight / 2) - 16;
                       } else {
-                        // Distribute multiple lanes evenly
-                        const availableHeight = rowHeight - 12;
-                        const laneSpacing = availableHeight / totalLanes;
-                        verticalPosition = 6 + (lane * laneSpacing) + (laneSpacing / 2) - 4;
+                        // For multiple lanes, position them properly within the row
+                        const laneSpacing = (rowHeight - 16) / totalLanes;
+                        verticalPosition = rowTopPosition + 8 + (lane * laneSpacing);
                       }
                       
                       const isShortReservation = endPosition - startPosition < 1;
@@ -398,7 +433,7 @@ const MultiCalendar: React.FC = () => {
               })}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );

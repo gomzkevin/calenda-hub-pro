@@ -100,7 +100,7 @@ const CalendarPage: React.FC = () => {
                   {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected property'}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 p-0 sm:p-6 overflow-auto">
+              <CardContent className="flex-1 overflow-auto p-0 sm:p-6">
                 <MonthlyCalendar 
                   propertyId={selectedPropertyId} 
                 />
@@ -116,7 +116,7 @@ const CalendarPage: React.FC = () => {
                   Operational view showing all properties by day
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 p-0 sm:p-6 overflow-hidden">
+              <CardContent className="flex-1 overflow-hidden p-0 sm:p-6">
                 <MultiCalendar />
               </CardContent>
             </Card>
