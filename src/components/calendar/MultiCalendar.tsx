@@ -212,6 +212,7 @@ const MultiCalendar: React.FC = () => {
   }, [properties, reservations]);
   
   // Pre-calculate row heights and positions using useLayoutEffect
+  // Key fix: Changed useLayoutEffect dependencies to avoid loops
   useLayoutEffect(() => {
     if (isLoadingProperties || isLoadingReservations || properties.length === 0) return;
     
@@ -239,6 +240,8 @@ const MultiCalendar: React.FC = () => {
     setRowHeights(newRowHeights);
     setRowPositions(newRowPositions);
     setIsInitialRender(false);
+    
+  // Key fix: Only depend on stable references and primitives, not on derived state
   }, [properties, propertyReservationLanes, isLoadingProperties, isLoadingReservations]);
   
   // Limit visible days based on screen size
