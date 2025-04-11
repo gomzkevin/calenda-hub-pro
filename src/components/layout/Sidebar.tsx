@@ -1,49 +1,72 @@
 
 import React from 'react';
-import { Link } from "react-router-dom";
-import { Calendar, Home, Settings, Building, Users, Link as LinkIcon } from 'lucide-react';
+import { Link, useLocation } from "react-router-dom";
+import { Calendar, Home, Settings, Building, Users, Link as LinkIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
   isOpen: boolean;
+  toggleSidebar: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+  const location = useLocation();
+  
+  // Calculate if we should show the overlay
+  const showOverlay = isOpen;
+  
   return (
-    <aside 
-      className={cn(
-        "fixed inset-y-0 left-0 bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out",
-        isOpen ? "w-64" : "w-0 -translate-x-full md:translate-x-0 md:w-16"
+    <>
+      {/* Backdrop overlay for mobile */}
+      {showOverlay && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-40 md:hidden" 
+          onClick={toggleSidebar}
+          aria-hidden="true"
+        />
       )}
-    >
-      <div className="flex items-center justify-center h-14 border-b border-gray-200">
-        {isOpen ? (
-          <h1 className="text-xl font-bold">CalendaHub</h1>
-        ) : (
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold text-lg">
-            C
-          </div>
-        )}
-      </div>
       
-      <nav className="mt-6 px-2">
-        <SidebarLink to="/" icon={<Home />} text="Dashboard" isOpen={isOpen} />
-        <SidebarLink to="/properties" icon={<Building />} text="Properties" isOpen={isOpen} />
-        <SidebarLink to="/calendar" icon={<Calendar />} text="Calendar" isOpen={isOpen} />
-        <SidebarLink to="/ical-links" icon={<LinkIcon />} text="iCal Links" isOpen={isOpen} />
-        <SidebarLink to="/users" icon={<Users />} text="Users" isOpen={isOpen} />
-        <SidebarLink to="/settings" icon={<Settings />} text="Settings" isOpen={isOpen} />
-      </nav>
-      
-      <div className="absolute bottom-0 w-full p-4">
-        {isOpen && (
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm font-medium text-blue-700">Need Help?</p>
-            <p className="text-xs text-blue-600 mt-1">Check our documentation or contact support.</p>
-          </div>
+      <aside 
+        className={cn(
+          "fixed inset-y-0 left-0 bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out",
+          isOpen ? "w-64 translate-x-0" : "-translate-x-full md:translate-x-0 md:w-16"
         )}
-      </div>
-    </aside>
+      >
+        <div className="flex items-center justify-between h-14 border-b border-gray-200 px-4">
+          {isOpen ? (
+            <>
+              <h1 className="text-xl font-bold">CalendaHub</h1>
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={toggleSidebar}>
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold text-lg mx-auto">
+              C
+            </div>
+          )}
+        </div>
+        
+        <nav className="mt-6 px-2">
+          <SidebarLink to="/" icon={<Home />} text="Dashboard" isOpen={isOpen} isActive={location.pathname === '/'} />
+          <SidebarLink to="/properties" icon={<Building />} text="Properties" isOpen={isOpen} isActive={location.pathname === '/properties'} />
+          <SidebarLink to="/calendar" icon={<Calendar />} text="Calendar" isOpen={isOpen} isActive={location.pathname === '/calendar'} />
+          <SidebarLink to="/ical-links" icon={<LinkIcon />} text="iCal Links" isOpen={isOpen} isActive={location.pathname === '/ical-links'} />
+          <SidebarLink to="/users" icon={<Users />} text="Users" isOpen={isOpen} isActive={location.pathname === '/users'} />
+          <SidebarLink to="/settings" icon={<Settings />} text="Settings" isOpen={isOpen} isActive={location.pathname === '/settings'} />
+        </nav>
+        
+        <div className="absolute bottom-0 w-full p-4">
+          {isOpen && (
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm font-medium text-blue-700">Need Help?</p>
+              <p className="text-xs text-blue-600 mt-1">Check our documentation or contact support.</p>
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 };
 
@@ -52,11 +75,10 @@ interface SidebarLinkProps {
   icon: React.ReactNode;
   text: string;
   isOpen: boolean;
+  isActive: boolean;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ to, icon, text, isOpen }) => {
-  const isActive = location.pathname === to;
-  
+const SidebarLink: React.FC<SidebarLinkProps> = ({ to, icon, text, isOpen, isActive }) => {
   return (
     <Link
       to={to}
