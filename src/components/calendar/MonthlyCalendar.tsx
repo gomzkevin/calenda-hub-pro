@@ -103,6 +103,13 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     });
   };
 
+  // Helper to normalize date to noon UTC to avoid timezone issues
+  const normalizeDate = (date: Date): Date => {
+    const newDate = new Date(date);
+    newDate.setUTCHours(12, 0, 0, 0);
+    return newDate;
+  };
+
   // Group days into weeks
   const weeks = [];
   for (let i = 0; i < daysInGrid.length; i += 7) {
@@ -163,8 +170,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
               {/* Reservation bars */}
               <div className="col-span-7 relative h-0">
                 {week[0] && getReservationsForWeek(week).map((reservation, resIndex) => {
-                  const startDate = reservation.startDate;
-                  const endDate = reservation.endDate;
+                  const startDate = normalizeDate(reservation.startDate);
+                  const endDate = normalizeDate(reservation.endDate);
                   
                   // Find position of start and end days in this week
                   let startPos = -1;
@@ -174,16 +181,18 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     const currentDay = week[i];
                     if (!currentDay) continue;
                     
+                    const normalizedCurrentDay = normalizeDate(currentDay);
+                    
                     // Check if current day is the start date
-                    if (startPos === -1 && isSameDay(currentDay, startDate)) {
+                    if (startPos === -1 && isSameDay(normalizedCurrentDay, startDate)) {
                       startPos = i;
-                    } else if (startPos === -1 && currentDay > startDate) {
+                    } else if (startPos === -1 && normalizedCurrentDay > startDate) {
                       // If we're past the start date but haven't set it yet, set it to this cell
                       startPos = i;
                     }
                     
                     // Check if current day is the end date
-                    if (isSameDay(currentDay, endDate)) {
+                    if (isSameDay(normalizedCurrentDay, endDate)) {
                       endPos = i;
                       break;
                     }
@@ -194,8 +203,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                   if (endPos === 7 && startPos !== -1) endPos = 6;
                   
                   // Check if the reservation continues to the next or from the previous week
-                  const continuesFromPrevious = startPos === 0 && !isSameDay(week[0], startDate);
-                  const continuesToNext = endPos === 6 && !isSameDay(week[6], endDate);
+                  const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
+                  const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
                   
                   // Calculate start/end adjustments
                   // For check-in day (start): Add 0.5 to start from middle of cell
@@ -204,11 +213,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                   let adjustedEndPos = endPos + 1; // +1 because endPos is inclusive
                   
                   // Only adjust for actual check-in/out, not for week continuations
-                  if (isSameDay(week[startPos], startDate)) {
+                  if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
                     adjustedStartPos += 0.5; // Start from middle of check-in cell
                   }
                   
-                  if (isSameDay(week[endPos], endDate)) {
+                  if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
                     adjustedEndPos = endPos + 0.5; // End at middle of check-out cell
                   }
                   
@@ -228,6 +237,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                   // Skip if it doesn't fit in this week
                   if (startPos > 6 || endPos < 0) return null;
                   
+                  // Calculate vertical position with better spacing between bars
+                  const verticalPosition = -84 + (resIndex * 10);
+                  
                   return (
                     <TooltipProvider key={`res-${weekIndex}-${resIndex}`}>
                       <Tooltip>
@@ -235,7 +247,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                           <div 
                             className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
                             style={{
-                              top: `${-84 + (resIndex * 10)}px`,
+                              top: `${verticalPosition}px`,
                               left: barLeft,
                               width: barWidth,
                               minWidth: '40px'

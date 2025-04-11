@@ -50,10 +50,10 @@ const MultiCalendar: React.FC = () => {
 
   const isLoading = isLoadingReservations || isLoadingProperties;
 
-  // Helper to ensure date is set to noon to avoid timezone issues
+  // Helper to normalize date to noon UTC to avoid timezone issues
   const normalizeDate = (date: Date): Date => {
     const newDate = new Date(date);
-    newDate.setHours(12, 0, 0, 0);
+    newDate.setUTCHours(12, 0, 0, 0);
     return newDate;
   };
 
@@ -127,8 +127,8 @@ const MultiCalendar: React.FC = () => {
                   {/* Reservation bars */}
                   {propertyReservations.map((reservation, resIndex) => {
                     // Normalize the dates to noon to avoid timezone issues
-                    const startDate = reservation.startDate;
-                    const endDate = reservation.endDate;
+                    const startDate = normalizeDate(reservation.startDate);
+                    const endDate = normalizeDate(reservation.endDate);
                     
                     // Check if reservation overlaps with current month view
                     if (endDate < monthStart || startDate > monthEnd) {
@@ -140,8 +140,8 @@ const MultiCalendar: React.FC = () => {
                     const visibleEndDate = endDate > monthEnd ? monthEnd : endDate;
                     
                     // Find day index for start and end in the month days array
-                    const startDayIndex = monthDays.findIndex(d => isSameDay(d, visibleStartDate));
-                    let endDayIndex = monthDays.findIndex(d => isSameDay(d, visibleEndDate));
+                    const startDayIndex = monthDays.findIndex(d => isSameDay(normalizeDate(d), visibleStartDate));
+                    let endDayIndex = monthDays.findIndex(d => isSameDay(normalizeDate(d), visibleEndDate));
                     if (endDayIndex === -1) {
                       endDayIndex = monthDays.length - 1;
                     }
@@ -168,6 +168,9 @@ const MultiCalendar: React.FC = () => {
                       borderRadiusStyle = 'rounded-l-full rounded-r-none';
                     }
                     
+                    // Calculate vertical position with better spacing between bars
+                    const verticalPosition = 56 + (properties.indexOf(property) * 48) + (resIndex * 10);
+                    
                     return (
                       <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
                         <Tooltip>
@@ -175,7 +178,7 @@ const MultiCalendar: React.FC = () => {
                             <div 
                               className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
-                                top: `${56 + (properties.indexOf(property) * 48) + (resIndex * 2)}px`,
+                                top: `${verticalPosition}px`,
                                 left: left,
                                 width: width,
                                 minWidth: '40px'

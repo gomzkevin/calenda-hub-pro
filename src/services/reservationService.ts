@@ -7,7 +7,8 @@ import { Reservation } from "@/types";
  */
 const normalizeDate = (date: Date): Date => {
   const newDate = new Date(date);
-  newDate.setHours(12, 0, 0, 0);
+  // Set time to noon UTC to avoid any timezone issues
+  newDate.setUTCHours(12, 0, 0, 0);
   return newDate;
 };
 
