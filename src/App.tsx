@@ -13,55 +13,75 @@ import ICalLinksPage from "./pages/ICalLinksPage";
 import UsersPage from "./pages/UsersPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
+import AuthPage from "./pages/AuthPage";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          } />
-          <Route path="/properties" element={
-            <Layout>
-              <PropertiesPage />
-            </Layout>
-          } />
-          <Route path="/properties/:id" element={
-            <Layout>
-              <PropertyDetailsPage />
-            </Layout>
-          } />
-          <Route path="/calendar" element={
-            <Layout>
-              <CalendarPage />
-            </Layout>
-          } />
-          <Route path="/ical-links" element={
-            <Layout>
-              <ICalLinksPage />
-            </Layout>
-          } />
-          <Route path="/users" element={
-            <Layout>
-              <UsersPage />
-            </Layout>
-          } />
-          <Route path="/settings" element={
-            <Layout>
-              <SettingsPage />
-            </Layout>
-          } />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/properties" element={
+              <ProtectedRoute>
+                <Layout>
+                  <PropertiesPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/properties/:id" element={
+              <ProtectedRoute>
+                <Layout>
+                  <PropertyDetailsPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/calendar" element={
+              <ProtectedRoute>
+                <Layout>
+                  <CalendarPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/ical-links" element={
+              <ProtectedRoute>
+                <Layout>
+                  <ICalLinksPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <Layout>
+                  <UsersPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Layout>
+                  <SettingsPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
