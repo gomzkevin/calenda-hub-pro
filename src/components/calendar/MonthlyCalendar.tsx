@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -189,7 +188,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   }, [weeks, reservations]);
   
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white rounded-lg shadow w-full min-w-fit">
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
         <div className="flex space-x-2">
@@ -215,9 +214,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 min-w-fit">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-center py-2 font-medium text-gray-600 border-b">
+            <div key={day} className="text-center py-2 font-medium text-gray-600 border-b min-w-[100px]">
               {day}
             </div>
           ))}
@@ -235,7 +234,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                 {week.map((day, dayIndex) => (
                   <div 
                     key={`day-${weekIndex}-${dayIndex}`} 
-                    className={`calendar-day border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''}`}
+                    className={`calendar-day border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''} min-w-[100px]`}
                     style={{ height: `${cellHeight}px` }}
                   >
                     {day && (

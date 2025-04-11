@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -195,7 +196,7 @@ const MultiCalendar: React.FC = () => {
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col h-full w-full max-w-full"
+      className="flex flex-col h-full w-full max-w-full overflow-hidden"
     >
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
@@ -223,186 +224,178 @@ const MultiCalendar: React.FC = () => {
         </div>
       ) : (
         <ScrollArea className="h-full w-full overflow-hidden border rounded-md">
-          <div className="w-full h-full">
-            <div className="relative w-full">
-              <div className="grid" style={{ 
-                gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
-              }}>
-                <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
-                  Properties
+          <div className="w-auto min-w-full">
+            <div className="grid" style={{ 
+              gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
+              width: `calc(160px + ${visibleMonthDays.length * cellWidth}px)`
+            }}>
+              <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
+                Properties
+              </div>
+              
+              {visibleMonthDays.map((day, index) => (
+                <div 
+                  key={index}
+                  className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
+                >
+                  <span>{format(day, 'EEE')}</span>
+                  <span>{format(day, 'd')}</span>
                 </div>
+              ))}
+              
+              {properties.map((property: Property, propertyIndex: number) => {
+                const propertyReservations = getReservationsForProperty(property.id);
+                const propertyLanes = propertyReservationLanes[property.id] || {};
+                const laneHeight = 12;
+                const baseRowHeight = 48;
                 
-                {visibleMonthDays.map((day, index) => (
-                  <div 
-                    key={index}
-                    className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
-                  >
-                    <span>{format(day, 'EEE')}</span>
-                    <span>{format(day, 'd')}</span>
-                  </div>
-                ))}
+                const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
+                const totalLanes = maxLane + 1;
+                const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 12);
                 
-                {properties.map((property: Property, propertyIndex: number) => {
-                  const propertyReservations = getReservationsForProperty(property.id);
-                  const propertyLanes = propertyReservationLanes[property.id] || {};
-                  const laneHeight = 12;
-                  const baseRowHeight = 48;
-                  
-                  const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
-                  const totalLanes = maxLane + 1;
-                  const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 12);
-                  
-                  let rowTopPosition = 10;
-                  for (let i = 0; i < propertyIndex; i++) {
-                    const prevPropertyLanes = propertyReservationLanes[properties[i].id] || {};
-                    const prevMaxLane = Object.values(prevPropertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
-                    const prevRowHeight = baseRowHeight + (prevMaxLane * laneHeight);
-                    rowTopPosition += prevRowHeight;
-                  }
-                  
-                  return (
-                    <React.Fragment key={property.id}>
-                      <div 
-                        className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate"
-                        style={{ height: `${rowHeight}px` }}
-                      >
-                        {property.name}
-                      </div>
+                return (
+                  <React.Fragment key={property.id}>
+                    <div 
+                      className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate"
+                      style={{ height: `${rowHeight}px` }}
+                    >
+                      {property.name}
+                    </div>
+                    
+                    {visibleMonthDays.map((day, dayIndex) => {
+                      const isToday = isSameDay(day, new Date());
                       
-                      {visibleMonthDays.map((day, dayIndex) => {
-                        const isToday = isSameDay(day, new Date());
-                        
-                        return (
-                          <div
-                            key={dayIndex}
-                            className={`border ${isToday ? 'bg-blue-50' : ''}`}
-                            style={{ height: `${rowHeight}px` }}
-                          />
-                        );
-                      })}
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={`border ${isToday ? 'bg-blue-50' : ''}`}
+                          style={{ height: `${rowHeight}px` }}
+                        />
+                      );
+                    })}
 
-                      {propertyReservations.map((reservation) => {
-                        const startDate = reservation.startDate;
-                        const endDate = reservation.endDate;
-                        
-                        if (endDate < visibleMonthDays[0] || startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
-                          return null;
-                        }
-                        
-                        const visibleStartDate = startDate < visibleMonthDays[0] ? visibleMonthDays[0] : startDate;
-                        const visibleEndDate = endDate > visibleMonthDays[visibleMonthDays.length - 1] ? 
-                          visibleMonthDays[visibleMonthDays.length - 1] : endDate;
-                        
-                        const startDayIndex = visibleMonthDays.findIndex(d => 
-                          isSameDay(normalizeDate(d), visibleStartDate)
-                        );
-                        
-                        let endDayIndex = visibleMonthDays.findIndex(d => 
-                          isSameDay(normalizeDate(d), visibleEndDate)
-                        );
-                        
-                        if (endDayIndex === -1) {
-                          endDayIndex = visibleMonthDays.length - 1;
-                        }
-                        
-                        let startPosition = startDayIndex;
-                        let endPosition = endDayIndex;
-                        
-                        if (isSameDay(visibleStartDate, startDate)) {
-                          startPosition += 0.6;
-                        }
-                        
-                        if (isSameDay(visibleEndDate, endDate)) {
-                          endPosition += 0.4;
-                        } else {
-                          endPosition += 1;
-                        }
-                        
-                        const left = `calc(160px + (${startPosition} * ${cellWidth}px))`;
-                        const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
-                        
-                        const isStartTruncated = startDate < visibleMonthDays[0];
-                        const isEndTruncated = endDate > visibleMonthDays[visibleMonthDays.length - 1];
-                        
-                        let borderRadiusStyle = 'rounded-full';
-                        if (isStartTruncated && isEndTruncated) {
-                          borderRadiusStyle = 'rounded-none';
-                        } else if (isStartTruncated) {
-                          borderRadiusStyle = 'rounded-r-full rounded-l-none';
-                        } else if (isEndTruncated) {
-                          borderRadiusStyle = 'rounded-l-full rounded-r-none';
-                        }
-                        
-                        const lane = propertyLanes[reservation.id] || 0;
-                        
-                        const totalLanes = maxLane + 1;
-                        let verticalPosition;
-                        
-                        if (totalLanes <= 1) {
-                          verticalPosition = rowHeight / 2 - 4;
-                        } else {
-                          const availableHeight = rowHeight - 16;
-                          const laneSpacing = availableHeight / totalLanes;
-                          
-                          verticalPosition = 8 + (lane * laneSpacing) + (laneSpacing / 2) - 4;
-                        }
-                        
-                        const isShortReservation = endPosition - startPosition < 1;
-                        
-                        const reservationClass = getReservationStyle(reservation);
-                        
-                        let sourcePropertyInfo = '';
-                        if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
-                          const sourceReservation = allReservations.find(r => r.id === reservation.sourceReservationId);
-                          if (sourceReservation) {
-                            const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
-                            if (sourceProperty) {
-                              sourcePropertyInfo = `Bloqueado por reserva en: ${sourceProperty.name}`;
-                            }
+                    {propertyReservations.map((reservation) => {
+                      const startDate = reservation.startDate;
+                      const endDate = reservation.endDate;
+                      
+                      if (endDate < visibleMonthDays[0] || startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
+                        return null;
+                      }
+                      
+                      const visibleStartDate = startDate < visibleMonthDays[0] ? visibleMonthDays[0] : startDate;
+                      const visibleEndDate = endDate > visibleMonthDays[visibleMonthDays.length - 1] ? 
+                        visibleMonthDays[visibleMonthDays.length - 1] : endDate;
+                      
+                      const startDayIndex = visibleMonthDays.findIndex(d => 
+                        isSameDay(normalizeDate(d), visibleStartDate)
+                      );
+                      
+                      let endDayIndex = visibleMonthDays.findIndex(d => 
+                        isSameDay(normalizeDate(d), visibleEndDate)
+                      );
+                      
+                      if (endDayIndex === -1) {
+                        endDayIndex = visibleMonthDays.length - 1;
+                      }
+                      
+                      let startPosition = startDayIndex;
+                      let endPosition = endDayIndex;
+                      
+                      if (isSameDay(visibleStartDate, startDate)) {
+                        startPosition += 0.6;
+                      }
+                      
+                      if (isSameDay(visibleEndDate, endDate)) {
+                        endPosition += 0.4;
+                      } else {
+                        endPosition += 1;
+                      }
+                      
+                      const left = `calc(160px + (${startPosition} * ${cellWidth}px))`;
+                      const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
+                      
+                      const isStartTruncated = startDate < visibleMonthDays[0];
+                      const isEndTruncated = endDate > visibleMonthDays[visibleMonthDays.length - 1];
+                      
+                      let borderRadiusStyle = 'rounded-full';
+                      if (isStartTruncated && isEndTruncated) {
+                        borderRadiusStyle = 'rounded-none';
+                      } else if (isStartTruncated) {
+                        borderRadiusStyle = 'rounded-r-full rounded-l-none';
+                      } else if (isEndTruncated) {
+                        borderRadiusStyle = 'rounded-l-full rounded-r-none';
+                      }
+                      
+                      const lane = propertyLanes[reservation.id] || 0;
+                      
+                      const totalLanes = maxLane + 1;
+                      let verticalPosition;
+                      
+                      if (totalLanes <= 1) {
+                        // Center it vertically if there's only one lane
+                        verticalPosition = (rowHeight / 2) - 4;
+                      } else {
+                        // Distribute multiple lanes evenly
+                        const availableHeight = rowHeight - 12;
+                        const laneSpacing = availableHeight / totalLanes;
+                        verticalPosition = 6 + (lane * laneSpacing) + (laneSpacing / 2) - 4;
+                      }
+                      
+                      const isShortReservation = endPosition - startPosition < 1;
+                      
+                      const reservationClass = getReservationStyle(reservation);
+                      
+                      let sourcePropertyInfo = '';
+                      if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
+                        const sourceReservation = allReservations.find(r => r.id === reservation.sourceReservationId);
+                        if (sourceReservation) {
+                          const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
+                          if (sourceProperty) {
+                            sourcePropertyInfo = `Bloqueado por reserva en: ${sourceProperty.name}`;
                           }
                         }
-                        
-                        if (startPosition < 0 && endPosition < 0) return null;
-                        if (startPosition >= visibleMonthDays.length && endPosition >= visibleMonthDays.length) return null;
-                        
-                        return (
-                          <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div 
-                                  className={`absolute h-8 ${reservationClass} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
-                                  style={{
-                                    top: `${verticalPosition}px`,
-                                    left: left,
-                                    width: width,
-                                    minWidth: '40px'
-                                  }}
-                                >
-                                  {reservation.platform}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-xs">
-                                  <p><strong>{property.name}</strong></p>
-                                  <p><strong>Platform:</strong> {reservation.platform}</p>
-                                  <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
-                                  <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                                  {sourcePropertyInfo && (
-                                    <p className="mt-1 text-gray-500"><em>{sourcePropertyInfo}</em></p>
-                                  )}
-                                  {reservation.notes && reservation.notes !== 'Blocked' && (
-                                    <p><strong>Notes:</strong> {reservation.notes}</p>
-                                  )}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+                      }
+                      
+                      if (startPosition < 0 && endPosition < 0) return null;
+                      if (startPosition >= visibleMonthDays.length && endPosition >= visibleMonthDays.length) return null;
+                      
+                      return (
+                        <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div 
+                                className={`absolute h-8 ${reservationClass} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                                style={{
+                                  top: `${verticalPosition}px`,
+                                  left: left,
+                                  width: width,
+                                  minWidth: '40px'
+                                }}
+                              >
+                                {reservation.platform}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="text-xs">
+                                <p><strong>{property.name}</strong></p>
+                                <p><strong>Platform:</strong> {reservation.platform}</p>
+                                <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
+                                <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
+                                {sourcePropertyInfo && (
+                                  <p className="mt-1 text-gray-500"><em>{sourcePropertyInfo}</em></p>
+                                )}
+                                {reservation.notes && reservation.notes !== 'Blocked' && (
+                                  <p><strong>Notes:</strong> {reservation.notes}</p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </div>
           </div>
         </ScrollArea>
