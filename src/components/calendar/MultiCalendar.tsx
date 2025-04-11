@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,7 +8,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservationService';
 import { getProperties } from '@/services/propertyService';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const MultiCalendar: React.FC = () => {
@@ -193,24 +191,27 @@ const MultiCalendar: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
-        <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={prevMonth}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={nextMonth}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+    <div className="bg-white rounded-lg shadow flex flex-col h-full">
+      {/* Fixed header with month title and navigation buttons */}
+      <div className="sticky top-0 z-30 bg-white border-b">
+        <div className="flex items-center justify-between p-4">
+          <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={prevMonth}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={nextMonth}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -219,7 +220,7 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="w-full overflow-auto">
+        <div className="relative overflow-x-auto" style={{ overflowY: 'visible' }}>
           <div className="min-w-[100%]" style={{ 
             width: `max(100%, ${200 + (monthDays.length * cellWidth)}px)`,
           }}>
@@ -411,7 +412,7 @@ const MultiCalendar: React.FC = () => {
               })}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );

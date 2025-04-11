@@ -49,11 +49,11 @@ const CalendarPage: React.FC = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="sm:w-64">
+        <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
+          <div className="w-full sm:w-64">
             {isLoading ? (
               <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
             ) : (
@@ -76,12 +76,13 @@ const CalendarPage: React.FC = () => {
           </div>
           <AddReservationButton 
             propertyId={selectedPropertyId} 
+            className="w-full sm:w-auto"
           />
         </div>
       </div>
       
-      <Tabs defaultValue="monthly">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2">
+      <Tabs defaultValue="monthly" className="w-full">
+        <TabsList className="w-full grid grid-cols-2 sm:w-auto">
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
           <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
         </TabsList>
@@ -102,15 +103,15 @@ const CalendarPage: React.FC = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="multi">
-          <Card>
+        <TabsContent value="multi" className="w-full">
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Multi-Property View</CardTitle>
               <CardDescription>
                 Operational view showing all properties by day
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6">
               <MultiCalendar />
             </CardContent>
           </Card>

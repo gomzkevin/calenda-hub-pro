@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
             <img 
               src="/lovable-uploads/fc627b57-8457-4065-807e-6048456e3921.png" 
               alt="Alanto Logo" 
-              className="h-8" 
+              className="h-7" /* Reduced from h-8 to h-7 (approximately 15% smaller) */
             />
           </div>
           <p className="text-xs text-gray-500 text-center">Más ingresos, menos estrés</p>
