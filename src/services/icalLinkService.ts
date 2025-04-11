@@ -50,7 +50,164 @@ export const getICalLinksForProperty = async (propertyId: string): Promise<ICalL
 };
 
 /**
- * Sync an iCal link to fetch latest reservations
+ * Process an iCal link to fetch latest reservations without storing in database
+ */
+export const processICalLink = async (icalUrl: string): Promise<{
+  reservations: any[];
+  metadata: {
+    totalReservations: number;
+    calendarSource: string;
+    processedAt: string;
+  };
+}> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('process-ical', {
+      body: {
+        icalUrl
+      }
+    });
+    
+    if (error) {
+      console.error("Error processing iCal:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error processing iCal link:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update the lastSynced timestamp for an iCal link
+ */
+export const updateICalLinkLastSynced = async (icalLinkId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from("ical_links")
+      .update({ last_synced: new Date().toISOString() })
+      .eq("id", icalLinkId);
+    
+    if (error) {
+      console.error("Error updating iCal link last_synced timestamp:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error updating iCal link:", error);
+    throw error;
+  }
+};
+
+/**
+ * Store reservation data in the database
+ */
+export const storeReservations = async (
+  propertyId: string, 
+  platform: string, 
+  icalUrl: string, 
+  reservations: any[]
+): Promise<{
+  added: number;
+  updated: number;
+  skipped: number;
+}> => {
+  let added = 0;
+  let updated = 0;
+  let skipped = 0;
+  
+  try {
+    // Process each reservation
+    for (const reservation of reservations) {
+      const externalId = reservation.reservationId || reservation.uid || '';
+      const startDate = reservation.checkIn;
+      const endDate = reservation.checkOut;
+      
+      if (!startDate || !endDate) {
+        console.warn("Skipping reservation with missing dates:", reservation);
+        skipped++;
+        continue;
+      }
+      
+      // Prepare notes with additional information
+      let notes = reservation.status || '';
+      if (platform === 'Airbnb' && reservation.additionalInfo) {
+        if (reservation.additionalInfo.reservationUrl) {
+          notes += `\nReservation URL: ${reservation.additionalInfo.reservationUrl}`;
+        }
+        if (reservation.additionalInfo.phoneLastDigits) {
+          notes += `\nPhone: XXXX-XXXX-${reservation.additionalInfo.phoneLastDigits}`;
+        }
+      } else if (platform === 'Vrbo' && reservation.additionalInfo?.guestName) {
+        notes += `\nGuest: ${reservation.additionalInfo.guestName}`;
+      }
+      
+      // Check if this reservation already exists
+      const { data: existingReservations, error: queryError } = await supabase
+        .from("reservations")
+        .select("id")
+        .eq("property_id", propertyId)
+        .eq("external_id", externalId);
+      
+      if (queryError) {
+        console.error("Error checking for existing reservation:", queryError);
+        skipped++;
+        continue;
+      }
+      
+      if (existingReservations && existingReservations.length > 0) {
+        // Update existing reservation
+        const { error: updateError } = await supabase
+          .from("reservations")
+          .update({
+            start_date: startDate,
+            end_date: endDate,
+            notes: notes,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", existingReservations[0].id);
+        
+        if (updateError) {
+          console.error("Error updating reservation:", updateError);
+          skipped++;
+        } else {
+          updated++;
+        }
+      } else {
+        // Insert new reservation
+        const reservationData = {
+          property_id: propertyId,
+          start_date: startDate,
+          end_date: endDate,
+          platform: platform,
+          source: "iCal",
+          ical_url: icalUrl,
+          notes: notes,
+          external_id: externalId
+        };
+        
+        const { error: insertError } = await supabase
+          .from("reservations")
+          .insert(reservationData);
+        
+        if (insertError) {
+          console.error("Error inserting reservation:", insertError);
+          skipped++;
+        } else {
+          added++;
+        }
+      }
+    }
+    
+    return { added, updated, skipped };
+  } catch (error) {
+    console.error("Error storing reservations:", error);
+    throw error;
+  }
+};
+
+/**
+ * Sync an iCal link to fetch latest reservations and store in database
  */
 export const syncICalLink = async (icalLink: ICalLink): Promise<{
   success: boolean;
@@ -63,23 +220,32 @@ export const syncICalLink = async (icalLink: ICalLink): Promise<{
   error?: string;
 }> => {
   try {
-    const response = await supabase.functions.invoke('sync-ical', {
-      body: {
-        icalUrl: icalLink.url,
-        propertyId: icalLink.propertyId,
-        platform: icalLink.platform,
-        icalLinkId: icalLink.id
+    // 1. Process the iCal data to get reservations
+    const processingResult = await processICalLink(icalLink.url);
+    
+    // 2. Store the reservations in the database
+    const storageResults = await storeReservations(
+      icalLink.propertyId,
+      processingResult.metadata.calendarSource,
+      icalLink.url,
+      processingResult.reservations
+    );
+    
+    // 3. Update the last_synced timestamp
+    await updateICalLinkLastSynced(icalLink.id);
+    
+    return {
+      success: true,
+      results: {
+        total: processingResult.reservations.length,
+        ...storageResults
       }
-    });
-    
-    if (!response.data || response.error) {
-      console.error("Error syncing iCal link:", response.error);
-      return { success: false, error: response.error?.message || 'Error desconocido' };
-    }
-    
-    return response.data;
+    };
   } catch (error) {
     console.error("Error syncing iCal link:", error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Error desconocido'
+    };
   }
 };

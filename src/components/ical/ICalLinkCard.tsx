@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
 import { getPropertyById } from '@/services/propertyService';
-import { syncICalLink } from '@/services/icalLinkService';
+import { processICalLink, syncICalLink } from '@/services/icalLinkService';
 import { toast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -15,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Reservation {
   checkIn: string;
@@ -75,24 +74,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     setSyncError(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('process-ical', {
-        body: {
-          icalUrl: icalLink.url
-        }
-      });
-      
-      if (error) {
-        console.error('Error processing iCal data:', error);
-        setSyncError(error.message || "Error al procesar el calendario");
-        toast({
-          variant: "destructive",
-          title: "Error al procesar el calendario",
-          description: error.message || "No se pudo procesar la información del calendario."
-        });
-        setIcalDetails(null);
-        return null;
-      }
-      
+      const data = await processICalLink(icalLink.url);
       setIcalDetails(data);
       return data;
     } catch (error) {
