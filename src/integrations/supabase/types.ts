@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_synced: string | null
           platform: string
           property_id: string
           url: string
@@ -20,6 +21,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_synced?: string | null
           platform: string
           property_id: string
           url: string
@@ -27,6 +29,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_synced?: string | null
           platform?: string
           property_id?: string
           url?: string
@@ -163,6 +166,7 @@ export type Database = {
         Row: {
           created_at: string
           end_date: string
+          external_id: string | null
           ical_url: string | null
           id: string
           notes: string | null
@@ -175,6 +179,7 @@ export type Database = {
         Insert: {
           created_at?: string
           end_date: string
+          external_id?: string | null
           ical_url?: string | null
           id?: string
           notes?: string | null
@@ -187,6 +192,7 @@ export type Database = {
         Update: {
           created_at?: string
           end_date?: string
+          external_id?: string | null
           ical_url?: string | null
           id?: string
           notes?: string | null

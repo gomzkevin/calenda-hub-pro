@@ -25,6 +25,7 @@ export const getReservations = async (): Promise<Reservation[]> => {
     source: res.source as any,
     icalUrl: res.ical_url || undefined,
     notes: res.notes || undefined,
+    externalId: res.external_id || undefined,
     createdAt: new Date(res.created_at)
   })) : [];
 };
@@ -53,6 +54,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     source: res.source as any,
     icalUrl: res.ical_url || undefined,
     notes: res.notes || undefined,
+    externalId: res.external_id || undefined,
     createdAt: new Date(res.created_at)
   })) : [];
 };
@@ -90,6 +92,7 @@ export const getReservationsForMonth = async (
     source: res.source as any,
     icalUrl: res.ical_url || undefined,
     notes: res.notes || undefined,
+    externalId: res.external_id || undefined,
     createdAt: new Date(res.created_at)
   })) : [];
 };
