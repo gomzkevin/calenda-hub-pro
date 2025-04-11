@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const isMobile = useIsMobile();
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Use responsive cell width based on screen size
   const [cellWidth, setCellWidth] = useState<number>(50);
@@ -23,26 +24,29 @@ const MultiCalendar: React.FC = () => {
   // Resize listener for responsive layout
   useEffect(() => {
     const calculateLayout = () => {
-      const width = window.innerWidth;
-      // First column (property names) takes 200px, calculate remaining width
-      const availableWidth = width - 240; // 200px for left column + some padding
+      if (!containerRef.current) return;
+      
+      // Calculate available width for the calendar
+      const containerWidth = containerRef.current.clientWidth;
+      // First column (property names) takes 160px, calculate remaining width
+      const availableWidth = Math.max(0, containerWidth - 160);
       
       // Calculate how many days we can fit
       let newCellWidth;
       let daysToShow;
       
-      if (width < 640) {
+      if (window.innerWidth < 640) {
         // Mobile
         newCellWidth = 40;
-        daysToShow = Math.max(7, Math.floor(availableWidth / newCellWidth));
-      } else if (width < 1024) {
+        daysToShow = Math.max(5, Math.floor(availableWidth / newCellWidth));
+      } else if (window.innerWidth < 1024) {
         // Tablet
         newCellWidth = 45;
-        daysToShow = Math.max(14, Math.floor(availableWidth / newCellWidth));
+        daysToShow = Math.max(10, Math.floor(availableWidth / newCellWidth));
       } else {
         // Desktop
         newCellWidth = 50;
-        daysToShow = Math.max(21, Math.floor(availableWidth / newCellWidth));
+        daysToShow = Math.max(15, Math.floor(availableWidth / newCellWidth));
       }
       
       setCellWidth(newCellWidth);
@@ -50,8 +54,17 @@ const MultiCalendar: React.FC = () => {
     };
     
     calculateLayout();
+    
+    const resizeObserver = new ResizeObserver(calculateLayout);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
     window.addEventListener('resize', calculateLayout);
-    return () => window.removeEventListener('resize', calculateLayout);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', calculateLayout);
+    };
   }, []);
   
   // Fetch reservations
@@ -214,7 +227,10 @@ const MultiCalendar: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
+    <div 
+      ref={containerRef}
+      className="bg-white rounded-lg shadow flex flex-col h-full w-full overflow-hidden"
+    >
       {/* Fixed header with month title and navigation buttons */}
       <div className="sticky top-0 z-30 bg-white border-b">
         <div className="flex items-center justify-between p-4">
@@ -243,10 +259,10 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="h-[calc(100%-60px)] w-full">
-          <div className="relative min-w-max">
+        <ScrollArea className="flex-1 w-full">
+          <div className="relative w-full">
             <div className="grid" style={{ 
-              gridTemplateColumns: `200px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
+              gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
             }}>
               {/* Header row with dates */}
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
@@ -353,7 +369,7 @@ const MultiCalendar: React.FC = () => {
                       }
                       
                       // Calculate left position and width using cell width
-                      const left = `calc(200px + (${startPosition} * ${cellWidth}px))`;
+                      const left = `calc(160px + (${startPosition} * ${cellWidth}px))`;
                       const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
                       
                       // Determine border radius style
