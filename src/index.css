@@ -109,4 +109,24 @@
   .calendar-day {
     @apply p-1 border h-24 overflow-hidden;
   }
+  
+  .bg-platform-airbnb {
+    @apply bg-red-500/70;
+  }
+  
+  .bg-platform-booking {
+    @apply bg-blue-600/70;
+  }
+  
+  .bg-platform-vrbo {
+    @apply bg-green-600/70;
+  }
+  
+  .bg-platform-manual {
+    @apply bg-purple-600/70;
+  }
+  
+  .bg-platform-other {
+    @apply bg-gray-600/70;
+  }
 }

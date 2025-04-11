@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import PropertiesPage from "./pages/PropertiesPage";
+import PropertyDetailsPage from "./pages/PropertyDetailsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ICalLinksPage from "./pages/ICalLinksPage";
 import UsersPage from "./pages/UsersPage";
@@ -30,6 +31,11 @@ const App = () => (
           <Route path="/properties" element={
             <Layout>
               <PropertiesPage />
+            </Layout>
+          } />
+          <Route path="/properties/:id" element={
+            <Layout>
+              <PropertyDetailsPage />
             </Layout>
           } />
           <Route path="/calendar" element={

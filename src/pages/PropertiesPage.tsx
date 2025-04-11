@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import { sampleProperties } from '@/data/mockData';
 import PropertyCard from '@/components/properties/PropertyCard';
 
 const PropertiesPage: React.FC = () => {
+  const navigate = useNavigate();
   const properties = sampleProperties;
   
   return (
@@ -21,7 +23,7 @@ const PropertiesPage: React.FC = () => {
               className="w-full"
             />
           </div>
-          <Button>
+          <Button onClick={() => alert('Add property functionality would go here')}>
             <Plus className="w-4 h-4 mr-2" />
             Add Property
           </Button>
