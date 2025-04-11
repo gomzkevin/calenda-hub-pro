@@ -1,23 +1,26 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ICalLink, Operator, Property, Reservation, User } from "@/types";
+import { Database } from "@/integrations/supabase/types";
 
 // Operadores
 export const getOperators = async (): Promise<Operator[]> => {
-  const { data, error } = await supabase.from("operators").select("*");
+  const { data, error } = await supabase
+    .from("operators")
+    .select("*");
   
   if (error) {
     console.error("Error fetching operators:", error);
     throw error;
   }
   
-  return data.map((op) => ({
+  return data ? data.map((op) => ({
     id: op.id,
     name: op.name,
     slug: op.slug,
     logoUrl: op.logo_url,
     createdAt: new Date(op.created_at)
-  }));
+  })) : [];
 };
 
 // Perfiles/Usuarios
@@ -39,12 +42,14 @@ export const getCurrentUser = async (): Promise<User | null> => {
     return null;
   }
   
+  if (!data) return null;
+  
   return {
     id: data.id,
-    operatorId: data.operator_id,
+    operatorId: data.operator_id || '',
     name: data.name,
     email: data.email,
-    role: data.role,
+    role: data.role as 'admin' | 'user',
     active: data.active,
     createdAt: new Date(data.created_at)
   };
@@ -52,28 +57,30 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
 // Propiedades
 export const getProperties = async (): Promise<Property[]> => {
-  const { data, error } = await supabase.from("properties").select("*");
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*");
   
   if (error) {
     console.error("Error fetching properties:", error);
     throw error;
   }
   
-  return data.map((prop) => ({
+  return data ? data.map((prop) => ({
     id: prop.id,
     operatorId: prop.operator_id,
     name: prop.name,
     address: prop.address,
     internalCode: prop.internal_code,
-    notes: prop.notes,
-    imageUrl: prop.image_url,
+    notes: prop.notes || undefined,
+    imageUrl: prop.image_url || undefined,
     bedrooms: prop.bedrooms,
     bathrooms: prop.bathrooms,
     capacity: prop.capacity,
-    type: prop.type,
-    description: prop.description,
+    type: prop.type || undefined,
+    description: prop.description || undefined,
     createdAt: new Date(prop.created_at)
-  }));
+  })) : [];
 };
 
 export const getPropertyById = async (id: string): Promise<Property | null> => {
@@ -88,39 +95,43 @@ export const getPropertyById = async (id: string): Promise<Property | null> => {
     return null;
   }
   
+  if (!data) return null;
+  
   return {
     id: data.id,
     operatorId: data.operator_id,
     name: data.name,
     address: data.address,
     internalCode: data.internal_code,
-    notes: data.notes,
-    imageUrl: data.image_url,
+    notes: data.notes || undefined,
+    imageUrl: data.image_url || undefined,
     bedrooms: data.bedrooms,
     bathrooms: data.bathrooms,
     capacity: data.capacity,
-    type: data.type,
-    description: data.description,
+    type: data.type || undefined,
+    description: data.description || undefined,
     createdAt: new Date(data.created_at)
   };
 };
 
 // Enlaces iCal
 export const getICalLinks = async (): Promise<ICalLink[]> => {
-  const { data, error } = await supabase.from("ical_links").select("*");
+  const { data, error } = await supabase
+    .from("ical_links")
+    .select("*");
   
   if (error) {
     console.error("Error fetching iCal links:", error);
     throw error;
   }
   
-  return data.map((link) => ({
+  return data ? data.map((link) => ({
     id: link.id,
     propertyId: link.property_id,
     platform: link.platform as any,
     url: link.url,
     createdAt: new Date(link.created_at)
-  }));
+  })) : [];
 };
 
 export const getICalLinksForProperty = async (propertyId: string): Promise<ICalLink[]> => {
@@ -134,25 +145,27 @@ export const getICalLinksForProperty = async (propertyId: string): Promise<ICalL
     throw error;
   }
   
-  return data.map((link) => ({
+  return data ? data.map((link) => ({
     id: link.id,
     propertyId: link.property_id,
     platform: link.platform as any,
     url: link.url,
     createdAt: new Date(link.created_at)
-  }));
+  })) : [];
 };
 
 // Reservaciones
 export const getReservations = async (): Promise<Reservation[]> => {
-  const { data, error } = await supabase.from("reservations").select("*");
+  const { data, error } = await supabase
+    .from("reservations")
+    .select("*");
   
   if (error) {
     console.error("Error fetching reservations:", error);
     throw error;
   }
   
-  return data.map((res) => ({
+  return data ? data.map((res) => ({
     id: res.id,
     propertyId: res.property_id,
     userId: res.user_id || undefined,
@@ -160,10 +173,10 @@ export const getReservations = async (): Promise<Reservation[]> => {
     endDate: new Date(res.end_date),
     platform: res.platform as any,
     source: res.source as any,
-    icalUrl: res.ical_url,
-    notes: res.notes,
+    icalUrl: res.ical_url || undefined,
+    notes: res.notes || undefined,
     createdAt: new Date(res.created_at)
-  }));
+  })) : [];
 };
 
 export const getReservationsForProperty = async (propertyId: string): Promise<Reservation[]> => {
@@ -177,7 +190,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     throw error;
   }
   
-  return data.map((res) => ({
+  return data ? data.map((res) => ({
     id: res.id,
     propertyId: res.property_id,
     userId: res.user_id || undefined,
@@ -185,10 +198,10 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     endDate: new Date(res.end_date),
     platform: res.platform as any,
     source: res.source as any,
-    icalUrl: res.ical_url,
-    notes: res.notes,
+    icalUrl: res.ical_url || undefined,
+    notes: res.notes || undefined,
     createdAt: new Date(res.created_at)
-  }));
+  })) : [];
 };
 
 export const getReservationsForMonth = async (
@@ -211,7 +224,7 @@ export const getReservationsForMonth = async (
     throw error;
   }
   
-  return data.map((res) => ({
+  return data ? data.map((res) => ({
     id: res.id,
     propertyId: res.property_id,
     userId: res.user_id || undefined,
@@ -219,8 +232,8 @@ export const getReservationsForMonth = async (
     endDate: new Date(res.end_date),
     platform: res.platform as any,
     source: res.source as any,
-    icalUrl: res.ical_url,
-    notes: res.notes,
+    icalUrl: res.ical_url || undefined,
+    notes: res.notes || undefined,
     createdAt: new Date(res.created_at)
-  }));
+  })) : [];
 };

@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ICalLinkCard from '@/components/ical/ICalLinkCard';
 import { useQuery } from '@tanstack/react-query';
-import { getICalLinks, getPropertyById } from '@/services/supabaseService';
+import { getICalLinks } from '@/services/supabaseService';
 import { toast } from '@/hooks/use-toast';
 
 const ICalLinksPage = () => {
