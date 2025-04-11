@@ -126,9 +126,9 @@ const MultiCalendar: React.FC = () => {
 
                   {/* Reservation bars */}
                   {propertyReservations.map((reservation, resIndex) => {
-                    // Normalize the dates to noon to avoid timezone issues
-                    const startDate = normalizeDate(reservation.startDate);
-                    const endDate = normalizeDate(reservation.endDate);
+                    // Las fechas ya vienen normalizadas del servicio
+                    const startDate = reservation.startDate;
+                    const endDate = reservation.endDate;
                     
                     // Check if reservation overlaps with current month view
                     if (endDate < monthStart || startDate > monthEnd) {
@@ -140,15 +140,35 @@ const MultiCalendar: React.FC = () => {
                     const visibleEndDate = endDate > monthEnd ? monthEnd : endDate;
                     
                     // Find day index for start and end in the month days array
-                    const startDayIndex = monthDays.findIndex(d => isSameDay(normalizeDate(d), visibleStartDate));
-                    let endDayIndex = monthDays.findIndex(d => isSameDay(normalizeDate(d), visibleEndDate));
+                    const startDayIndex = monthDays.findIndex(d => 
+                      isSameDay(normalizeDate(d), visibleStartDate)
+                    );
+                    
+                    let endDayIndex = monthDays.findIndex(d => 
+                      isSameDay(normalizeDate(d), visibleEndDate)
+                    );
+                    
                     if (endDayIndex === -1) {
                       endDayIndex = monthDays.length - 1;
                     }
                     
-                    // Calculate grid column positions (0.5 represents middle of the cell)
-                    const startPosition = isSameDay(visibleStartDate, startDate) ? startDayIndex + 0.5 : startDayIndex;
-                    const endPosition = isSameDay(visibleEndDate, endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
+                    // Calculate grid column positions
+                    let startPosition = startDayIndex;
+                    let endPosition = endDayIndex;
+                    
+                    // Ajustes precisos para inicio y fin
+                    // Si este es el día real de check-in (no un día de continuación), comenzamos desde la mitad
+                    if (isSameDay(visibleStartDate, startDate)) {
+                      startPosition += 0.5;
+                    }
+                    
+                    // Si este es el día real de check-out (no un día de continuación), terminamos en la mitad
+                    if (isSameDay(visibleEndDate, endDate)) {
+                      endPosition += 0.5;
+                    } else {
+                      // Si no es el día real de check-out, la barra debe extenderse hasta el final del día
+                      endPosition += 1;
+                    }
                     
                     // Calculate width and left position
                     const cellWidth = 100 / monthDays.length;
@@ -168,8 +188,8 @@ const MultiCalendar: React.FC = () => {
                       borderRadiusStyle = 'rounded-l-full rounded-r-none';
                     }
                     
-                    // Calculate vertical position with better spacing between bars
-                    const verticalPosition = 56 + (properties.indexOf(property) * 48) + (resIndex * 10);
+                    // Calculate vertical position with consistent spacing
+                    const verticalPosition = 56 + (properties.indexOf(property) * 48) + (resIndex * 12);
                     
                     return (
                       <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>

@@ -87,18 +87,17 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     });
   };
 
-  // Get reservations that start in a specific week
+  // Get reservations that overlap with a specific week
   const getReservationsForWeek = (weekDays: (Date | null)[]): Reservation[] => {
     const validDays = weekDays.filter(day => day !== null) as Date[];
     if (validDays.length === 0) return [];
 
     return reservations.filter(reservation => {
-      const reservationStart = reservation.startDate;
-      const reservationEnd = reservation.endDate;
-
       return validDays.some(day => {
         if (!day) return false;
-        return day <= reservationEnd && day >= reservationStart;
+        // Normalize both dates for comparison
+        const normalizedDay = normalizeDate(day);
+        return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
       });
     });
   };
@@ -170,75 +169,88 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
               {/* Reservation bars */}
               <div className="col-span-7 relative h-0">
                 {week[0] && getReservationsForWeek(week).map((reservation, resIndex) => {
-                  const startDate = normalizeDate(reservation.startDate);
-                  const endDate = normalizeDate(reservation.endDate);
+                  // Trabajamos con las fechas normalizadas para evitar problemas de zona horaria
+                  const startDate = reservation.startDate;
+                  const endDate = reservation.endDate;
                   
-                  // Find position of start and end days in this week
+                  // Determinamos cómo se posiciona esta reserva en la semana actual
                   let startPos = -1;
-                  let endPos = 7;
+                  let endPos = -1;
                   
+                  // Buscamos la posición exacta del día de inicio y fin en esta semana
                   for (let i = 0; i < week.length; i++) {
-                    const currentDay = week[i];
-                    if (!currentDay) continue;
+                    const day = week[i];
+                    if (!day) continue;
                     
-                    const normalizedCurrentDay = normalizeDate(currentDay);
+                    const normalizedDay = normalizeDate(day);
                     
-                    // Check if current day is the start date
-                    if (startPos === -1 && isSameDay(normalizedCurrentDay, startDate)) {
-                      startPos = i;
-                    } else if (startPos === -1 && normalizedCurrentDay > startDate) {
-                      // If we're past the start date but haven't set it yet, set it to this cell
-                      startPos = i;
+                    // Si este día es exactamente el día de inicio o está después del inicio
+                    // y aún no hemos establecido startPos, lo establecemos ahora
+                    if (startPos === -1) {
+                      if (isSameDay(normalizedDay, startDate)) {
+                        startPos = i;
+                      } else if (normalizedDay > startDate) {
+                        startPos = i;
+                      }
                     }
                     
-                    // Check if current day is the end date
-                    if (isSameDay(normalizedCurrentDay, endDate)) {
+                    // Si este día es exactamente el día de fin, establecemos endPos y terminamos
+                    if (isSameDay(normalizedDay, endDate)) {
                       endPos = i;
                       break;
                     }
+                    // Si estamos procesando el último día de la semana y aún no hemos encontrado endPos,
+                    // pero sabemos que la reserva continúa, establecemos este día como endPos
+                    else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
+                      endPos = i;
+                    }
                   }
                   
-                  // Handle cases where the reservation doesn't start or end in this week
-                  if (startPos === -1) startPos = 0;
-                  if (endPos === 7 && startPos !== -1) endPos = 6;
+                  // Si no encontramos una posición de inicio en esta semana, no renderizamos nada
+                  if (startPos === -1) return null;
                   
-                  // Check if the reservation continues to the next or from the previous week
+                  // Si no encontramos una posición de fin pero tenemos un inicio, usamos el final de la semana
+                  if (endPos === -1 && startPos !== -1) {
+                    endPos = 6; // Último día de la semana
+                  }
+                  
+                  // Determinamos si la reserva continúa desde/hacia otras semanas
                   const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
                   const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
                   
-                  // Calculate start/end adjustments
-                  // For check-in day (start): Add 0.5 to start from middle of cell
-                  // For check-out day (end): Add 0.5 to end at middle of cell
-                  let adjustedStartPos = startPos;
-                  let adjustedEndPos = endPos + 1; // +1 because endPos is inclusive
+                  // Calculamos el ancho y posición de la barra
+                  let barStartPos = startPos;
+                  let barEndPos = endPos;
                   
-                  // Only adjust for actual check-in/out, not for week continuations
+                  // Si este es el día de check-in real, comenzamos desde la mitad del día
                   if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-                    adjustedStartPos += 0.5; // Start from middle of check-in cell
+                    barStartPos += 0.5;
                   }
                   
+                  // Si este es el día de check-out real, terminamos en la mitad del día
                   if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-                    adjustedEndPos = endPos + 0.5; // End at middle of check-out cell
+                    barEndPos += 0.5;
+                  } else {
+                    // Si no es el día de check-out real, la barra debe extenderse hasta el final del día
+                    barEndPos += 1;
                   }
                   
-                  const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
-                  const barLeft = `${(adjustedStartPos / 7) * 100}%`;
+                  const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
+                  const barLeft = `${(barStartPos / 7) * 100}%`;
                   
-                  // Set border radius based on continuation
+                  // Definimos el estilo de borde redondeado basado en si la reserva continúa
                   let borderRadiusStyle = 'rounded-full';
                   if (continuesFromPrevious && continuesToNext) {
-                    borderRadiusStyle = 'rounded-none'; // No rounded corners on both sides
+                    borderRadiusStyle = 'rounded-none';
                   } else if (continuesFromPrevious) {
-                    borderRadiusStyle = 'rounded-r-full rounded-l-none'; // Rounded right corner only
+                    borderRadiusStyle = 'rounded-r-full rounded-l-none';
                   } else if (continuesToNext) {
-                    borderRadiusStyle = 'rounded-l-full rounded-r-none'; // Rounded left corner only
+                    borderRadiusStyle = 'rounded-l-full rounded-r-none';
                   }
                   
-                  // Skip if it doesn't fit in this week
-                  if (startPos > 6 || endPos < 0) return null;
-                  
-                  // Calculate vertical position with better spacing between bars
-                  const verticalPosition = -84 + (resIndex * 10);
+                  // Calculamos la posición vertical para evitar superposiciones
+                  // Usamos una separación constante entre barras para mantenerlas bien alineadas
+                  const verticalPosition = -84 + (resIndex * 12);
                   
                   return (
                     <TooltipProvider key={`res-${weekIndex}-${resIndex}`}>
