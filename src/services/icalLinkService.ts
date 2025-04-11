@@ -71,9 +71,11 @@ export const processICalLink = async (icalUrl: string): Promise<{
     // Use GET request with URL as query parameter
     // Encode the URL to handle special characters
     const encodedUrl = encodeURIComponent(icalUrl);
-    const { data, error } = await supabase.functions.invoke('process-ical', {
-      method: 'GET',
-      queryParams: { icalUrl: encodedUrl }
+    // Construct the URL with query parameters manually
+    const functionUrl = `process-ical?icalUrl=${encodedUrl}`;
+    
+    const { data, error } = await supabase.functions.invoke(functionUrl, {
+      method: 'GET'
     });
     
     if (error) {
