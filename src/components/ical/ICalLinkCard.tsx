@@ -5,15 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
 import { getPropertyById } from '@/services/propertyService';
+import { syncICalLink } from '@/services/icalLinkService';
 import { toast } from '@/hooks/use-toast';
+import { format, formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface ICalLinkCardProps {
   icalLink: ICalLink;
+  onSyncComplete?: () => void;
 }
 
-const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink }) => {
+const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete }) => {
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   useEffect(() => {
     const fetchProperty = async () => {
@@ -35,12 +40,47 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink }) => {
     fetchProperty();
   }, [icalLink.propertyId]);
   
-  const refreshICalLink = () => {
-    // This would call an API to refresh the iCal data
-    toast({
-      title: "Actualizando datos iCal",
-      description: "Los datos se están actualizando..."
-    });
+  const refreshICalLink = async () => {
+    setIsSyncing(true);
+    
+    try {
+      const result = await syncICalLink(icalLink);
+      
+      if (result.success && result.results) {
+        toast({
+          title: "Calendario sincronizado",
+          description: `Se encontraron ${result.results.total} eventos. ${result.results.added} nuevas reservas añadidas, ${result.results.updated} actualizadas.`
+        });
+        
+        if (onSyncComplete) {
+          onSyncComplete();
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error al sincronizar",
+          description: result.error || "No se pudieron sincronizar las reservas."
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing iCal:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al sincronizar",
+        description: "Ocurrió un error al sincronizar el calendario."
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+  
+  const getLastSyncedText = () => {
+    if (!icalLink.lastSynced) return "Nunca sincronizado";
+    
+    return `Última sincronización: ${formatDistanceToNow(icalLink.lastSynced, { 
+      addSuffix: true,
+      locale: es
+    })}`;
   };
   
   if (isLoading) {
@@ -79,7 +119,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink }) => {
           {icalLink.url}
         </div>
         <div className="text-xs text-gray-400 mt-1">
-          Añadido el {new Date(icalLink.createdAt).toLocaleDateString()}
+          {getLastSyncedText()}
         </div>
       </CardContent>
       <CardFooter className="flex justify-between pt-2">
@@ -92,7 +132,13 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink }) => {
           Abrir URL
         </Button>
         <div className="flex space-x-2">
-          <Button variant="ghost" size="sm" onClick={refreshICalLink}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={refreshICalLink} 
+            disabled={isSyncing}
+            className={isSyncing ? "animate-spin" : ""}
+          >
             <RefreshCw className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">

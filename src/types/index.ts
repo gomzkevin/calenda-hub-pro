@@ -44,6 +44,7 @@ export interface ICalLink {
   propertyId: string;
   platform: Platform;
   url: string;
+  lastSynced?: Date;
   createdAt: Date;
 }
 
@@ -57,5 +58,6 @@ export interface Reservation {
   source: ReservationSource;
   icalUrl?: string;
   notes?: string;
+  externalId?: string;
   createdAt: Date;
 }

@@ -16,7 +16,7 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
   const navigate = useNavigate();
   
   // Get iCal links for this property
-  const { data: icalLinks, isLoading: isIcalLoading } = useQuery({
+  const { data: icalLinks, isLoading: isIcalLoading, refetch } = useQuery({
     queryKey: ['propertyICalLinks', propertyId],
     queryFn: () => getICalLinksForProperty(propertyId),
     enabled: !!propertyId
@@ -42,7 +42,11 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
         ) : icalLinks && icalLinks.length > 0 ? (
           <div className="space-y-4">
             {icalLinks.map((icalLink) => (
-              <ICalLinkCard key={icalLink.id} icalLink={icalLink} />
+              <ICalLinkCard 
+                key={icalLink.id} 
+                icalLink={icalLink} 
+                onSyncComplete={() => refetch()}
+              />
             ))}
           </div>
         ) : (

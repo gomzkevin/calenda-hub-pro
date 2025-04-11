@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 const ICalLinksPage = () => {
   const navigate = useNavigate();
   
-  const { data: icalLinks, isLoading, error } = useQuery({
+  const { data: icalLinks, isLoading, error, refetch } = useQuery({
     queryKey: ['icalLinks'],
     queryFn: getICalLinks
   });
@@ -57,6 +57,7 @@ const ICalLinksPage = () => {
             <ICalLinkCard 
               key={icalLink.id} 
               icalLink={icalLink} 
+              onSyncComplete={() => refetch()}
             />
           ))}
         </div>

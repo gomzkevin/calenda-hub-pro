@@ -20,6 +20,7 @@ export const getICalLinks = async (): Promise<ICalLink[]> => {
     propertyId: link.property_id,
     platform: link.platform as any,
     url: link.url,
+    lastSynced: link.last_synced ? new Date(link.last_synced) : undefined,
     createdAt: new Date(link.created_at)
   })) : [];
 };
@@ -43,6 +44,42 @@ export const getICalLinksForProperty = async (propertyId: string): Promise<ICalL
     propertyId: link.property_id,
     platform: link.platform as any,
     url: link.url,
+    lastSynced: link.last_synced ? new Date(link.last_synced) : undefined,
     createdAt: new Date(link.created_at)
   })) : [];
+};
+
+/**
+ * Sync an iCal link to fetch latest reservations
+ */
+export const syncICalLink = async (icalLink: ICalLink): Promise<{
+  success: boolean;
+  results?: {
+    total: number;
+    added: number;
+    updated: number;
+    skipped: number;
+  },
+  error?: string;
+}> => {
+  try {
+    const response = await supabase.functions.invoke('sync-ical', {
+      body: {
+        icalUrl: icalLink.url,
+        propertyId: icalLink.propertyId,
+        platform: icalLink.platform,
+        icalLinkId: icalLink.id
+      }
+    });
+    
+    if (!response.data || response.error) {
+      console.error("Error syncing iCal link:", response.error);
+      return { success: false, error: response.error?.message || 'Error desconocido' };
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error syncing iCal link:", error);
+    return { success: false, error: error.message };
+  }
 };
