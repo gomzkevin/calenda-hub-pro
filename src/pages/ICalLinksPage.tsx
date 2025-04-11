@@ -18,7 +18,7 @@ const ICalLinksPage: React.FC = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">iCal Links</h1>
         <div className="flex gap-2">
@@ -36,8 +36,8 @@ const ICalLinksPage: React.FC = () => {
         </div>
       </div>
       
-      <Tabs defaultValue="all">
-        <TabsList>
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="w-full sm:w-auto flex flex-wrap">
           <TabsTrigger value="all">All ({icalLinks.length})</TabsTrigger>
           <TabsTrigger value="airbnb">Airbnb ({platformLinks.Airbnb.length})</TabsTrigger>
           <TabsTrigger value="booking">Booking ({platformLinks.Booking.length})</TabsTrigger>
