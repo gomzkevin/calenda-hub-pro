@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Trash, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Trash, RefreshCw, AlertTriangle, Calendar, User, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
@@ -16,6 +15,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Reservation {
+  checkIn: string;
+  checkOut: string;
+  platform: string;
+  status: string;
+  reservationId: string;
+  additionalInfo?: any;
+}
+
+interface ICalProcessResult {
+  reservations: Reservation[];
+  metadata: {
+    totalReservations: number;
+    calendarSource: string;
+    processedAt: string;
+  };
+}
 
 interface ICalLinkCardProps {
   icalLink: ICalLink;
@@ -27,7 +45,9 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [icalDetails, setIcalDetails] = useState<ICalProcessResult | null>(null);
   const queryClient = useQueryClient();
   
   useEffect(() => {
@@ -50,13 +70,63 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     fetchProperty();
   }, [icalLink.propertyId]);
   
+  const processICalData = async () => {
+    setIsProcessing(true);
+    setSyncError(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('process-ical', {
+        body: {
+          icalUrl: icalLink.url
+        }
+      });
+      
+      if (error) {
+        console.error('Error processing iCal data:', error);
+        setSyncError(error.message || "Error al procesar el calendario");
+        toast({
+          variant: "destructive",
+          title: "Error al procesar el calendario",
+          description: error.message || "No se pudo procesar la información del calendario."
+        });
+        setIcalDetails(null);
+        return null;
+      }
+      
+      setIcalDetails(data);
+      return data;
+    } catch (error) {
+      console.error('Error processing iCal data:', error);
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+      setSyncError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Error al procesar el calendario",
+        description: "Ocurrió un error al procesar la información del calendario."
+      });
+      setIcalDetails(null);
+      return null;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
   const refreshICalLink = async () => {
     setIsSyncing(true);
     setSyncError(null);
     
+    // First, process the iCal data to get detailed information
+    const processedData = await processICalData();
+    
+    // If processing failed, stop here
+    if (!processedData) {
+      setIsSyncing(false);
+      return;
+    }
+    
     toast({
       title: "Sincronizando calendario",
-      description: "Esto puede tardar unos momentos..."
+      description: `Encontradas ${processedData.reservations.length} reservas. Actualizando base de datos...`
     });
     
     try {
@@ -110,6 +180,62 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
       addSuffix: true,
       locale: es
     })}`;
+  };
+  
+  const viewCalendarDetails = async () => {
+    if (icalDetails) {
+      // If we already have details, show them
+      showCalendarDetailsToast(icalDetails);
+    } else {
+      // Otherwise process the data first
+      setIsProcessing(true);
+      toast({
+        title: "Procesando calendario",
+        description: "Obteniendo detalles del calendario..."
+      });
+      
+      const data = await processICalData();
+      
+      if (data) {
+        showCalendarDetailsToast(data);
+      }
+      
+      setIsProcessing(false);
+    }
+  };
+  
+  const showCalendarDetailsToast = (data: ICalProcessResult) => {
+    // Format the reservation details for display
+    const upcomingReservations = data.reservations
+      .filter(r => new Date(r.checkIn) >= new Date())
+      .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
+      .slice(0, 3);
+    
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return format(date, 'dd/MM/yyyy', { locale: es });
+    };
+    
+    let detailsMessage = `${data.metadata.totalReservations} reservaciones encontradas en ${data.metadata.calendarSource}.\n\n`;
+    
+    if (upcomingReservations.length > 0) {
+      detailsMessage += "Próximas reservaciones:\n";
+      upcomingReservations.forEach((res, index) => {
+        detailsMessage += `${index + 1}. ${formatDate(res.checkIn)} - ${formatDate(res.checkOut)}`;
+        if (res.additionalInfo?.guestName) {
+          detailsMessage += ` (${res.additionalInfo.guestName})`;
+        }
+        detailsMessage += "\n";
+      });
+    } else {
+      detailsMessage += "No hay reservaciones próximas.";
+    }
+    
+    toast({
+      title: "Detalles del Calendario",
+      description: detailsMessage,
+      duration: 10000, // Longer duration for reading
+    });
   };
   
   if (isLoading) {
@@ -166,24 +292,56 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
             getLastSyncedText()
           )}
         </div>
+        
+        {icalDetails && (
+          <div className="mt-2 border-t pt-2 text-xs">
+            <div className="flex items-center text-gray-600 mb-1">
+              <Calendar className="w-3 h-3 mr-1" />
+              <span>{icalDetails.metadata.totalReservations} reservaciones</span>
+            </div>
+            {icalDetails.reservations.length > 0 && icalDetails.reservations[0].additionalInfo?.guestName && (
+              <div className="flex items-center text-gray-600">
+                <User className="w-3 h-3 mr-1" />
+                <span>Próximo huésped: {icalDetails.reservations[0].additionalInfo.guestName}</span>
+              </div>
+            )}
+            {icalDetails.reservations.length > 0 && icalDetails.reservations[0].additionalInfo?.phoneLastDigits && (
+              <div className="flex items-center text-gray-600">
+                <PhoneCall className="w-3 h-3 mr-1" />
+                <span>Teléfono: XXXX-{icalDetails.reservations[0].additionalInfo.phoneLastDigits}</span>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between pt-2">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => window.open(icalLink.url, '_blank')}
-        >
-          <ExternalLink className="w-4 h-4 mr-1" />
-          Abrir URL
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.open(icalLink.url, '_blank')}
+          >
+            <ExternalLink className="w-4 h-4 mr-1" />
+            Ver URL
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={viewCalendarDetails}
+            disabled={isProcessing}
+          >
+            <Calendar className={`w-4 h-4 mr-1 ${isProcessing ? "animate-spin" : ""}`} />
+            Detalles
+          </Button>
+        </div>
         <div className="flex space-x-2">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={refreshICalLink} 
-            disabled={isSyncing}
+            disabled={isSyncing || isProcessing}
           >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${isSyncing || isProcessing ? "animate-spin" : ""}`} />
           </Button>
           <Button 
             variant="ghost" 
