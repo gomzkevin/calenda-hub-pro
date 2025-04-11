@@ -88,13 +88,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         
         <div className="flex flex-col h-full">
           <div className="p-4 border-b flex flex-col items-center">
-            <div className="flex items-center justify-center mb-1">
-              <img 
-                src="/lovable-uploads/fc627b57-8457-4065-807e-6048456e3921.png" 
-                alt="Alanto Logo" 
-                className="h-6" /* Further reduced from h-7 to h-6 */
-              />
-            </div>
+            {shouldExpand ? (
+              <div className="flex items-center justify-center mb-1">
+                <img 
+                  src="/lovable-uploads/fc627b57-8457-4065-807e-6048456e3921.png" 
+                  alt="Alanto Logo" 
+                  className="h-5" // Further reduced from h-6 to h-5
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center mb-1">
+                <img 
+                  src="/lovable-uploads/ff30ed51-6eee-441c-8ae9-fd7b6c789c5b.png" 
+                  alt="Alanto Icon" 
+                  className="h-8" 
+                />
+              </div>
+            )}
             <p className={cn("text-xs text-gray-500 text-center transition-opacity duration-300", 
               shouldExpand ? "opacity-100" : "opacity-0 h-0")}
             >
