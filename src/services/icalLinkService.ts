@@ -88,10 +88,27 @@ export const processICalLink = async (icalUrl: string): Promise<{
     }
     
     console.log("Respuesta de process-ical:", data);
+    
+    // Guardar los datos en sessionStorage para mantenerlos temporalmente
+    sessionStorage.setItem(`ical_data_${icalUrl}`, JSON.stringify(data));
+    
     return data;
   } catch (error) {
     console.error("Error processing iCal link:", error);
     throw error;
+  }
+};
+
+/**
+ * Get cached iCal data if available
+ */
+export const getCachedICalData = (icalUrl: string): any => {
+  try {
+    const cachedData = sessionStorage.getItem(`ical_data_${icalUrl}`);
+    return cachedData ? JSON.parse(cachedData) : null;
+  } catch (error) {
+    console.error("Error retrieving cached iCal data:", error);
+    return null;
   }
 };
 
@@ -134,6 +151,15 @@ export const storeReservations = async (
   
   try {
     console.log(`Almacenando ${reservations.length} reservaciones para la propiedad ${propertyId}`);
+    
+    // Normalize platform name to ensure it matches the database constraint
+    // Make sure platform is one of: 'Airbnb', 'Booking', 'Vrbo', 'Other'
+    let normalizedPlatform = platform;
+    if (!['Airbnb', 'Booking', 'Vrbo', 'Other'].includes(normalizedPlatform)) {
+      // If platform is not one of the allowed values, default to 'Other'
+      console.warn(`Platform '${platform}' not recognized, using 'Other' instead`);
+      normalizedPlatform = 'Other';
+    }
     
     // Process each reservation
     for (const reservation of reservations) {
@@ -199,7 +225,7 @@ export const storeReservations = async (
           property_id: propertyId,
           start_date: startDate,
           end_date: endDate,
-          platform: platform,
+          platform: normalizedPlatform,  // Use normalized platform name
           source: "iCal",
           ical_url: icalUrl,
           notes: notes,

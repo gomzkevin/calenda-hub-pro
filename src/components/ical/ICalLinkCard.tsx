@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, Trash, RefreshCw, AlertTriangle, Calendar, User, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
 import { getPropertyById } from '@/services/propertyService';
-import { processICalLink, syncICalLink } from '@/services/icalLinkService';
+import { processICalLink, syncICalLink, getCachedICalData } from '@/services/icalLinkService';
 import { toast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -67,7 +68,13 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     };
     
     fetchProperty();
-  }, [icalLink.propertyId]);
+    
+    // Try to load cached iCal data on component mount
+    const cachedData = getCachedICalData(icalLink.url);
+    if (cachedData) {
+      setIcalDetails(cachedData);
+    }
+  }, [icalLink.propertyId, icalLink.url]);
   
   const processICalData = async () => {
     setIsProcessing(true);
