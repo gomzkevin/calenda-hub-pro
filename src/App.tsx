@@ -11,6 +11,7 @@ import PropertyDetailsPage from "./pages/PropertyDetailsPage";
 import NewPropertyPage from "./pages/NewPropertyPage";
 import CalendarPage from "./pages/CalendarPage";
 import ICalLinksPage from "./pages/ICalLinksPage";
+import AddICalLinkPage from "./pages/AddICalLinkPage";
 import UsersPage from "./pages/UsersPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
@@ -68,6 +69,20 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <ICalLinksPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/ical-links/new" element={
+              <ProtectedRoute>
+                <Layout>
+                  <AddICalLinkPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/properties/:propertyId/ical-links/new" element={
+              <ProtectedRoute>
+                <Layout>
+                  <AddICalLinkPage />
                 </Layout>
               </ProtectedRoute>
             } />
