@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,27 +14,45 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const isMobile = useIsMobile();
+  
+  // Use responsive cell width based on screen size
+  const [cellWidth, setCellWidth] = useState<number>(50);
+  const [visibleDays, setVisibleDays] = useState<number>(31);
   
   // Resize listener for responsive layout
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
+    const calculateLayout = () => {
+      const width = window.innerWidth;
+      // First column (property names) takes 200px, calculate remaining width
+      const availableWidth = width - 240; // 200px for left column + some padding
+      
+      // Calculate how many days we can fit
+      let newCellWidth;
+      let daysToShow;
+      
+      if (width < 640) {
+        // Mobile
+        newCellWidth = 40;
+        daysToShow = Math.max(7, Math.floor(availableWidth / newCellWidth));
+      } else if (width < 1024) {
+        // Tablet
+        newCellWidth = 45;
+        daysToShow = Math.max(14, Math.floor(availableWidth / newCellWidth));
+      } else {
+        // Desktop
+        newCellWidth = 50;
+        daysToShow = Math.max(21, Math.floor(availableWidth / newCellWidth));
+      }
+      
+      setCellWidth(newCellWidth);
+      setVisibleDays(Math.min(daysToShow, 31)); // Cap at 31 days (maximum days in a month)
     };
     
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    calculateLayout();
+    window.addEventListener('resize', calculateLayout);
+    return () => window.removeEventListener('resize', calculateLayout);
   }, []);
-  
-  // Calculate cell width based on screen size
-  const calculateCellWidth = () => {
-    if (windowWidth < 640) return 40; // Mobile
-    if (windowWidth < 1024) return 45; // Tablet
-    return 50; // Desktop
-  };
-  
-  const cellWidth = calculateCellWidth();
   
   // Fetch reservations
   const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
@@ -67,6 +86,9 @@ const MultiCalendar: React.FC = () => {
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  
+  // Limit visible days based on screen size
+  const visibleMonthDays = monthDays.slice(0, visibleDays);
   
   // Get reservations for a specific property
   const getReservationsForProperty = (propertyId: string): Reservation[] => {
@@ -192,7 +214,7 @@ const MultiCalendar: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow flex flex-col h-full">
+    <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with month title and navigation buttons */}
       <div className="sticky top-0 z-30 bg-white border-b">
         <div className="flex items-center justify-between p-4">
@@ -221,17 +243,17 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="h-[calc(100%-60px)]">
+        <ScrollArea className="h-[calc(100%-60px)] w-full">
           <div className="relative min-w-max">
             <div className="grid" style={{ 
-              gridTemplateColumns: `200px repeat(${monthDays.length}, ${cellWidth}px)`,
+              gridTemplateColumns: `200px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,
             }}>
               {/* Header row with dates */}
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
                 Properties
               </div>
               
-              {monthDays.map((day, index) => (
+              {visibleMonthDays.map((day, index) => (
                 <div 
                   key={index}
                   className="sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs"
@@ -272,7 +294,7 @@ const MultiCalendar: React.FC = () => {
                     </div>
                     
                     {/* Calendar cells */}
-                    {monthDays.map((day, dayIndex) => {
+                    {visibleMonthDays.map((day, dayIndex) => {
                       const isToday = isSameDay(day, new Date());
                       
                       return (
@@ -290,26 +312,27 @@ const MultiCalendar: React.FC = () => {
                       const startDate = reservation.startDate;
                       const endDate = reservation.endDate;
                       
-                      // Check if reservation overlaps with current month view
-                      if (endDate < monthStart || startDate > monthEnd) {
+                      // Check if reservation overlaps with visible days
+                      if (endDate < visibleMonthDays[0] || startDate > visibleMonthDays[visibleMonthDays.length - 1]) {
                         return null;
                       }
                       
                       // Calculate start and end positions
-                      const visibleStartDate = startDate < monthStart ? monthStart : startDate;
-                      const visibleEndDate = endDate > monthEnd ? monthEnd : endDate;
+                      const visibleStartDate = startDate < visibleMonthDays[0] ? visibleMonthDays[0] : startDate;
+                      const visibleEndDate = endDate > visibleMonthDays[visibleMonthDays.length - 1] ? 
+                        visibleMonthDays[visibleMonthDays.length - 1] : endDate;
                       
-                      // Find day index for start and end in the month days array
-                      const startDayIndex = monthDays.findIndex(d => 
+                      // Find day index for start and end in the visible days array
+                      const startDayIndex = visibleMonthDays.findIndex(d => 
                         isSameDay(normalizeDate(d), visibleStartDate)
                       );
                       
-                      let endDayIndex = monthDays.findIndex(d => 
+                      let endDayIndex = visibleMonthDays.findIndex(d => 
                         isSameDay(normalizeDate(d), visibleEndDate)
                       );
                       
                       if (endDayIndex === -1) {
-                        endDayIndex = monthDays.length - 1;
+                        endDayIndex = visibleMonthDays.length - 1;
                       }
                       
                       // Calculate grid column positions with proper spacing
@@ -334,8 +357,8 @@ const MultiCalendar: React.FC = () => {
                       const width = `calc(${(endPosition - startPosition)} * ${cellWidth}px)`;
                       
                       // Determine border radius style
-                      const isStartTruncated = startDate < monthStart;
-                      const isEndTruncated = endDate > monthEnd;
+                      const isStartTruncated = startDate < visibleMonthDays[0];
+                      const isEndTruncated = endDate > visibleMonthDays[visibleMonthDays.length - 1];
                       
                       let borderRadiusStyle = 'rounded-full';
                       if (isStartTruncated && isEndTruncated) {
@@ -371,6 +394,10 @@ const MultiCalendar: React.FC = () => {
                           }
                         }
                       }
+                      
+                      // Only render reservation if it's within the visible range
+                      if (startPosition < 0 && endPosition < 0) return null;
+                      if (startPosition >= visibleMonthDays.length && endPosition >= visibleMonthDays.length) return null;
                       
                       return (
                         <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
