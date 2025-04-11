@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { getPropertyById } from '@/services/supabaseService';
+import { getPropertyById } from '@/services/propertyService';
 import PropertyDetails from '@/components/properties/PropertyDetails';
 import PropertyEditForm from '@/components/properties/PropertyEditForm';
 import PropertyICalLinks from '@/components/properties/PropertyICalLinks';

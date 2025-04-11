@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PropertyCard from '@/components/properties/PropertyCard';
 import { useQuery } from '@tanstack/react-query';
-import { getProperties } from '@/services/supabaseService';
+import { getProperties } from '@/services/propertyService';
 import { toast } from '@/hooks/use-toast';
 
 const PropertiesPage = () => {

@@ -6,7 +6,7 @@ import { CalendarIcon, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ICalLinkCard from '@/components/ical/ICalLinkCard';
-import { getICalLinksForProperty } from '@/services/supabaseService';
+import { getICalLinksForProperty } from '@/services/icalLinkService';
 
 interface PropertyICalLinksProps {
   propertyId: string;

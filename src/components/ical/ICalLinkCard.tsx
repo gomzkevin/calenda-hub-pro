@@ -4,7 +4,7 @@ import { ExternalLink, Trash, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
-import { getPropertyById } from '@/services/supabaseService';
+import { getPropertyById } from '@/services/propertyService';
 import { toast } from '@/hooks/use-toast';
 
 interface ICalLinkCardProps {
