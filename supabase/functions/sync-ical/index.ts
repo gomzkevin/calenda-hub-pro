@@ -18,38 +18,41 @@ serve(async (req) => {
     const { icalUrl, propertyId, platform, icalLinkId } = await req.json();
 
     if (!icalUrl || !propertyId || !platform || !icalLinkId) {
+      console.error("Missing required parameters:", { icalUrl, propertyId, platform, icalLinkId });
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Syncing iCal data for property ${propertyId} from ${icalUrl}`);
+    console.log(`[SYNC-ICAL] Starting sync for property ${propertyId} from ${icalUrl}`);
 
     // Fetch the iCal data
     const response = await fetch(icalUrl);
     if (!response.ok) {
-      console.error(`Failed to fetch iCal data: ${response.statusText}`);
+      const errorMessage = `Failed to fetch iCal data: ${response.statusText} (${response.status})`;
+      console.error(errorMessage);
       return new Response(
-        JSON.stringify({ error: `Failed to fetch iCal data: ${response.statusText}` }),
+        JSON.stringify({ error: errorMessage }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const icalData = await response.text();
+    console.log(`[SYNC-ICAL] Successfully fetched iCal data, length: ${icalData.length} characters`);
     
     // Parse the iCal data
     const parsed = parse(icalData);
     const events = Object.values(parsed);
     
-    console.log(`Found ${events.length} events in iCal feed`);
+    console.log(`[SYNC-ICAL] Found ${events.length} events in iCal feed`);
     
     // Filter for events that have start and end times
     const validEvents = events.filter(event => 
       event.start && event.end && event.type === 'VEVENT'
     );
     
-    console.log(`Found ${validEvents.length} valid events after filtering`);
+    console.log(`[SYNC-ICAL] Found ${validEvents.length} valid events after filtering`);
     
     // Create Supabase client
     const supabase = supabaseClient();
@@ -66,25 +69,24 @@ serve(async (req) => {
       const endDate = event.end.toISOString().split('T')[0];
       const summary = event.summary || '';
       
-      console.log(`Processing event: ${eventUid} (${startDate} to ${endDate}): ${summary}`);
+      console.log(`[SYNC-ICAL] Processing event: ${eventUid} (${startDate} to ${endDate}): ${summary}`);
       
       // Check if this event already exists in our database
       const { data: existingReservations, error: queryError } = await supabase
         .from("reservations")
         .select("id")
         .eq("property_id", propertyId)
-        .eq("ical_url", icalUrl)
         .eq("external_id", eventUid);
       
       if (queryError) {
-        console.error("Error querying existing reservations:", queryError);
+        console.error("[SYNC-ICAL] Error querying existing reservations:", queryError);
         skipped++;
         continue;
       }
       
       if (existingReservations && existingReservations.length > 0) {
         // Update existing reservation
-        console.log(`Updating existing reservation: ${existingReservations[0].id}`);
+        console.log(`[SYNC-ICAL] Updating existing reservation: ${existingReservations[0].id}`);
         
         const { error: updateError } = await supabase
           .from("reservations")
@@ -97,33 +99,40 @@ serve(async (req) => {
           .eq("id", existingReservations[0].id);
         
         if (updateError) {
-          console.error("Error updating reservation:", updateError);
+          console.error("[SYNC-ICAL] Error updating reservation:", updateError);
           skipped++;
         } else {
           updated++;
         }
       } else {
         // Insert new reservation
-        console.log(`Inserting new reservation for property ${propertyId}`);
+        console.log(`[SYNC-ICAL] Inserting new reservation for property ${propertyId}`);
         
-        const { error: insertError } = await supabase
+        // Prepare the reservation data
+        const reservationData = {
+          property_id: propertyId,
+          start_date: startDate,
+          end_date: endDate,
+          platform: platform,
+          source: "iCal",
+          ical_url: icalUrl,
+          notes: summary,
+          external_id: eventUid
+        };
+        
+        console.log("[SYNC-ICAL] Reservation data:", JSON.stringify(reservationData));
+        
+        const { data: insertedData, error: insertError } = await supabase
           .from("reservations")
-          .insert({
-            property_id: propertyId,
-            start_date: startDate,
-            end_date: endDate,
-            platform: platform,
-            source: "iCal",
-            ical_url: icalUrl,
-            notes: summary,
-            external_id: eventUid
-          });
+          .insert(reservationData)
+          .select();
         
         if (insertError) {
-          console.error("Error inserting reservation:", insertError);
-          console.error("Error details:", JSON.stringify(insertError));
+          console.error("[SYNC-ICAL] Error inserting reservation:", insertError);
+          console.error("[SYNC-ICAL] Error details:", JSON.stringify(insertError));
           skipped++;
         } else {
+          console.log(`[SYNC-ICAL] Successfully inserted reservation: ${insertedData && insertedData[0] ? insertedData[0].id : 'unknown'}`);
           added++;
         }
       }
@@ -136,10 +145,12 @@ serve(async (req) => {
       .eq("id", icalLinkId);
       
     if (updateLinkError) {
-      console.error("Error updating iCal link last_synced:", updateLinkError);
+      console.error("[SYNC-ICAL] Error updating iCal link last_synced:", updateLinkError);
+    } else {
+      console.log(`[SYNC-ICAL] Successfully updated iCal link ${icalLinkId} last_synced timestamp`);
     }
 
-    console.log(`Sync complete. Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
+    console.log(`[SYNC-ICAL] Sync complete. Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
 
     return new Response(
       JSON.stringify({ 
@@ -154,10 +165,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("Error in sync-ical function:", error);
+    console.error("[SYNC-ICAL] Error in sync-ical function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "An unknown error occurred" }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

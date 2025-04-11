@@ -9,6 +9,7 @@ import { syncICalLink } from '@/services/icalLinkService';
 import { toast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ICalLinkCardProps {
   icalLink: ICalLink;
@@ -19,6 +20,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const queryClient = useQueryClient();
   
   useEffect(() => {
     const fetchProperty = async () => {
@@ -55,6 +57,9 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
           title: "Calendario sincronizado",
           description: `Se encontraron ${result.results.total} eventos. ${result.results.added} nuevas reservas añadidas, ${result.results.updated} actualizadas.`
         });
+        
+        // Invalidate reservations queries to refresh the calendar
+        queryClient.invalidateQueries({ queryKey: ['reservations'] });
         
         if (onSyncComplete) {
           onSyncComplete();
