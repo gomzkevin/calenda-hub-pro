@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservationService';
 import { getProperties } from '@/services/propertyService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -220,8 +221,8 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="relative overflow-auto flex-1 h-full" style={{ maxHeight: "calc(100% - 60px)" }}>
-          <div className="min-w-max">
+        <ScrollArea className="h-[calc(100%-60px)]">
+          <div className="relative min-w-max">
             <div className="grid" style={{ 
               gridTemplateColumns: `200px repeat(${monthDays.length}, ${cellWidth}px)`,
             }}>
@@ -410,7 +411,7 @@ const MultiCalendar: React.FC = () => {
               })}
             </div>
           </div>
-        </div>
+        </ScrollArea>
       )}
     </div>
   );

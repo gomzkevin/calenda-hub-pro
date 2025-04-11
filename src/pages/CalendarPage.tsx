@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,24 +20,20 @@ const CalendarPage: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
   const [activeView, setActiveView] = useState<string>(initialView);
   
-  // Fetch properties from Supabase
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties
   });
   
-  // Set the first property as default if none is selected and properties are loaded
   useEffect(() => {
     if (properties.length > 0 && !selectedPropertyId) {
       const firstPropertyId = properties[0]?.id || '';
       setSelectedPropertyId(firstPropertyId);
       
-      // Update URL with the first property
       updateUrlParams(firstPropertyId, activeView);
     }
   }, [properties, selectedPropertyId, activeView]);
   
-  // Update URL when view or property changes
   const updateUrlParams = (propertyId: string, view: string) => {
     const params = new URLSearchParams(location.search);
     params.set('property', propertyId);
@@ -46,20 +41,18 @@ const CalendarPage: React.FC = () => {
     navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
   
-  // Handle property selection change
   const handlePropertyChange = (propertyId: string) => {
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
   };
   
-  // Handle view change
   const handleViewChange = (view: string) => {
     setActiveView(view);
     updateUrlParams(selectedPropertyId, view);
   };
   
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden">
+    <div className="space-y-6 w-full max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
@@ -114,14 +107,14 @@ const CalendarPage: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="multi" className="w-full h-[calc(100vh-220px)]">
-          <Card className="w-full h-full">
+          <Card className="w-full h-full flex flex-col">
             <CardHeader>
               <CardTitle>Multi-Property View</CardTitle>
               <CardDescription>
                 Operational view showing all properties by day
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0 sm:p-6 h-[calc(100%-85px)] overflow-hidden">
+            <CardContent className="p-0 sm:p-6 h-[calc(100%-85px)] flex-1 flex flex-col overflow-hidden">
               <MultiCalendar />
             </CardContent>
           </Card>
