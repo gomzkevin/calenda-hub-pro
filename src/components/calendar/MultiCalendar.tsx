@@ -17,8 +17,12 @@ const MultiCalendar: React.FC = () => {
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [cellWidth, setCellWidth] = useState<number>(50);
-  const [visibleDays, setVisibleDays] = useState<number>(31);
+  // Set initial values based on window size to avoid flicker
+  const initialCellWidth = window.innerWidth < 640 ? 40 : window.innerWidth < 1024 ? 45 : 50;
+  const initialVisibleDays = Math.min(31, Math.floor((window.innerWidth - 200) / initialCellWidth));
+  
+  const [cellWidth, setCellWidth] = useState<number>(initialCellWidth);
+  const [visibleDays, setVisibleDays] = useState<number>(initialVisibleDays);
   
   useLayoutEffect(() => {
     const calculateLayout = () => {
@@ -194,19 +198,20 @@ const MultiCalendar: React.FC = () => {
     return lanes;
   }, [properties, reservations]);
 
+  // Improved row position calculation that accounts for stacked lanes
   const calculateRowPositions = useMemo(() => {
     const positions: Record<string, number> = {};
     let currentPosition = 40; // Starting position after header
     
-    properties.forEach((property, index) => {
+    properties.forEach((property) => {
       positions[property.id] = currentPosition;
       
       const propertyLanes = propertyReservationLanes[property.id] || {};
       const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
       const totalLanes = maxLane + 1;
-      const laneHeight = 16;
+      const laneHeight = 20; // Increased for better visibility
       const baseRowHeight = 48;
-      const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 12);
+      const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 16);
       
       currentPosition += rowHeight;
     });
@@ -284,17 +289,18 @@ const MultiCalendar: React.FC = () => {
                 properties.map((property: Property, propertyIndex: number) => {
                   const propertyReservations = getReservationsForProperty(property.id);
                   const propertyLanes = propertyReservationLanes[property.id] || {};
-                  const laneHeight = 16;
+                  const laneHeight = 20; // Increased for better visibility
                   const baseRowHeight = 48;
                   
                   const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
                   const totalLanes = maxLane + 1;
-                  const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 12);
+                  const rowHeight = Math.max(baseRowHeight, totalLanes * laneHeight + 16);
                   const rowTopPosition = calculateRowPositions[property.id] || 0;
                   
                   return (
                     <React.Fragment key={property.id}>
                       <div 
+                        data-property-id={property.id}
                         className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate"
                         style={{ height: `${rowHeight}px` }}
                       >
@@ -350,11 +356,11 @@ const MultiCalendar: React.FC = () => {
                         let endPosition = endDayIndex;
                         
                         if (isSameDay(visibleStartDate, startDate)) {
-                          startPosition += 0.6;
+                          startPosition += 0.2; // Reduced from 0.6 to make bars start closer to grid line
                         }
                         
                         if (isSameDay(visibleEndDate, endDate)) {
-                          endPosition += 0.4;
+                          endPosition += 0.8; // Increased from 0.4 to make bars end closer to grid line
                         } else {
                           endPosition += 1;
                         }
@@ -376,14 +382,9 @@ const MultiCalendar: React.FC = () => {
                         
                         const lane = propertyLanes[reservation.id] || 0;
                         
-                        let verticalPosition;
-                        
-                        if (totalLanes <= 1) {
-                          verticalPosition = rowTopPosition + (rowHeight / 2) - 8;
-                        } else {
-                          const laneSpacing = (rowHeight - 16) / totalLanes;
-                          verticalPosition = rowTopPosition + 8 + (lane * laneSpacing);
-                        }
+                        // Calculate vertical position directly based on the row position and lane
+                        const verticalOffset = lane * laneHeight + 4; // Added small offset for padding
+                        const verticalPosition = rowTopPosition + verticalOffset;
                         
                         const isShortReservation = endPosition - startPosition < 1;
                         
