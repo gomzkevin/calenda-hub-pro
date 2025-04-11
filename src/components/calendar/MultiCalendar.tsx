@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,19 +12,42 @@ import { getProperties } from '@/services/propertyService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+// Helper function to get reservations for a specific property
+const getReservationsForProperty = (reservations: Reservation[], propertyId: string): Reservation[] => {
+  return reservations.filter(res => res.propertyId === propertyId);
+};
+
+// Helper to normalize date to noon UTC to avoid timezone issues
+const normalizeDate = (date: Date): Date => {
+  const newDate = new Date(date);
+  newDate.setUTCHours(12, 0, 0, 0);
+  return newDate;
+};
+
+// Get reservation style based on type
+const getReservationStyle = (reservation: Reservation) => {
+  // If it's a block from a related property
+  if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
+    return 'bg-gray-400 opacity-70 border border-dashed border-white';
+  }
+  
+  // Normal reservation
+  return getPlatformColorClass(reservation.platform);
+};
+
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // New state for initial render control and positioning
-  const [isInitialRender, setIsInitialRender] = useState(true);
-  const [rowHeights, setRowHeights] = useState<Record<string, number>>({});
-  const [rowPositions, setRowPositions] = useState<Record<string, number>>({});
-  
-  // Responsive layout state
+  // State for visual rendering only
   const [cellWidth, setCellWidth] = useState<number>(50);
   const [visibleDays, setVisibleDays] = useState<number>(31);
+  const [isInitialRender, setIsInitialRender] = useState(true);
+  
+  // Use refs instead of state to break update cycles
+  const rowHeightsRef = useRef<Record<string, number>>({});
+  const rowPositionsRef = useRef<Record<string, number>>({});
   
   // Fetch reservations
   const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
@@ -36,10 +59,12 @@ const MultiCalendar: React.FC = () => {
   });
   
   // Only filter out reservations with specifically "Blocked" in notes that are not relationship-based blocks
-  const reservations = allReservations.filter(res => {
-    // Show if not blocked or if it's a relationship-based block
-    return res.notes !== 'Blocked' || res.sourceReservationId || res.isBlocking;
-  });
+  const reservations = useMemo(() => {
+    return allReservations.filter(res => {
+      // Show if not blocked or if it's a relationship-based block
+      return res.notes !== 'Blocked' || res.sourceReservationId || res.isBlocking;
+    });
+  }, [allReservations]);
   
   // Fetch properties
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
@@ -61,65 +86,13 @@ const MultiCalendar: React.FC = () => {
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
-  // Helper function to get reservations for a specific property
-  // IMPORTANT: This function must be defined before it's used in useMemo below
-  const getReservationsForProperty = (propertyId: string): Reservation[] => {
-    return reservations.filter(res => res.propertyId === propertyId);
-  };
-  
-  // Use useLayoutEffect for responsive layout calculations
-  useLayoutEffect(() => {
-    const calculateLayout = () => {
-      if (!containerRef.current) return;
-      
-      // Calculate available width for the calendar
-      const containerWidth = containerRef.current.clientWidth;
-      // First column (property names) takes 160px, calculate remaining width
-      const availableWidth = Math.max(0, containerWidth - 160);
-      
-      // Calculate how many days we can fit
-      let newCellWidth;
-      let daysToShow;
-      
-      if (window.innerWidth < 640) {
-        // Mobile
-        newCellWidth = 40;
-        daysToShow = Math.max(5, Math.floor(availableWidth / newCellWidth));
-      } else if (window.innerWidth < 1024) {
-        // Tablet
-        newCellWidth = 45;
-        daysToShow = Math.max(10, Math.floor(availableWidth / newCellWidth));
-      } else {
-        // Desktop
-        newCellWidth = 50;
-        daysToShow = Math.max(15, Math.floor(availableWidth / newCellWidth));
-      }
-      
-      setCellWidth(newCellWidth);
-      setVisibleDays(Math.min(daysToShow, 31)); // Cap at 31 days (maximum days in a month)
-    };
-    
-    calculateLayout();
-    
-    const resizeObserver = new ResizeObserver(calculateLayout);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-    
-    window.addEventListener('resize', calculateLayout);
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', calculateLayout);
-    };
-  }, []);
-  
   // Compute reservation lanes for each property
   const propertyReservationLanes = useMemo(() => {
     const lanes: Record<string, Record<string, number>> = {};
     
     properties.forEach(property => {
       const propertyId = property.id;
-      const propertyReservations = getReservationsForProperty(propertyId);
+      const propertyReservations = getReservationsForProperty(reservations, propertyId);
       
       // Sort reservations by start date to ensure consistent lane assignment
       const sortedReservations = [...propertyReservations].sort(
@@ -210,58 +183,69 @@ const MultiCalendar: React.FC = () => {
     
     return lanes;
   }, [properties, reservations]);
-  
-  // Pre-calculate row heights and positions using useLayoutEffect
-  // Critical Fix: Remove propertyReservationLanes from dependencies to break the update loop
-  useLayoutEffect(() => {
-    if (isLoadingProperties || isLoadingReservations || properties.length === 0) return;
+
+  // Calculate layout dimensions in a single pass
+  useEffect(() => {
+    const calculateLayout = () => {
+      if (!containerRef.current) return;
+      
+      // Calculate available width for the calendar
+      const containerWidth = containerRef.current.clientWidth;
+      // First column (property names) takes 160px, calculate remaining width
+      const availableWidth = Math.max(0, containerWidth - 160);
+      
+      // Calculate how many days we can fit
+      let newCellWidth;
+      let daysToShow;
+      
+      if (window.innerWidth < 640) {
+        // Mobile
+        newCellWidth = 40;
+        daysToShow = Math.max(5, Math.floor(availableWidth / newCellWidth));
+      } else if (window.innerWidth < 1024) {
+        // Tablet
+        newCellWidth = 45;
+        daysToShow = Math.max(10, Math.floor(availableWidth / newCellWidth));
+      } else {
+        // Desktop
+        newCellWidth = 50;
+        daysToShow = Math.max(15, Math.floor(availableWidth / newCellWidth));
+      }
+      
+      setCellWidth(newCellWidth);
+      setVisibleDays(Math.min(daysToShow, 31)); // Cap at 31 days (maximum days in a month)
+    };
     
-    // Calculate row heights and positions
+    calculateLayout();
+    
+    const resizeObserver = new ResizeObserver(calculateLayout);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    window.addEventListener('resize', calculateLayout);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', calculateLayout);
+    };
+  }, []);
+  
+  // Calculate row heights - using refs to prevent re-renders
+  useEffect(() => {
+    if (isLoadingProperties || isLoadingReservations || !properties.length) return;
+    
+    // Using refs directly to avoid re-renders
     const newRowHeights: Record<string, number> = {};
     const newRowPositions: Record<string, number> = {};
     
     let currentPosition = 10; // Header height
     
     properties.forEach((property) => {
-      // Instead of using propertyReservationLanes, recalculate max lanes directly
-      const propertyReservations = getReservationsForProperty(property.id);
-      
-      // Get max lane number by counting overlapping reservations
-      let maxLane = 0;
-      
-      // Simple algorithm to determine lane count based on overlapping dates
-      const sortedReservations = [...propertyReservations].sort(
-        (a, b) => a.startDate.getTime() - b.startDate.getTime()
-      );
-      
-      // Create a basic lane allocation to determine max lanes
-      const lanes: Reservation[][] = [];
-      
-      sortedReservations.forEach(reservation => {
-        // Try to find a lane where this reservation fits
-        let laneIndex = 0;
-        let foundLane = false;
-        
-        while (!foundLane && laneIndex < lanes.length) {
-          const lane = lanes[laneIndex];
-          const lastReservation = lane[lane.length - 1];
-          
-          // If this reservation starts after the last one in this lane ends
-          if (lastReservation.endDate < reservation.startDate) {
-            lane.push(reservation);
-            foundLane = true;
-          } else {
-            laneIndex++;
-          }
-        }
-        
-        // If we couldn't find a lane, create a new one
-        if (!foundLane) {
-          lanes.push([reservation]);
-        }
-      });
-      
-      maxLane = Math.max(0, lanes.length - 1);
+      // Calculate max lanes for this property
+      const propertyLanes = propertyReservationLanes[property.id] || {};
+      // Get max lane number by finding the highest lane value
+      const maxLane = Object.values(propertyLanes).reduce((max, lane) => 
+        Math.max(max, lane as number), 0);
       
       // Calculate appropriate row height based on number of lanes
       const laneHeight = 12; // Height for each reservation lane in pixels
@@ -274,35 +258,22 @@ const MultiCalendar: React.FC = () => {
       currentPosition += rowHeight;
     });
     
-    setRowHeights(newRowHeights);
-    setRowPositions(newRowPositions);
-    setIsInitialRender(false);
+    // Update refs directly without triggering re-renders
+    rowHeightsRef.current = newRowHeights;
+    rowPositionsRef.current = newRowPositions;
     
-  // Fix: Only depend on stable references and primitives, not derived state
-  }, [properties, reservations, isLoadingProperties, isLoadingReservations]);
+    // Only trigger a re-render when truly needed
+    if (isInitialRender) {
+      setIsInitialRender(false);
+    }
+  }, [isLoadingProperties, isLoadingReservations, properties, propertyReservationLanes, isInitialRender]);
   
   // Limit visible days based on screen size
-  const visibleMonthDays = monthDays.slice(0, visibleDays);
+  const visibleMonthDays = useMemo(() => {
+    return monthDays.slice(0, visibleDays);
+  }, [monthDays, visibleDays]);
 
   const isLoading = isLoadingReservations || isLoadingProperties;
-
-  // Helper to normalize date to noon UTC to avoid timezone issues
-  const normalizeDate = (date: Date): Date => {
-    const newDate = new Date(date);
-    newDate.setUTCHours(12, 0, 0, 0);
-    return newDate;
-  };
-  
-  // Get reservation style based on type
-  const getReservationStyle = (reservation: Reservation) => {
-    // If it's a block from a related property
-    if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
-      return 'bg-gray-400 opacity-70 border border-dashed border-white';
-    }
-    
-    // Normal reservation
-    return getPlatformColorClass(reservation.platform);
-  };
 
   return (
     <div 
@@ -356,13 +327,12 @@ const MultiCalendar: React.FC = () => {
               ))}
               
               {/* Property rows */}
-              {properties.map((property: Property, propertyIndex: number) => {
-                const propertyReservations = getReservationsForProperty(property.id);
+              {properties.map((property: Property) => {
+                const propertyReservations = getReservationsForProperty(reservations, property.id);
                 const propertyLanes = propertyReservationLanes[property.id] || {};
-                const laneHeight = 12; // Height for each reservation lane in pixels
                 
-                // Use pre-calculated row height
-                const rowHeight = rowHeights[property.id] || 48;
+                // Access height and position from refs to prevent render loops
+                const rowHeight = rowHeightsRef.current[property.id] || 48;
                 
                 return (
                   <React.Fragment key={property.id}>
@@ -387,7 +357,7 @@ const MultiCalendar: React.FC = () => {
                       );
                     })}
 
-                    {/* Reservation bars - Only render when initial calculations are done */}
+                    {/* Only render reservations after initial layout calculations */}
                     {!isInitialRender && propertyReservations.map((reservation) => {
                       // Get normalized dates
                       const startDate = reservation.startDate;
@@ -453,11 +423,11 @@ const MultiCalendar: React.FC = () => {
                       // Get the lane assigned to this reservation
                       const lane = propertyLanes[reservation.id] || 0;
                       
-                      // Use pre-calculated row position
-                      const rowPosition = rowPositions[property.id] || 0;
+                      // Use ref for row position
+                      const rowPosition = rowPositionsRef.current[property.id] || 0;
                       
-                      // Calculate the vertical position using pre-calculated values
-                      const laneOffset = lane * laneHeight;
+                      // Calculate the vertical position using values from refs
+                      const laneOffset = lane * 12; // 12px height per lane
                       // Center the reservation bar vertically in the property row
                       const verticalPosition = rowPosition + (rowHeight / 2) - 4 + laneOffset;
                       
