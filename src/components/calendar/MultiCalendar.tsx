@@ -231,7 +231,7 @@ const MultiCalendar: React.FC = () => {
       className="flex flex-col h-full w-full"
     >
       {/* Month navigation header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
         <div className="flex space-x-2">
           <Button 
@@ -256,7 +256,7 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="flex-1 w-full overflow-hidden border rounded-md">
+        <ScrollArea className="h-full w-full overflow-hidden border rounded-md">
           <div className="relative w-full">
             <div className="grid" style={{ 
               gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,

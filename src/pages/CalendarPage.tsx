@@ -86,13 +86,13 @@ const CalendarPage: React.FC = () => {
       </div>
       
       <Tabs value={activeView} onValueChange={handleViewChange} className="w-full flex-1 flex flex-col">
-        <TabsList className="w-full grid grid-cols-2 sm:w-auto">
+        <TabsList className="mb-2 w-full sm:w-auto grid grid-cols-2">
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
           <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="monthly" className="w-full flex-1 flex flex-col">
-          <Card className="w-full flex-1 flex flex-col">
+        <TabsContent value="monthly" className="flex-1 data-[state=inactive]:hidden">
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <CardTitle>Monthly Calendar</CardTitle>
               <CardDescription>
@@ -107,15 +107,15 @@ const CalendarPage: React.FC = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="multi" className="w-full flex-1 flex flex-col">
-          <Card className="w-full flex-1 flex flex-col">
+        <TabsContent value="multi" className="flex-1 data-[state=inactive]:hidden">
+          <Card className="h-full flex flex-col">
             <CardHeader className="pb-0">
               <CardTitle>Multi-Property View</CardTitle>
               <CardDescription>
                 Operational view showing all properties by day
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0 sm:p-6 flex-1 flex flex-col overflow-hidden">
+            <CardContent className="flex-1 p-0 sm:p-6 overflow-hidden">
               <MultiCalendar />
             </CardContent>
           </Card>
