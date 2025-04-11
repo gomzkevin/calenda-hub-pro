@@ -5,6 +5,8 @@ export type Platform = 'Airbnb' | 'Booking' | 'VRBO' | 'Manual' | 'Other';
 
 export type ReservationSource = 'iCal' | 'Manual';
 
+export type ReservationStatus = 'Reserved' | 'Blocked' | 'Tentative';
+
 export interface Operator {
   id: string;
   name: string;
@@ -56,6 +58,10 @@ export interface Reservation {
   endDate: Date;
   platform: Platform;
   source: ReservationSource;
+  status?: ReservationStatus;
+  guestName?: string;
+  guestCount?: number;
+  contactInfo?: string;
   icalUrl?: string;
   notes?: string;
   externalId?: string;

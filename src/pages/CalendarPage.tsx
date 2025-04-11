@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
+import AddReservationButton from '@/components/calendar/AddReservationButton';
 import { Property } from '@/types';
 import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -27,27 +28,32 @@ const CalendarPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
-        <div className="sm:w-64">
-          {isLoading ? (
-            <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
-          ) : (
-            <Select
-              value={selectedPropertyId}
-              onValueChange={setSelectedPropertyId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a property" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Properties</SelectItem>
-                {properties.map((property: Property) => (
-                  <SelectItem key={property.id} value={property.id}>
-                    {property.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="sm:w-64">
+            {isLoading ? (
+              <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
+            ) : (
+              <Select
+                value={selectedPropertyId}
+                onValueChange={setSelectedPropertyId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a property" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Properties</SelectItem>
+                  {properties.map((property: Property) => (
+                    <SelectItem key={property.id} value={property.id}>
+                      {property.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <AddReservationButton 
+            propertyId={selectedPropertyId !== 'all' ? selectedPropertyId : undefined} 
+          />
         </div>
       </div>
       

@@ -10,6 +10,7 @@ import PropertiesPage from "./pages/PropertiesPage";
 import PropertyDetailsPage from "./pages/PropertyDetailsPage";
 import NewPropertyPage from "./pages/NewPropertyPage";
 import CalendarPage from "./pages/CalendarPage";
+import ReservationsPage from "./pages/ReservationsPage";
 import ICalLinksPage from "./pages/ICalLinksPage";
 import AddICalLinkPage from "./pages/AddICalLinkPage";
 import UsersPage from "./pages/UsersPage";
@@ -62,6 +63,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <CalendarPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/reservations" element={
+              <ProtectedRoute>
+                <Layout>
+                  <ReservationsPage />
                 </Layout>
               </ProtectedRoute>
             } />
