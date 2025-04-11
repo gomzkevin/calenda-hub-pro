@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -10,6 +10,9 @@ import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservationService';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Maximum number of days to display in the calendar
+const MAX_DAYS = 31;
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -46,6 +49,11 @@ const MultiCalendar: React.FC = () => {
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  
+  // Create a fixed array of 31 days (null for days beyond month length)
+  const fixedDaysArray = Array.from({ length: MAX_DAYS }, (_, i) => {
+    return i < monthDays.length ? monthDays[i] : null;
+  });
   
   // Get reservations for a specific property
   const getReservationsForProperty = (propertyId: string): Reservation[] => {
@@ -111,17 +119,30 @@ const MultiCalendar: React.FC = () => {
                 Properties
               </div>
               
-              {monthDays.map((day, index) => (
-                <div 
-                  key={index}
-                  className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
-                    isSameDay(day, new Date()) ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <span>{format(day, 'EEE')}</span>
-                  <span>{format(day, 'd')}</span>
-                </div>
-              ))}
+              {/* Fixed 31 day header cells */}
+              {fixedDaysArray.map((day, index) => {
+                if (day === null) {
+                  // Empty cell for days beyond the current month
+                  return (
+                    <div 
+                      key={`empty-header-${index}`}
+                      className="sticky top-0 z-10 bg-white border-b h-10 opacity-50 bg-gray-50"
+                    />
+                  );
+                }
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
+                      isSameDay(day, new Date()) ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <span>{format(day, 'EEE')}</span>
+                    <span>{format(day, 'd')}</span>
+                  </div>
+                );
+              })}
               
               {/* Property rows */}
               {properties.map((property: Property) => (
@@ -131,8 +152,18 @@ const MultiCalendar: React.FC = () => {
                     {property.name}
                   </div>
                   
-                  {/* Calendar cells */}
-                  {monthDays.map((day, dayIndex) => {
+                  {/* Fixed 31 calendar cells for each property */}
+                  {fixedDaysArray.map((day, dayIndex) => {
+                    if (day === null) {
+                      // Empty cell for days beyond the current month
+                      return (
+                        <div
+                          key={`empty-${property.id}-${dayIndex}`}
+                          className="border opacity-50 bg-gray-50 h-16"
+                        />
+                      );
+                    }
+                    
                     const isToday = isSameDay(day, new Date());
                     
                     // Get reservations that include this day
@@ -149,7 +180,7 @@ const MultiCalendar: React.FC = () => {
                     
                     return (
                       <div
-                        key={dayIndex}
+                        key={`day-${property.id}-${dayIndex}`}
                         className={`border relative min-h-[4rem] h-16 ${isToday ? 'bg-blue-50' : ''}`}
                       >
                         {dayReservations.map((res, resIndex) => {
@@ -204,13 +235,6 @@ const MultiCalendar: React.FC = () => {
                       </div>
                     );
                   })}
-                </React.Fragment>
-              ))}
-              
-              {/* Fill in empty cells for the rest of the month */}
-              {Array.from({ length: 31 - monthDays.length }).map((_, index) => (
-                <React.Fragment key={`empty-${index}`}>
-                  <div className="border opacity-50 bg-gray-50 h-16"></div>
                 </React.Fragment>
               ))}
             </div>
