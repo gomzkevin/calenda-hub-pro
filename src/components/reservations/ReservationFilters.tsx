@@ -120,7 +120,7 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
               <SelectItem value="all">Todas las plataformas</SelectItem>
               <SelectItem value="Airbnb">Airbnb</SelectItem>
               <SelectItem value="Booking">Booking</SelectItem>
-              <SelectItem value="VRBO">VRBO</SelectItem>
+              <SelectItem value="Vrbo">Vrbo</SelectItem>
               <SelectItem value="Manual">Manual</SelectItem>
               <SelectItem value="Other">Otra</SelectItem>
             </SelectContent>
