@@ -42,6 +42,10 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
   
   const refreshICalLink = async () => {
     setIsSyncing(true);
+    toast({
+      title: "Sincronizando calendario",
+      description: "Esto puede tardar unos momentos..."
+    });
     
     try {
       const result = await syncICalLink(icalLink);
@@ -56,6 +60,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
           onSyncComplete();
         }
       } else {
+        console.error('Error syncing iCal:', result.error);
         toast({
           variant: "destructive",
           title: "Error al sincronizar",
@@ -137,9 +142,8 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete })
             size="sm" 
             onClick={refreshICalLink} 
             disabled={isSyncing}
-            className={isSyncing ? "animate-spin" : ""}
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
           </Button>
           <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
             <Trash className="w-4 h-4" />

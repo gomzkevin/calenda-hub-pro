@@ -29,6 +29,7 @@ serve(async (req) => {
     // Fetch the iCal data
     const response = await fetch(icalUrl);
     if (!response.ok) {
+      console.error(`Failed to fetch iCal data: ${response.statusText}`);
       return new Response(
         JSON.stringify({ error: `Failed to fetch iCal data: ${response.statusText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -48,6 +49,8 @@ serve(async (req) => {
       event.start && event.end && event.type === 'VEVENT'
     );
     
+    console.log(`Found ${validEvents.length} valid events after filtering`);
+    
     // Create Supabase client
     const supabase = supabaseClient();
     
@@ -63,16 +66,26 @@ serve(async (req) => {
       const endDate = event.end.toISOString().split('T')[0];
       const summary = event.summary || '';
       
+      console.log(`Processing event: ${eventUid} (${startDate} to ${endDate}): ${summary}`);
+      
       // Check if this event already exists in our database
-      const { data: existingReservations } = await supabase
+      const { data: existingReservations, error: queryError } = await supabase
         .from("reservations")
         .select("id")
         .eq("property_id", propertyId)
         .eq("ical_url", icalUrl)
         .eq("external_id", eventUid);
       
+      if (queryError) {
+        console.error("Error querying existing reservations:", queryError);
+        skipped++;
+        continue;
+      }
+      
       if (existingReservations && existingReservations.length > 0) {
         // Update existing reservation
+        console.log(`Updating existing reservation: ${existingReservations[0].id}`);
+        
         const { error: updateError } = await supabase
           .from("reservations")
           .update({
@@ -85,11 +98,14 @@ serve(async (req) => {
         
         if (updateError) {
           console.error("Error updating reservation:", updateError);
+          skipped++;
         } else {
           updated++;
         }
       } else {
         // Insert new reservation
+        console.log(`Inserting new reservation for property ${propertyId}`);
+        
         const { error: insertError } = await supabase
           .from("reservations")
           .insert({
@@ -105,6 +121,7 @@ serve(async (req) => {
         
         if (insertError) {
           console.error("Error inserting reservation:", insertError);
+          console.error("Error details:", JSON.stringify(insertError));
           skipped++;
         } else {
           added++;
@@ -113,10 +130,16 @@ serve(async (req) => {
     }
     
     // Update the last_synced timestamp for the iCal link
-    await supabase
+    const { error: updateLinkError } = await supabase
       .from("ical_links")
       .update({ last_synced: new Date().toISOString() })
       .eq("id", icalLinkId);
+      
+    if (updateLinkError) {
+      console.error("Error updating iCal link last_synced:", updateLinkError);
+    }
+
+    console.log(`Sync complete. Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`);
 
     return new Response(
       JSON.stringify({ 
