@@ -1,3 +1,4 @@
+
 import { ICalLink, Operator, Platform, Property, Reservation, User } from '@/types';
 
 // Sample operator
@@ -99,7 +100,7 @@ export const sampleICalLinks: ICalLink[] = [
   {
     id: 'ical-3',
     propertyId: 'prop-2',
-    platform: 'VRBO',
+    platform: 'Vrbo',
     url: 'https://example.com/ical/vrbo/prop2',
     createdAt: new Date('2023-01-16')
   },
@@ -147,7 +148,7 @@ export const sampleReservations: Reservation[] = [
     userId: 'user-2',
     startDate: createDate(2025, 4, 7),
     endDate: createDate(2025, 4, 14),
-    platform: 'VRBO',
+    platform: 'Vrbo',
     source: 'iCal',
     icalUrl: 'https://example.com/ical/vrbo/prop2',
     createdAt: new Date('2025-01-25')
@@ -192,7 +193,7 @@ export const sampleReservations: Reservation[] = [
     userId: 'user-2',
     startDate: createDate(2025, 4, 3),
     endDate: createDate(2025, 4, 8),
-    platform: 'VRBO',
+    platform: 'Vrbo',
     source: 'iCal',
     createdAt: new Date('2025-02-20')
   }

@@ -19,7 +19,7 @@ const ReservationDetails: React.FC<ReservationDetailsProps> = ({ reservation, pr
     switch (platform) {
       case 'Airbnb':
         return 'bg-rose-100 text-rose-800';
-      case 'VRBO':
+      case 'Vrbo':
         return 'bg-green-100 text-green-800';
       case 'Booking':
         return 'bg-blue-100 text-blue-800';

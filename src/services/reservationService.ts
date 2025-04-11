@@ -13,6 +13,29 @@ const normalizeDate = (date: Date): Date => {
 };
 
 /**
+ * Transform data from Supabase's snake_case to camelCase for our app
+ */
+const mapReservationFromDatabase = (dbRes: any): Reservation => {
+  return {
+    id: dbRes.id,
+    propertyId: dbRes.property_id,
+    userId: dbRes.user_id || undefined,
+    startDate: normalizeDate(new Date(dbRes.start_date)),
+    endDate: normalizeDate(new Date(dbRes.end_date)),
+    platform: dbRes.platform as Platform,
+    source: dbRes.source as ReservationSource,
+    status: dbRes.status as ReservationStatus || undefined,
+    guestName: dbRes.guest_name || undefined,
+    guestCount: dbRes.guest_count || undefined,
+    contactInfo: dbRes.contact_info || undefined,
+    icalUrl: dbRes.ical_url || undefined,
+    notes: dbRes.notes || undefined,
+    externalId: dbRes.external_id || undefined,
+    createdAt: new Date(dbRes.created_at)
+  };
+};
+
+/**
  * Fetch all reservations from the database
  */
 export const getReservations = async (filters?: {
@@ -59,23 +82,7 @@ export const getReservations = async (filters?: {
     throw error;
   }
   
-  return data ? data.map((res) => ({
-    id: res.id,
-    propertyId: res.property_id,
-    userId: res.user_id || undefined,
-    startDate: normalizeDate(new Date(res.start_date)),
-    endDate: normalizeDate(new Date(res.end_date)),
-    platform: res.platform as Platform,
-    source: res.source as ReservationSource,
-    status: res.status as ReservationStatus || undefined,
-    guestName: res.guest_name || undefined,
-    guestCount: res.guest_count || undefined,
-    contactInfo: res.contact_info || undefined,
-    icalUrl: res.ical_url || undefined,
-    notes: res.notes || undefined,
-    externalId: res.external_id || undefined,
-    createdAt: new Date(res.created_at)
-  })) : [];
+  return data ? data.map(mapReservationFromDatabase) : [];
 };
 
 /**
@@ -92,23 +99,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     throw error;
   }
   
-  return data ? data.map((res) => ({
-    id: res.id,
-    propertyId: res.property_id,
-    userId: res.user_id || undefined,
-    startDate: normalizeDate(new Date(res.start_date)),
-    endDate: normalizeDate(new Date(res.end_date)),
-    platform: res.platform as Platform,
-    source: res.source as ReservationSource,
-    status: res.status as ReservationStatus || undefined,
-    guestName: res.guest_name || undefined,
-    guestCount: res.guest_count || undefined,
-    contactInfo: res.contact_info || undefined,
-    icalUrl: res.ical_url || undefined,
-    notes: res.notes || undefined,
-    externalId: res.external_id || undefined,
-    createdAt: new Date(res.created_at)
-  })) : [];
+  return data ? data.map(mapReservationFromDatabase) : [];
 };
 
 /**
@@ -134,23 +125,7 @@ export const getReservationsForMonth = async (
     throw error;
   }
   
-  return data ? data.map((res) => ({
-    id: res.id,
-    propertyId: res.property_id,
-    userId: res.user_id || undefined,
-    startDate: normalizeDate(new Date(res.start_date)),
-    endDate: normalizeDate(new Date(res.end_date)),
-    platform: res.platform as Platform,
-    source: res.source as ReservationSource,
-    status: res.status as ReservationStatus || undefined,
-    guestName: res.guest_name || undefined,
-    guestCount: res.guest_count || undefined,
-    contactInfo: res.contact_info || undefined,
-    icalUrl: res.ical_url || undefined,
-    notes: res.notes || undefined,
-    externalId: res.external_id || undefined,
-    createdAt: new Date(res.created_at)
-  })) : [];
+  return data ? data.map(mapReservationFromDatabase) : [];
 };
 
 /**
@@ -196,23 +171,7 @@ export const createManualReservation = async (data: {
     throw new Error("Failed to create reservation");
   }
   
-  return {
-    id: result.id,
-    propertyId: result.property_id,
-    userId: result.user_id || undefined,
-    startDate: normalizeDate(new Date(result.start_date)),
-    endDate: normalizeDate(new Date(result.end_date)),
-    platform: result.platform as Platform,
-    source: result.source as ReservationSource,
-    status: result.status as ReservationStatus || undefined,
-    guestName: result.guest_name || undefined,
-    guestCount: result.guest_count || undefined,
-    contactInfo: result.contact_info || undefined,
-    icalUrl: result.ical_url || undefined,
-    notes: result.notes || undefined,
-    externalId: result.external_id || undefined,
-    createdAt: new Date(result.created_at)
-  };
+  return mapReservationFromDatabase(result);
 };
 
 /**
@@ -259,23 +218,7 @@ export const updateManualReservation = async (
     throw new Error("Failed to update reservation or reservation not found");
   }
   
-  return {
-    id: result.id,
-    propertyId: result.property_id,
-    userId: result.user_id || undefined,
-    startDate: normalizeDate(new Date(result.start_date)),
-    endDate: normalizeDate(new Date(result.end_date)),
-    platform: result.platform as Platform,
-    source: result.source as ReservationSource,
-    status: result.status as ReservationStatus || undefined,
-    guestName: result.guest_name || undefined,
-    guestCount: result.guest_count || undefined,
-    contactInfo: result.contact_info || undefined,
-    icalUrl: result.ical_url || undefined,
-    notes: result.notes || undefined,
-    externalId: result.external_id || undefined,
-    createdAt: new Date(result.created_at)
-  };
+  return mapReservationFromDatabase(result);
 };
 
 /**
