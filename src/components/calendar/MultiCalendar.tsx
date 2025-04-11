@@ -12,7 +12,7 @@ import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Constante para definir el número de días a mostrar
-const DAYS_TO_SHOW = 10;
+const DAYS_TO_SHOW = 15;
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -50,7 +50,7 @@ const MultiCalendar: React.FC = () => {
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
-  // Create a fixed array of 10 days (null for days beyond month length)
+  // Create a fixed array of 15 days (null for days beyond month length)
   const fixedDaysArray = Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
     return i < monthDays.length ? monthDays[i] : null;
   });
@@ -112,14 +112,14 @@ const MultiCalendar: React.FC = () => {
       ) : (
         <ScrollArea className="h-[calc(100%-60px)] w-full">
           <div className="relative min-w-max">
-            {/* Using fixed grid template with 11 columns (1 property + 10 days) */}
-            <div className="grid grid-cols-[160px_repeat(10,minmax(45px,1fr))]">
+            {/* Using fixed grid template with 16 columns (1 property + 15 days) */}
+            <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
               {/* Header row with dates */}
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
                 Properties
               </div>
               
-              {/* Fixed 10 day header cells */}
+              {/* Fixed 15 day header cells */}
               {fixedDaysArray.map((day, index) => {
                 if (day === null) {
                   // Empty cell for days beyond the current month
@@ -152,7 +152,7 @@ const MultiCalendar: React.FC = () => {
                     {property.name}
                   </div>
                   
-                  {/* Fixed 10 calendar cells for each property */}
+                  {/* Fixed 15 calendar cells for each property */}
                   {fixedDaysArray.map((day, dayIndex) => {
                     if (day === null) {
                       // Empty cell for days beyond the current month
