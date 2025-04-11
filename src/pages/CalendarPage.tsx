@@ -53,7 +53,7 @@ const CalendarPage: React.FC = () => {
   };
   
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
@@ -85,41 +85,43 @@ const CalendarPage: React.FC = () => {
         </div>
       </div>
       
-      <Tabs value={activeView} onValueChange={handleViewChange} className="w-full flex-1 flex flex-col">
-        <TabsList className="w-full grid grid-cols-2 sm:w-auto">
+      <Tabs value={activeView} onValueChange={handleViewChange} className="w-full flex-1 flex flex-col overflow-hidden">
+        <TabsList className="mb-2 w-full sm:w-auto grid grid-cols-2">
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
           <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="monthly" className="w-full flex-1 flex flex-col">
-          <Card className="w-full flex-1 flex flex-col">
-            <CardHeader>
-              <CardTitle>Monthly Calendar</CardTitle>
-              <CardDescription>
-                {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected property'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 sm:p-6 overflow-hidden">
-              <MonthlyCalendar 
-                propertyId={selectedPropertyId} 
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="multi" className="w-full flex-1 flex flex-col">
-          <Card className="w-full flex-1 flex flex-col">
-            <CardHeader className="pb-0">
-              <CardTitle>Multi-Property View</CardTitle>
-              <CardDescription>
-                Operational view showing all properties by day
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6 flex-1 flex flex-col overflow-hidden">
-              <MultiCalendar />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <div className="flex-1 overflow-hidden">
+          <TabsContent value="monthly" className="flex-1 h-full data-[state=inactive]:hidden">
+            <Card className="h-full flex flex-col">
+              <CardHeader>
+                <CardTitle>Monthly Calendar</CardTitle>
+                <CardDescription>
+                  {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected property'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-auto p-0 sm:p-6">
+                <MonthlyCalendar 
+                  propertyId={selectedPropertyId} 
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="multi" className="flex-1 h-full data-[state=inactive]:hidden">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="pb-0">
+                <CardTitle>Multi-Property View</CardTitle>
+                <CardDescription>
+                  Operational view showing all properties by day
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden p-0 sm:p-6">
+                <MultiCalendar />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
