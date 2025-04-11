@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -17,7 +16,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
   // Use React Query to fetch reservations
-  const { data: reservations = [], isLoading } = useQuery({
+  const { data: allReservations = [], isLoading } = useQuery({
     queryKey: ['reservations', currentMonth.getMonth() + 1, currentMonth.getFullYear(), propertyId],
     queryFn: async () => {
       if (propertyId) {
@@ -38,6 +37,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       }
     }
   });
+  
+  // Filter out reservations with "Blocked" in notes
+  const reservations = allReservations.filter(res => res.notes !== 'Blocked');
   
   const nextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1));

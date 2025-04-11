@@ -14,13 +14,16 @@ const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
   // Fetch reservations
-  const { data: reservations = [], isLoading: isLoadingReservations } = useQuery({
+  const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
     queryKey: ['reservations', 'multi', currentMonth.getMonth() + 1, currentMonth.getFullYear()],
     queryFn: () => getReservationsForMonth(
       currentMonth.getMonth() + 1, 
       currentMonth.getFullYear()
     )
   });
+  
+  // Filter out reservations with "Blocked" in notes
+  const reservations = allReservations.filter(res => res.notes !== 'Blocked');
   
   // Fetch properties
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
