@@ -223,7 +223,7 @@ const MultiCalendar: React.FC = () => {
             ))}
             
             {/* Property rows */}
-            {properties.map((property: Property) => {
+            {properties.map((property: Property, propertyIndex: number) => {
               const propertyReservations = getReservationsForProperty(property.id);
               const propertyLanes = propertyReservationLanes[property.id] || {};
               const laneHeight = 14; // Height for each reservation lane
@@ -232,6 +232,9 @@ const MultiCalendar: React.FC = () => {
               // Calculate appropriate row height based on number of lanes
               const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
               const rowHeight = baseRowHeight + (maxLane * laneHeight);
+              
+              // Calculate the vertical position for the start of this property row
+              const propertyTopPosition = propertyIndex * rowHeight;
               
               return (
                 <React.Fragment key={property.id}>
@@ -321,9 +324,10 @@ const MultiCalendar: React.FC = () => {
                     // Get the lane assigned to this reservation
                     const lane = propertyLanes[reservation.id] || 0;
                     
-                    // Calculate vertical position with consistent spacing based on lane
+                    // Calculate the vertical position based on property position and lane
+                    // Need to position the bar relative to the current property row
                     const laneOffset = lane * laneHeight;
-                    const verticalPosition = 24 + laneOffset; // 24px baseline offset from top of row
+                    const verticalPosition = propertyTopPosition + 10 + laneOffset; // 10px is a base offset from top
                     
                     // Determine text size based on bar width
                     const isShortReservation = endPosition - startPosition < 1;
