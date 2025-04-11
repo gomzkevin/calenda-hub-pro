@@ -88,8 +88,8 @@ function extractAirbnbInfo(event: any): Reservation {
   }
   
   return {
-    checkIn: event.start.toISOString().split('T')[0],
-    checkOut: event.end.toISOString().split('T')[0],
+    checkIn: event.start?.toISOString().split('T')[0] || "",
+    checkOut: event.end?.toISOString().split('T')[0] || "",
     platform: "Airbnb",
     status,
     reservationId,
@@ -111,8 +111,8 @@ function extractVrboInfo(event: any): Reservation {
   }
   
   return {
-    checkIn: event.start.toISOString().split('T')[0],
-    checkOut: event.end.toISOString().split('T')[0],
+    checkIn: event.start?.toISOString().split('T')[0] || "",
+    checkOut: event.end?.toISOString().split('T')[0] || "",
     platform: "Vrbo",
     status: status.includes("Reserved") ? "Reserved" : (status.includes("Blocked") ? "Blocked" : status),
     reservationId: event.uid || "",
@@ -127,8 +127,8 @@ function extractBookingInfo(event: any): Reservation {
   let reservationId = uid.split('@')[0] || uid;
   
   return {
-    checkIn: event.start.toISOString().split('T')[0],
-    checkOut: event.end.toISOString().split('T')[0],
+    checkIn: event.start?.toISOString().split('T')[0] || "",
+    checkOut: event.end?.toISOString().split('T')[0] || "",
     platform: "Booking",
     status: event.summary || "Unknown",
     reservationId
@@ -137,8 +137,8 @@ function extractBookingInfo(event: any): Reservation {
 
 function extractOtherPlatformInfo(event: any, platform: string): Reservation {
   return {
-    checkIn: event.start.toISOString().split('T')[0],
-    checkOut: event.end.toISOString().split('T')[0],
+    checkIn: event.start?.toISOString().split('T')[0] || "",
+    checkOut: event.end?.toISOString().split('T')[0] || "",
     platform,
     status: event.summary || "Unknown",
     reservationId: event.uid || ""
@@ -181,12 +181,17 @@ serve(async (req) => {
 
     // Fetch the iCal data with a timeout to prevent hanging requests
     try {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(icalUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; PropertyManager/1.0)'
         },
-        signal: AbortSignal.timeout(30000) // 30 second timeout
+        signal: abortController.signal
       });
+      
+      clearTimeout(timeoutId);
       
       console.log(`[PROCESS-ICAL] Fetch response status: ${response.status}`);
       

@@ -62,6 +62,13 @@ export const processICalLink = async (icalUrl: string): Promise<{
 }> => {
   try {
     console.log("Llamando a process-ical function con URL:", icalUrl);
+    
+    if (!icalUrl) {
+      console.error("URL de iCal no proporcionada");
+      throw new Error("URL de iCal no proporcionada");
+    }
+    
+    // Make sure the icalUrl is properly encoded if it contains special characters
     const { data, error } = await supabase.functions.invoke('process-ical', {
       body: {
         icalUrl
@@ -71,6 +78,11 @@ export const processICalLink = async (icalUrl: string): Promise<{
     if (error) {
       console.error("Error processing iCal:", error);
       throw error;
+    }
+    
+    if (!data) {
+      console.error("No se recibieron datos de la función process-ical");
+      throw new Error("No se recibieron datos del calendario");
     }
     
     console.log("Respuesta de process-ical:", data);
@@ -223,6 +235,13 @@ export const syncICalLink = async (icalLink: ICalLink): Promise<{
 }> => {
   try {
     console.log("Iniciando sincronización para:", icalLink.url);
+    
+    if (!icalLink || !icalLink.url) {
+      return {
+        success: false,
+        error: "Enlace iCal inválido o sin URL"
+      };
+    }
     
     // 1. Process the iCal data to get reservations
     const processingResult = await processICalLink(icalLink.url);

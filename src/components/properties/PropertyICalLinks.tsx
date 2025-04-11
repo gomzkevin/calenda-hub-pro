@@ -1,12 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarIcon, Plus } from 'lucide-react';
+import { CalendarIcon, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import ICalLinkCard from '@/components/ical/ICalLinkCard';
-import { getICalLinksForProperty } from '@/services/icalLinkService';
+import { getICalLinksForProperty, syncICalLink } from '@/services/icalLinkService';
+import { toast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PropertyICalLinksProps {
   propertyId: string;
@@ -14,6 +16,7 @@ interface PropertyICalLinksProps {
 
 const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => {
   const navigate = useNavigate();
+  const [syncingAll, setSyncingAll] = useState(false);
   
   // Get iCal links for this property
   const { data: icalLinks, isLoading: isIcalLoading, refetch } = useQuery({
@@ -21,6 +24,62 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     queryFn: () => getICalLinksForProperty(propertyId),
     enabled: !!propertyId
   });
+
+  // Function to sync all iCal links for this property
+  const syncAllICalLinks = async () => {
+    if (!icalLinks || icalLinks.length === 0) return;
+    
+    setSyncingAll(true);
+    toast({
+      title: "Sincronizando calendarios",
+      description: `Iniciando sincronización de ${icalLinks.length} calendarios...`
+    });
+    
+    try {
+      let success = 0;
+      let failed = 0;
+      
+      for (const link of icalLinks) {
+        try {
+          const result = await syncICalLink(link);
+          if (result.success) {
+            success++;
+          } else {
+            failed++;
+          }
+        } catch (error) {
+          console.error(`Error syncing calendar ${link.url}:`, error);
+          failed++;
+        }
+      }
+      
+      if (failed === 0) {
+        toast({
+          title: "Sincronización completada",
+          description: `Se sincronizaron exitosamente ${success} calendarios.`
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Sincronización parcial",
+          description: `${success} calendarios sincronizados, ${failed} fallaron.`
+        });
+      }
+      
+      // Refresh the iCal links data
+      refetch();
+      
+    } catch (error) {
+      console.error("Error syncing all calendars:", error);
+      toast({
+        variant: "destructive",
+        title: "Error de sincronización",
+        description: "Ocurrió un error al sincronizar los calendarios."
+      });
+    } finally {
+      setSyncingAll(false);
+    }
+  };
   
   return (
     <Card>
@@ -29,10 +88,32 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
           <CalendarIcon className="w-5 h-5 mr-2" />
           Enlaces de Calendario
         </CardTitle>
-        <Button size="sm" onClick={() => navigate(`/properties/${propertyId}/ical-links/new`)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Añadir Calendario
-        </Button>
+        <div className="flex space-x-2">
+          {icalLinks && icalLinks.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={syncAllICalLinks}
+                    disabled={syncingAll}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${syncingAll ? "animate-spin" : ""}`} />
+                    Sincronizar Todos
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sincronizar todos los calendarios</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <Button size="sm" onClick={() => navigate(`/properties/${propertyId}/ical-links/new`)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Añadir Calendario
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isIcalLoading ? (
