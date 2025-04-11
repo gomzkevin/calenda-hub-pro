@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Operator, Property, ICalLink, Reservation } from "@/types";
+import { Operator, Property, ICalLink, Reservation, PropertyType } from "@/types";
 
 /**
  * Fetch all operators from the database
@@ -48,7 +48,7 @@ export const getProperties = async (): Promise<Property[]> => {
     bedrooms: prop.bedrooms,
     bathrooms: prop.bathrooms,
     capacity: prop.capacity,
-    type: prop.type || undefined,
+    type: prop.type as PropertyType || undefined,
     description: prop.description || undefined,
     createdAt: new Date(prop.created_at)
   })) : [];
@@ -82,7 +82,7 @@ export const getPropertyById = async (id: string): Promise<Property | null> => {
     bedrooms: data.bedrooms,
     bathrooms: data.bathrooms,
     capacity: data.capacity,
-    type: data.type || undefined,
+    type: data.type as PropertyType || undefined,
     description: data.description || undefined,
     createdAt: new Date(data.created_at)
   };
