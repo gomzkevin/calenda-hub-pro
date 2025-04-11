@@ -1,7 +1,6 @@
-
-import React, { useState } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays, isAfter, isBefore, min } from 'date-fns';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
 import { Reservation, Property } from '@/types';
@@ -11,11 +10,17 @@ import { getReservationsForMonth } from '@/services/reservationService';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-// Maximum number of days to display in the calendar
-const MAX_DAYS = 31;
+// Number of days to show at a time
+const DAYS_TO_SHOW = 15;
 
 const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [visibleStartDate, setVisibleStartDate] = useState<Date>(startOfMonth(new Date()));
+  
+  // Reset visible range when month changes
+  useEffect(() => {
+    setVisibleStartDate(startOfMonth(currentMonth));
+  }, [currentMonth]);
   
   // Fetch reservations
   const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
@@ -46,13 +51,53 @@ const MultiCalendar: React.FC = () => {
     setCurrentMonth(addMonths(currentMonth, -1));
   };
   
+  const nextRange = () => {
+    const monthEnd = endOfMonth(currentMonth);
+    const proposedStart = addDays(visibleStartDate, DAYS_TO_SHOW);
+    
+    // Check if we would go past the end of the month
+    if (isAfter(addDays(proposedStart, DAYS_TO_SHOW - 1), monthEnd)) {
+      // If there are still days left to show in the month, move to show the last DAYS_TO_SHOW days
+      if (isAfter(monthEnd, visibleStartDate)) {
+        // Calculate the start date that would show the last DAYS_TO_SHOW days of the month (or fewer if the month has fewer days)
+        const daysInMonth = eachDayOfInterval({ start: startOfMonth(currentMonth), end: monthEnd }).length;
+        const lastRangeStart = addDays(startOfMonth(currentMonth), Math.max(0, daysInMonth - DAYS_TO_SHOW));
+        setVisibleStartDate(lastRangeStart);
+      }
+      // Otherwise, we're already showing the last days, so don't change
+    } else {
+      // Safe to move forward DAYS_TO_SHOW days
+      setVisibleStartDate(proposedStart);
+    }
+  };
+  
+  const prevRange = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const proposedStart = addDays(visibleStartDate, -DAYS_TO_SHOW);
+    
+    // Check if we would go before the start of the month
+    if (isBefore(proposedStart, monthStart)) {
+      // Just go to the start of the month
+      setVisibleStartDate(monthStart);
+    } else {
+      // Safe to move back DAYS_TO_SHOW days
+      setVisibleStartDate(proposedStart);
+    }
+  };
+  
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
-  // Create a fixed array of 31 days (null for days beyond month length)
-  const fixedDaysArray = Array.from({ length: MAX_DAYS }, (_, i) => {
-    return i < monthDays.length ? monthDays[i] : null;
+  // Calculate the end date for our visible range
+  const visibleEndDate = min([
+    addDays(visibleStartDate, DAYS_TO_SHOW - 1),
+    monthEnd
+  ]);
+  
+  // Create array of visible days
+  const visibleDays = eachDayOfInterval({ 
+    start: visibleStartDate, 
+    end: visibleEndDate 
   });
   
   // Get reservations for a specific property
@@ -80,6 +125,13 @@ const MultiCalendar: React.FC = () => {
     return getPlatformColorClass(reservation.platform);
   };
 
+  // Check if we're at the start of the month (disable prev range button)
+  const isAtMonthStart = isSameDay(visibleStartDate, monthStart);
+  
+  // Check if we're at the end of the month (disable next range button)
+  const isAtMonthEnd = isSameDay(addDays(visibleStartDate, DAYS_TO_SHOW - 1), monthEnd) || 
+                       isAfter(addDays(visibleStartDate, DAYS_TO_SHOW - 1), monthEnd);
+
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with month title and navigation buttons */}
@@ -87,21 +139,52 @@ const MultiCalendar: React.FC = () => {
         <div className="flex items-center justify-between p-4">
           <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
           <div className="flex space-x-2">
+            {/* Month navigation */}
             <Button 
               variant="outline" 
               size="icon"
               onClick={prevMonth}
+              title="Previous Month"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Range navigation */}
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={prevRange}
+              disabled={isAtMonthStart}
+              title="Previous Range"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
+            
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={nextRange}
+              disabled={isAtMonthEnd}
+              title="Next Range"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* Month navigation */}
             <Button 
               variant="outline" 
               size="icon"
               onClick={nextMonth}
+              title="Next Month"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronsRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+        
+        {/* Date range indicator */}
+        <div className="text-sm text-center pb-2 text-muted-foreground">
+          {format(visibleStartDate, 'MMM d')} - {format(visibleEndDate, 'MMM d, yyyy')}
         </div>
       </div>
       
@@ -110,39 +193,27 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="h-[calc(100%-60px)] w-full">
+        <ScrollArea className="h-[calc(100%-85px)] w-full">
           <div className="relative min-w-max">
-            {/* Using fixed grid template with 31 columns as requested */}
-            <div className="grid grid-cols-[160px_repeat(31,minmax(45px,1fr))]">
+            {/* Using grid template with columns for property name + visible days */}
+            <div className={`grid grid-cols-[160px_repeat(${visibleDays.length},minmax(45px,1fr))]`}>
               {/* Header row with dates */}
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
                 Properties
               </div>
               
-              {/* Fixed 31 day header cells */}
-              {fixedDaysArray.map((day, index) => {
-                if (day === null) {
-                  // Empty cell for days beyond the current month
-                  return (
-                    <div 
-                      key={`empty-header-${index}`}
-                      className="sticky top-0 z-10 bg-white border-b h-10 opacity-50 bg-gray-50"
-                    />
-                  );
-                }
-                
-                return (
-                  <div 
-                    key={index}
-                    className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
-                      isSameDay(day, new Date()) ? 'bg-blue-50' : ''
-                    }`}
-                  >
-                    <span>{format(day, 'EEE')}</span>
-                    <span>{format(day, 'd')}</span>
-                  </div>
-                );
-              })}
+              {/* Day header cells */}
+              {visibleDays.map((day, index) => (
+                <div 
+                  key={index}
+                  className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
+                    isSameDay(day, new Date()) ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <span>{format(day, 'EEE')}</span>
+                  <span>{format(day, 'd')}</span>
+                </div>
+              ))}
               
               {/* Property rows */}
               {properties.map((property: Property) => (
@@ -152,18 +223,8 @@ const MultiCalendar: React.FC = () => {
                     {property.name}
                   </div>
                   
-                  {/* Fixed 31 calendar cells for each property */}
-                  {fixedDaysArray.map((day, dayIndex) => {
-                    if (day === null) {
-                      // Empty cell for days beyond the current month
-                      return (
-                        <div
-                          key={`empty-${property.id}-${dayIndex}`}
-                          className="border opacity-50 bg-gray-50 h-16"
-                        />
-                      );
-                    }
-                    
+                  {/* Calendar cells for each property */}
+                  {visibleDays.map((day, dayIndex) => {
                     const isToday = isSameDay(day, new Date());
                     
                     // Get reservations that include this day
