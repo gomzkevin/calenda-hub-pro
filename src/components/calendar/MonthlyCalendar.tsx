@@ -184,9 +184,13 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                 
                 if (startPos === -1) startPos = 0;
                 
-                // Calculate width and position
-                const reservationWidth = `${((endPos - startPos) / 7) * 100}%`;
-                const reservationLeft = `${(startPos / 7) * 100}%`;
+                // Calculate width and position with half-day offsets
+                // Add 0.5 to startPos if it's the start day, and subtract 0.5 from endPos if it's the end day
+                const adjustedStartPos = isSameDay(week[startPos], startDate) ? startPos + 0.5 : startPos;
+                const adjustedEndPos = (endPos < 7 && isSameDay(week[endPos-1], endDate)) ? endPos - 0.5 : endPos;
+                
+                const reservationWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
+                const reservationLeft = `${(adjustedStartPos / 7) * 100}%`;
                 
                 // Skip if it doesn't fit in this week
                 if (startPos >= 7 || endPos <= 0) return null;

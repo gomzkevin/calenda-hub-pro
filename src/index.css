@@ -83,23 +83,23 @@
   }
   
   .booking-airbnb {
-    @apply bg-red-500 text-white;
+    @apply bg-red-500/70 text-white;
   }
   
   .booking-booking {
-    @apply bg-blue-600 text-white;
+    @apply bg-blue-600/70 text-white;
   }
   
   .booking-vrbo {
-    @apply bg-green-600 text-white;
+    @apply bg-green-600/70 text-white;
   }
   
   .booking-manual {
-    @apply bg-purple-600 text-white;
+    @apply bg-purple-600/70 text-white;
   }
   
   .booking-other {
-    @apply bg-gray-600 text-white;
+    @apply bg-gray-600/70 text-white;
   }
   
   .calendar-header {

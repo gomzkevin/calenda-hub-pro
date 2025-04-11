@@ -115,9 +115,13 @@ const MultiCalendar: React.FC = () => {
                     endDayIndex = monthDays.length - 1;
                   }
                   
-                  // Calculate positioning
-                  const left = startDayIndex * 100 / monthDays.length;
-                  const width = (endDayIndex - startDayIndex + 1) * 100 / monthDays.length;
+                  // Adjust positions to start and end at mid-day
+                  const adjustedStartIndex = isSameDay(monthDays[startDayIndex], startDate) ? startDayIndex + 0.5 : startDayIndex;
+                  const adjustedEndIndex = isSameDay(monthDays[endDayIndex], endDate) ? endDayIndex + 0.5 : endDayIndex + 1;
+                  
+                  // Calculate positioning with adjusted values
+                  const left = (adjustedStartIndex * 100 / monthDays.length);
+                  const width = ((adjustedEndIndex - adjustedStartIndex) * 100 / monthDays.length);
                   
                   return (
                     <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
