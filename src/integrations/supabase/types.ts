@@ -9,7 +9,203 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      ical_links: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          property_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          property_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          property_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_links_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operators: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string
+          id: string
+          name: string
+          operator_id: string | null
+          role: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          operator_id?: string | null
+          role: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          operator_id?: string | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      properties: {
+        Row: {
+          address: string
+          bathrooms: number
+          bedrooms: number
+          capacity: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          internal_code: string
+          name: string
+          notes: string | null
+          operator_id: string
+          type: string | null
+        }
+        Insert: {
+          address: string
+          bathrooms: number
+          bedrooms: number
+          capacity: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          internal_code: string
+          name: string
+          notes?: string | null
+          operator_id: string
+          type?: string | null
+        }
+        Update: {
+          address?: string
+          bathrooms?: number
+          bedrooms?: number
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          internal_code?: string
+          name?: string
+          notes?: string | null
+          operator_id?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          created_at: string
+          end_date: string
+          ical_url: string | null
+          id: string
+          notes: string | null
+          platform: string
+          property_id: string
+          source: string
+          start_date: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          ical_url?: string | null
+          id?: string
+          notes?: string | null
+          platform: string
+          property_id: string
+          source: string
+          start_date: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          ical_url?: string | null
+          id?: string
+          notes?: string | null
+          platform?: string
+          property_id?: string
+          source?: string
+          start_date?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

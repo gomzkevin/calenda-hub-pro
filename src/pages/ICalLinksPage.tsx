@@ -1,81 +1,80 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { sampleICalLinks } from '@/data/mockData';
 import ICalLinkCard from '@/components/ical/ICalLinkCard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery } from '@tanstack/react-query';
+import { getICalLinks, getPropertyById } from '@/services/supabaseService';
+import { toast } from '@/hooks/use-toast';
 
-const ICalLinksPage: React.FC = () => {
-  const icalLinks = sampleICalLinks;
+const ICalLinksPage = () => {
+  const navigate = useNavigate();
   
-  const platformLinks = {
-    Airbnb: icalLinks.filter(link => link.platform === 'Airbnb'),
-    Booking: icalLinks.filter(link => link.platform === 'Booking'),
-    VRBO: icalLinks.filter(link => link.platform === 'VRBO'),
-    Other: icalLinks.filter(link => !['Airbnb', 'Booking', 'VRBO'].includes(link.platform))
-  };
+  const { data: icalLinks, isLoading, error } = useQuery({
+    queryKey: ['icalLinks'],
+    queryFn: getICalLinks
+  });
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    toast({
+      variant: "destructive",
+      title: "Error al cargar enlaces iCal",
+      description: "No pudimos cargar los enlaces iCal. Por favor intenta de nuevo."
+    });
+    return (
+      <div className="text-center py-10">
+        <h3 className="text-lg font-semibold mb-2">No se pudieron cargar los enlaces iCal</h3>
+        <Button onClick={() => window.location.reload()}>Reintentar</Button>
+      </div>
+    );
+  }
   
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold">iCal Links</h1>
-        <div className="flex gap-2">
-          <div className="relative w-full sm:w-64">
-            <Input
-              type="text"
-              placeholder="Search links..."
-              className="w-full"
-            />
-          </div>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add iCal Link
-          </Button>
-        </div>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Enlaces iCal</h1>
+        <Button
+          onClick={() => navigate('/ical-links/new')}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Añadir Enlace iCal</span>
+        </Button>
       </div>
       
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="w-full sm:w-auto flex flex-wrap">
-          <TabsTrigger value="all">All ({icalLinks.length})</TabsTrigger>
-          <TabsTrigger value="airbnb">Airbnb ({platformLinks.Airbnb.length})</TabsTrigger>
-          <TabsTrigger value="booking">Booking ({platformLinks.Booking.length})</TabsTrigger>
-          <TabsTrigger value="vrbo">VRBO ({platformLinks.VRBO.length})</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {icalLinks.map((icalLink) => (
-              <ICalLinkCard key={icalLink.id} icalLink={icalLink} />
-            ))}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="airbnb">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {platformLinks.Airbnb.map((icalLink) => (
-              <ICalLinkCard key={icalLink.id} icalLink={icalLink} />
-            ))}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="booking">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {platformLinks.Booking.map((icalLink) => (
-              <ICalLinkCard key={icalLink.id} icalLink={icalLink} />
-            ))}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="vrbo">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {platformLinks.VRBO.map((icalLink) => (
-              <ICalLinkCard key={icalLink.id} icalLink={icalLink} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+      {icalLinks && icalLinks.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {icalLinks.map((icalLink) => (
+            <ICalLinkCard 
+              key={icalLink.id} 
+              icalLink={icalLink} 
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-10 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">No hay enlaces iCal</h3>
+          <p className="text-gray-500 mb-4">
+            Añade enlaces iCal para sincronizar las reservas de tus propiedades.
+          </p>
+          <Button 
+            onClick={() => navigate('/ical-links/new')}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Añadir tu primer enlace iCal</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

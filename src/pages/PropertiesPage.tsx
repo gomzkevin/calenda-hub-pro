@@ -3,38 +3,75 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { sampleProperties } from '@/data/mockData';
 import PropertyCard from '@/components/properties/PropertyCard';
+import { useQuery } from '@tanstack/react-query';
+import { getProperties } from '@/services/supabaseService';
+import { toast } from '@/hooks/use-toast';
 
-const PropertiesPage: React.FC = () => {
+const PropertiesPage = () => {
   const navigate = useNavigate();
-  const properties = sampleProperties;
+  
+  const { data: properties, isLoading, error } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties
+  });
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    toast({
+      variant: "destructive",
+      title: "Error al cargar propiedades",
+      description: "No pudimos cargar las propiedades. Por favor intenta de nuevo."
+    });
+    return (
+      <div className="text-center py-10">
+        <h3 className="text-lg font-semibold mb-2">No se pudieron cargar las propiedades</h3>
+        <Button onClick={() => window.location.reload()}>Reintentar</Button>
+      </div>
+    );
+  }
   
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold">Properties</h1>
-        <div className="flex gap-2">
-          <div className="relative w-full sm:w-64">
-            <Input
-              type="text"
-              placeholder="Search properties..."
-              className="w-full"
-            />
-          </div>
-          <Button onClick={() => alert('Add property functionality would go here')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Property
-          </Button>
-        </div>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Propiedades</h1>
+        <Button
+          onClick={() => navigate('/properties/new')}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Añadir Propiedad</span>
+        </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {properties.map((property) => (
-          <PropertyCard key={property.id} property={property} />
-        ))}
-      </div>
+      {properties && properties.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {properties.map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-10 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">No hay propiedades</h3>
+          <p className="text-gray-500 mb-4">
+            Todavía no has agregado ninguna propiedad para gestionar.
+          </p>
+          <Button 
+            onClick={() => navigate('/properties/new')}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Añadir tu primera propiedad</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
