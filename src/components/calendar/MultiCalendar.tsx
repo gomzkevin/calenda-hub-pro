@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,15 +39,20 @@ const MultiCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const isMobile = useIsMobile();
   
-  // Define constants for the layout instead of calculating them dynamically
+  // Define fixed dimensions - no dynamic calculations
   const CELL_WIDTH = isMobile ? 40 : 50;
+  const PROPERTY_COLUMN_WIDTH = 160;
   const VISIBLE_DAYS = isMobile ? 10 : 20;
   const ROW_BASE_HEIGHT = 48;
   const LANE_HEIGHT = 12;
+  const HEADER_HEIGHT = 10;
   
-  // Use refs to store row heights and positions to avoid re-renders
+  // Use refs to store row heights and positions
   const rowHeightsRef = useRef<Record<string, number>>({});
   const rowPositionsRef = useRef<Record<string, number>>({});
+  
+  // Container ref for measuring
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Fetch reservations
   const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
@@ -84,12 +89,12 @@ const MultiCalendar: React.FC = () => {
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
-  // Limit visible days
+  // Limit visible days - fixed amount
   const visibleMonthDays = useMemo(() => {
     return monthDays.slice(0, VISIBLE_DAYS);
   }, [monthDays]);
   
-  // Compute reservation lanes for each property
+  // Compute reservation lanes for each property - only when data changes
   const propertyReservationLanes = useMemo(() => {
     const lanes: Record<string, Record<string, number>> = {};
     
@@ -187,15 +192,14 @@ const MultiCalendar: React.FC = () => {
     return lanes;
   }, [properties, reservations]);
 
-  // Pre-calculate row heights and positions on each render
-  // This happens synchronously instead of in an effect to avoid re-renders
-  React.useMemo(() => {
+  // Calculate row heights and positions - only when dependencies change
+  useEffect(() => {
     if (isLoadingProperties || isLoadingReservations || !properties.length) return;
     
     const newRowHeights: Record<string, number> = {};
     const newRowPositions: Record<string, number> = {};
     
-    let currentPosition = 10; // Header height
+    let currentPosition = HEADER_HEIGHT;
     
     properties.forEach((property) => {
       // Calculate max lanes for this property
@@ -212,12 +216,15 @@ const MultiCalendar: React.FC = () => {
       currentPosition += rowHeight;
     });
     
-    // Update refs directly without triggering re-renders
+    // Update refs without triggering re-renders
     rowHeightsRef.current = newRowHeights;
     rowPositionsRef.current = newRowPositions;
   }, [properties, reservations, propertyReservationLanes, isLoadingProperties, isLoadingReservations]);
 
   const isLoading = isLoadingReservations || isLoadingProperties;
+
+  // Calculate fixed total width to avoid overflow issues
+  const totalWidth = PROPERTY_COLUMN_WIDTH + (VISIBLE_DAYS * CELL_WIDTH);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -248,9 +255,16 @@ const MultiCalendar: React.FC = () => {
         </div>
       ) : (
         <ScrollArea className="flex-1 w-full overflow-hidden border rounded-md">
-          <div className="relative w-full">
+          <div 
+            ref={containerRef}
+            className="relative" 
+            style={{
+              width: `${totalWidth}px`,
+              minWidth: `${totalWidth}px`
+            }}
+          >
             <div className="grid" style={{ 
-              gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${CELL_WIDTH}px)`,
+              gridTemplateColumns: `${PROPERTY_COLUMN_WIDTH}px repeat(${visibleMonthDays.length}, ${CELL_WIDTH}px)`,
             }}>
               {/* Header row with dates */}
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
@@ -344,9 +358,9 @@ const MultiCalendar: React.FC = () => {
                         endPosition += 1;
                       }
                       
-                      // Calculate left position and width using cell width
-                      const left = `calc(160px + (${startPosition} * ${CELL_WIDTH}px))`;
-                      const width = `calc(${(endPosition - startPosition)} * ${CELL_WIDTH}px)`;
+                      // Calculate left position and width using cell width - fixed dimensions
+                      const left = `${PROPERTY_COLUMN_WIDTH + (startPosition * CELL_WIDTH)}px`;
+                      const width = `${(endPosition - startPosition) * CELL_WIDTH}px`;
                       
                       // Determine border radius style
                       const isStartTruncated = startDate < visibleMonthDays[0];
@@ -368,7 +382,7 @@ const MultiCalendar: React.FC = () => {
                       const rowPosition = rowPositionsRef.current[property.id] || 0;
                       
                       // Calculate the vertical position using values from refs
-                      const laneOffset = lane * LANE_HEIGHT; // 12px height per lane
+                      const laneOffset = lane * LANE_HEIGHT; 
                       // Center the reservation bar vertically in the property row
                       const verticalPosition = rowPosition + (rowHeight / 2) - 4 + laneOffset;
                       
