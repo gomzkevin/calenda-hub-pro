@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reservation } from '@/types';
@@ -86,7 +86,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     weeks.push(daysInGrid.slice(i, i + 7));
   }
 
-  // Calculate reservation lanes for each week
+  // Calculate reservation lanes for each week with enhanced consecutive reservation handling
   const weekReservationLanes = useMemo(() => {
     const lanes: Record<number, Record<string, number>> = {};
     
@@ -94,7 +94,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       const weekLanes: Record<string, number> = {};
       
       // Filter reservations that overlap with this week
-      const weekReservations = reservations.filter(reservation => {
+      let weekReservations = reservations.filter(reservation => {
         return week.some(day => {
           if (!day) return false;
           const normalizedDay = normalizeDate(day);
@@ -107,9 +107,50 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
         (a, b) => a.startDate.getTime() - b.startDate.getTime()
       );
       
-      // Assign lanes to each reservation
-      sortedReservations.forEach(reservation => {
-        // Find the first available lane for this reservation
+      // Enhanced lane assignment strategy to prioritize consecutive reservations in same lane
+      sortedReservations.forEach((reservation, index) => {
+        const resId = reservation.id;
+        
+        // Check if this reservation follows the previous one (consecutive or close)
+        if (index > 0) {
+          const prevReservation = sortedReservations[index-1];
+          const prevResId = prevReservation.id;
+          
+          // If this reservation starts on the same day the previous one ends or within 3 days
+          const daysBetween = differenceInDays(reservation.startDate, prevReservation.endDate);
+          if (isSameDay(prevReservation.endDate, reservation.startDate) || 
+              (daysBetween >= 0 && daysBetween <= 3)) {
+            
+            // Try to assign the same lane as the previous reservation
+            const prevLane = weekLanes[prevResId];
+            
+            // Check if this lane is available for the current reservation
+            let canUseSameLane = true;
+            
+            // Check for conflicts with other reservations in this lane
+            for (const existingResId in weekLanes) {
+              if (existingResId === prevResId) continue;
+              if (weekLanes[existingResId] !== prevLane) continue;
+              
+              const existingRes = weekReservations.find(r => r.id === existingResId);
+              if (!existingRes) continue;
+              
+              // Check for date overlap
+              if (reservation.startDate <= existingRes.endDate && 
+                  reservation.endDate >= existingRes.startDate) {
+                canUseSameLane = false;
+                break;
+              }
+            }
+            
+            if (canUseSameLane) {
+              weekLanes[resId] = prevLane;
+              return;
+            }
+          }
+        }
+        
+        // If we couldn't reuse the previous lane, find the first available lane
         let lane = 0;
         let laneFound = false;
         
@@ -125,10 +166,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
             if (!existingRes) continue;
             
             // Check for date overlap
-            if (
-              (reservation.startDate <= existingRes.endDate && 
-               reservation.endDate >= existingRes.startDate)
-            ) {
+            if (reservation.startDate <= existingRes.endDate && 
+                reservation.endDate >= existingRes.startDate) {
               laneFound = false;
               break;
             }
@@ -140,7 +179,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
         }
         
         // Assign this lane to the reservation
-        weekLanes[reservation.id] = lane;
+        weekLanes[resId] = lane;
       });
       
       lanes[weekIndex] = weekLanes;
@@ -266,18 +305,18 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
                     const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
                     
-                    // Calculate bar width and position
+                    // Calculate bar width and position with the new 40-20-40 spacing
                     let barStartPos = startPos;
                     let barEndPos = endPos;
                     
-                    // If this is the actual check-in day, start from the middle
+                    // If this is the actual check-in day, start at 60% of the cell
                     if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-                      barStartPos += 0.5;
+                      barStartPos += 0.6; // Start at 60% of the cell width
                     }
                     
-                    // If this is the actual check-out day, end at the middle
+                    // If this is the actual check-out day, end at 40% of the cell
                     if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-                      barEndPos += 0.5;
+                      barEndPos += 0.4; // End at 40% of the cell width
                     } else {
                       // If not the actual check-out day, bar should extend to the end of the day
                       barEndPos += 1;
@@ -296,7 +335,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                       borderRadiusStyle = 'rounded-l-full rounded-r-none';
                     }
                     
-                    // Get the lane assigned to this reservation
+                    // Get the lane assigned to this reservation for consistent vertical positioning
                     const weekLanes = weekReservationLanes[weekIndex] || {};
                     const lane = weekLanes[reservation.id] || 0;
                     
@@ -304,13 +343,16 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     const laneHeight = 14; // Height per lane
                     const baseOffset = -70; // Base offset from top
                     const verticalPosition = baseOffset - (lane * laneHeight);
+
+                    // Determine text size based on bar width - smaller text for short reservations
+                    const isShortReservation = barEndPos - barStartPos < 1;
                     
                     return (
                       <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
-                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
                                 top: `${verticalPosition}px`,
                                 left: barLeft,
@@ -324,7 +366,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                           <TooltipContent>
                             <div className="text-xs">
                               <p><strong>Platform:</strong> {reservation.platform}</p>
-                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d')}</p>
+                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
                               <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
                               {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
                             </div>

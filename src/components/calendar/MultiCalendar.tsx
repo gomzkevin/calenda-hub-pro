@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -73,12 +73,51 @@ const MultiCalendar: React.FC = () => {
       // Track lane assignments for this property
       const propertyLanes: Record<string, number> = {};
       
-      // Assign lanes to each reservation
-      sortedReservations.forEach(reservation => {
+      // Enhanced lane assignment strategy to prioritize consecutive reservations in same lane
+      sortedReservations.forEach((reservation, index) => {
         // Generate a unique ID for this reservation
         const resId = reservation.id;
         
-        // Find the first available lane for this reservation
+        // Check if this reservation follows the previous one (consecutive or within a few days)
+        if (index > 0) {
+          const prevReservation = sortedReservations[index-1];
+          const prevResId = prevReservation.id;
+          
+          // If this reservation starts on the same day as the previous one ends or within 3 days
+          const daysBetween = differenceInDays(reservation.startDate, prevReservation.endDate);
+          if (isSameDay(prevReservation.endDate, reservation.startDate) || 
+              (daysBetween >= 0 && daysBetween <= 3)) {
+            
+            // Try to assign the same lane as the previous reservation
+            const prevLane = propertyLanes[prevResId];
+            
+            // Check if this lane is available for the current reservation
+            let canUseSameLane = true;
+            
+            // Check for conflicts with other reservations in this lane
+            for (const existingResId in propertyLanes) {
+              if (existingResId === prevResId) continue;
+              if (propertyLanes[existingResId] !== prevLane) continue;
+              
+              const existingRes = propertyReservations.find(r => r.id === existingResId);
+              if (!existingRes) continue;
+              
+              // Check for date overlap
+              if (reservation.startDate <= existingRes.endDate && 
+                  reservation.endDate >= existingRes.startDate) {
+                canUseSameLane = false;
+                break;
+              }
+            }
+            
+            if (canUseSameLane) {
+              propertyLanes[resId] = prevLane;
+              return;
+            }
+          }
+        }
+        
+        // If we couldn't reuse the previous lane, find the first available lane
         let lane = 0;
         let laneFound = false;
         
@@ -94,10 +133,8 @@ const MultiCalendar: React.FC = () => {
             if (!existingRes) continue;
             
             // Check for date overlap
-            if (
-              (reservation.startDate <= existingRes.endDate && 
-               reservation.endDate >= existingRes.startDate)
-            ) {
+            if (reservation.startDate <= existingRes.endDate && 
+                reservation.endDate >= existingRes.startDate) {
               laneFound = false;
               break;
             }
@@ -224,18 +261,18 @@ const MultiCalendar: React.FC = () => {
                       endDayIndex = monthDays.length - 1;
                     }
                     
-                    // Calculate grid column positions
+                    // Calculate grid column positions with new spacing
                     let startPosition = startDayIndex;
                     let endPosition = endDayIndex;
                     
-                    // If this is the actual check-in day (not a continuation), start from the middle
+                    // If this is the actual check-in day (not a continuation), start at 60% of cell
                     if (isSameDay(visibleStartDate, startDate)) {
-                      startPosition += 0.5;
+                      startPosition += 0.6; // Start at 60% of the cell width
                     }
                     
-                    // If this is the actual check-out day (not a continuation), end at the middle
+                    // If this is the actual check-out day (not a continuation), end at 40% of cell
                     if (isSameDay(visibleEndDate, endDate)) {
-                      endPosition += 0.5;
+                      endPosition += 0.4; // End at 40% of the cell width
                     } else {
                       // If not the actual check-out day, bar should extend to the end of the day
                       endPosition += 1;
@@ -266,12 +303,15 @@ const MultiCalendar: React.FC = () => {
                     const laneOffset = lane * laneHeight;
                     const verticalPosition = 24 + laneOffset; // 24px baseline offset from top of row
                     
+                    // Determine text size based on bar width
+                    const isShortReservation = endPosition - startPosition < 1;
+                    
                     return (
                       <TooltipProvider key={`reservation-${property.id}-${reservation.id}`}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
-                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
                                 top: `${verticalPosition}px`,
                                 left: left,
@@ -286,7 +326,7 @@ const MultiCalendar: React.FC = () => {
                             <div className="text-xs">
                               <p><strong>{property.name}</strong></p>
                               <p><strong>Platform:</strong> {reservation.platform}</p>
-                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d')}</p>
+                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
                               <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
                               {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
                             </div>
