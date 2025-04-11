@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
 import { Reservation, Property } from '@/types';
@@ -10,7 +10,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservationService';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 // Maximum number of days to display at once
 const DAYS_TO_SHOW = 15;
@@ -72,25 +71,9 @@ const MultiCalendar: React.FC = () => {
     });
   };
   
-  const resetToMonthStart = () => {
-    setCurrentStartDate(startOfMonth(currentMonth));
-  };
-  
-  const goToMonthEnd = () => {
-    // Go to the last page that shows the end of the month
-    const monthEnd = endOfMonth(currentMonth);
-    const daysInMonth = eachDayOfInterval({ start: startOfMonth(currentMonth), end: monthEnd }).length;
-    const pages = Math.ceil(daysInMonth / DAYS_TO_SHOW);
-    const lastPageStart = addDays(startOfMonth(currentMonth), (pages - 1) * DAYS_TO_SHOW);
-    setCurrentStartDate(lastPageStart);
-  };
-  
   // Calculate visible days range
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  
-  // Get all days in the month
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
   // Calculate the end date for the visible range
   const visibleEndDate = addDays(currentStartDate, DAYS_TO_SHOW - 1);
@@ -128,13 +111,6 @@ const MultiCalendar: React.FC = () => {
     return getPlatformColorClass(reservation.platform);
   };
 
-  // Calculate pagination info
-  const daysInMonth = monthDays.length;
-  const totalPages = Math.ceil(daysInMonth / DAYS_TO_SHOW);
-  const currentPage = Math.floor(
-    eachDayOfInterval({ start: monthStart, end: currentStartDate }).length / DAYS_TO_SHOW
-  );
-
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with month title and navigation buttons */}
@@ -159,36 +135,31 @@ const MultiCalendar: React.FC = () => {
           </div>
         </div>
         
-        {/* Add day range pagination controls */}
+        {/* Add day range navigation controls */}
         <div className="px-4 pb-2 flex justify-between items-center">
           <div className="text-sm text-gray-500">
             {format(currentStartDate, 'MMM d')} - {format(actualEndDate, 'MMM d')}
           </div>
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationLink onClick={resetToMonthStart}>
-                  <ChevronsLeft className="h-4 w-4 mr-1" />
-                  First
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationPrevious onClick={prevRange} />
-              </PaginationItem>
-              <PaginationItem className="px-2">
-                {currentPage + 1} / {totalPages}
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext onClick={nextRange} />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink onClick={goToMonthEnd}>
-                  Last
-                  <ChevronsRight className="h-4 w-4 ml-1" />
-                </PaginationLink>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={prevRange}
+              disabled={isSameDay(currentStartDate, monthStart)}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={nextRange}
+              disabled={isSameDay(actualEndDate, monthEnd)}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -199,7 +170,7 @@ const MultiCalendar: React.FC = () => {
       ) : (
         <ScrollArea className="h-[calc(100%-120px)] w-full">
           <div className="relative min-w-max">
-            {/* Using dynamic grid template based on visibleDays length */}
+            {/* Using grid template with fixed 15 columns for days */}
             <div className={`grid grid-cols-[160px_repeat(${visibleDays.length},minmax(45px,1fr))]`}>
               {/* Header row with property label */}
               <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
