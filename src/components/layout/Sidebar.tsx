@@ -46,10 +46,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     >
       <div className="flex flex-col h-full">
         <div className="p-4 border-b">
-          <h1 className="text-lg font-semibold text-gray-900">
-            CalendaHub
-          </h1>
-          <p className="text-xs text-gray-500">Vacation Rental Management</p>
+          <div className="flex items-center justify-center mb-1">
+            <img 
+              src="/lovable-uploads/a72ac6bb-b10f-43f4-a78c-f27f17d50101.png" 
+              alt="Alanto Logo" 
+              className="h-10" 
+            />
+          </div>
+          <p className="text-xs text-gray-500 text-center">Más ingresos, menos estrés</p>
         </div>
         
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -76,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         </nav>
         
         <div className="p-4 border-t text-xs text-gray-500">
-          <p>© 2025 CalendaHub</p>
+          <p>© 2025 Alanto</p>
         </div>
       </div>
     </div>
