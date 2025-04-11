@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as ical from "npm:ical";
+import ical from "npm:node-ical";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -219,7 +219,8 @@ serve(async (req) => {
       // Parse the iCal data
       let parsed;
       try {
-        parsed = ical.parseICS(icalData);
+        // Using node-ical instead of ical
+        parsed = await ical.parseICS(icalData);
         console.log(`[PROCESS-ICAL] Successfully parsed iCal data, found ${Object.keys(parsed).length} events`);
       } catch (parseError) {
         console.error("[PROCESS-ICAL] Error parsing iCal data:", parseError);

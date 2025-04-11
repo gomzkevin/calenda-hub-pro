@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ICalLink } from "@/types";
 
@@ -68,14 +67,13 @@ export const processICalLink = async (icalUrl: string): Promise<{
       throw new Error("URL de iCal no proporcionada");
     }
     
-    // Use GET request with URL as query parameter
     // Encode the URL to handle special characters
     const encodedUrl = encodeURIComponent(icalUrl);
-    // Construct the URL with query parameters manually
-    const functionUrl = `process-ical?icalUrl=${encodedUrl}`;
     
-    const { data, error } = await supabase.functions.invoke(functionUrl, {
-      method: 'GET'
+    // Importante: Aquí hacemos una llamada POST con la URL en el cuerpo
+    const { data, error } = await supabase.functions.invoke('process-ical', {
+      method: 'POST',
+      body: { icalUrl: icalUrl }
     });
     
     if (error) {
