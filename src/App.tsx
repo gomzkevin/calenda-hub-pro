@@ -8,6 +8,7 @@ import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import PropertiesPage from "./pages/PropertiesPage";
 import PropertyDetailsPage from "./pages/PropertyDetailsPage";
+import NewPropertyPage from "./pages/NewPropertyPage";
 import CalendarPage from "./pages/CalendarPage";
 import ICalLinksPage from "./pages/ICalLinksPage";
 import UsersPage from "./pages/UsersPage";
@@ -39,6 +40,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <PropertiesPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/properties/new" element={
+              <ProtectedRoute>
+                <Layout>
+                  <NewPropertyPage />
                 </Layout>
               </ProtectedRoute>
             } />
