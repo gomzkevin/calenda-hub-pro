@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -229,28 +228,26 @@ const MultiCalendar: React.FC = () => {
   return (
     <div 
       ref={containerRef}
-      className="bg-white rounded-lg shadow flex flex-col h-full w-full overflow-hidden"
+      className="flex flex-col h-full w-full"
     >
-      {/* Fixed header with month title and navigation buttons */}
-      <div className="sticky top-0 z-30 bg-white border-b">
-        <div className="flex items-center justify-between p-4">
-          <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={prevMonth}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={nextMonth}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Month navigation header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={prevMonth}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={nextMonth}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
       
@@ -259,7 +256,7 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="flex-1 w-full">
+        <ScrollArea className="flex-1 w-full overflow-hidden border rounded-md">
           <div className="relative w-full">
             <div className="grid" style={{ 
               gridTemplateColumns: `160px repeat(${visibleMonthDays.length}, ${cellWidth}px)`,

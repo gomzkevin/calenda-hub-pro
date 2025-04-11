@@ -109,7 +109,7 @@ const CalendarPage: React.FC = () => {
         
         <TabsContent value="multi" className="w-full flex-1 flex flex-col">
           <Card className="w-full flex-1 flex flex-col">
-            <CardHeader>
+            <CardHeader className="pb-0">
               <CardTitle>Multi-Property View</CardTitle>
               <CardDescription>
                 Operational view showing all properties by day
