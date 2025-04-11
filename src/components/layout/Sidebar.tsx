@@ -48,9 +48,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         <div className="p-4 border-b">
           <div className="flex items-center justify-center mb-1">
             <img 
-              src="/lovable-uploads/a72ac6bb-b10f-43f4-a78c-f27f17d50101.png" 
+              src="/lovable-uploads/fc627b57-8457-4065-807e-6048456e3921.png" 
               alt="Alanto Logo" 
-              className="h-14" 
+              className="h-10 w-auto" 
             />
           </div>
           <p className="text-xs text-gray-500 text-center">Más ingresos, menos estrés</p>
