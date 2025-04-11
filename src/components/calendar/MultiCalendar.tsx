@@ -61,6 +61,12 @@ const MultiCalendar: React.FC = () => {
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
+  // Helper function to get reservations for a specific property
+  // IMPORTANT: This function must be defined before it's used in useMemo below
+  const getReservationsForProperty = (propertyId: string): Reservation[] => {
+    return reservations.filter(res => res.propertyId === propertyId);
+  };
+  
   // Use useLayoutEffect for responsive layout calculations
   useLayoutEffect(() => {
     const calculateLayout = () => {
@@ -237,11 +243,6 @@ const MultiCalendar: React.FC = () => {
   
   // Limit visible days based on screen size
   const visibleMonthDays = monthDays.slice(0, visibleDays);
-  
-  // Get reservations for a specific property
-  const getReservationsForProperty = (propertyId: string): Reservation[] => {
-    return reservations.filter(res => res.propertyId === propertyId);
-  };
 
   const isLoading = isLoadingReservations || isLoadingProperties;
 
