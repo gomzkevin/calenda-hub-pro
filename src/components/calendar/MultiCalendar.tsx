@@ -127,8 +127,8 @@ const MultiCalendar: React.FC = () => {
                   {/* Reservation bars */}
                   {propertyReservations.map((reservation, resIndex) => {
                     // Normalize the dates to noon to avoid timezone issues
-                    const startDate = normalizeDate(new Date(reservation.startDate));
-                    const endDate = normalizeDate(new Date(reservation.endDate));
+                    const startDate = reservation.startDate;
+                    const endDate = reservation.endDate;
                     
                     // Check if reservation overlaps with current month view
                     if (endDate < monthStart || startDate > monthEnd) {
@@ -175,7 +175,7 @@ const MultiCalendar: React.FC = () => {
                             <div 
                               className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium text-sm z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
-                                top: `${56 + (properties.indexOf(property) * 48)}px`,
+                                top: `${56 + (properties.indexOf(property) * 48) + (resIndex * 2)}px`,
                                 left: left,
                                 width: width,
                                 minWidth: '40px'

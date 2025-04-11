@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Reservation } from "@/types";
 
 /**
+ * Helper to normalize dates to noon to avoid timezone issues
+ */
+const normalizeDate = (date: Date): Date => {
+  const newDate = new Date(date);
+  newDate.setHours(12, 0, 0, 0);
+  return newDate;
+};
+
+/**
  * Fetch all reservations from the database
  */
 export const getReservations = async (): Promise<Reservation[]> => {
@@ -19,8 +28,8 @@ export const getReservations = async (): Promise<Reservation[]> => {
     id: res.id,
     propertyId: res.property_id,
     userId: res.user_id || undefined,
-    startDate: new Date(res.start_date),
-    endDate: new Date(res.end_date),
+    startDate: normalizeDate(new Date(res.start_date)),
+    endDate: normalizeDate(new Date(res.end_date)),
     platform: res.platform as any,
     source: res.source as any,
     icalUrl: res.ical_url || undefined,
@@ -48,8 +57,8 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     id: res.id,
     propertyId: res.property_id,
     userId: res.user_id || undefined,
-    startDate: new Date(res.start_date),
-    endDate: new Date(res.end_date),
+    startDate: normalizeDate(new Date(res.start_date)),
+    endDate: normalizeDate(new Date(res.end_date)),
     platform: res.platform as any,
     source: res.source as any,
     icalUrl: res.ical_url || undefined,
@@ -86,8 +95,8 @@ export const getReservationsForMonth = async (
     id: res.id,
     propertyId: res.property_id,
     userId: res.user_id || undefined,
-    startDate: new Date(res.start_date),
-    endDate: new Date(res.end_date),
+    startDate: normalizeDate(new Date(res.start_date)),
+    endDate: normalizeDate(new Date(res.end_date)),
     platform: res.platform as any,
     source: res.source as any,
     icalUrl: res.ical_url || undefined,

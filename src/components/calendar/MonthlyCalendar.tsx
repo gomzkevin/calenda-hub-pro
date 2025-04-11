@@ -16,13 +16,6 @@ interface MonthlyCalendarProps {
 const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
-  // Helper to ensure date is set to noon to avoid timezone issues
-  const normalizeDate = (date: Date): Date => {
-    const newDate = new Date(date);
-    newDate.setHours(12, 0, 0, 0);
-    return newDate;
-  };
-
   // Use React Query to fetch reservations
   const { data: allReservations = [], isLoading } = useQuery({
     queryKey: ['reservations', currentMonth.getMonth() + 1, currentMonth.getFullYear(), propertyId],
@@ -30,12 +23,10 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       if (propertyId) {
         const allReservations = await getReservationsForProperty(propertyId);
         return allReservations.filter(res => {
-          const resStartDate = normalizeDate(new Date(res.startDate));
-          const resEndDate = normalizeDate(new Date(res.endDate));
           const monthStart = startOfMonth(currentMonth);
           const monthEnd = endOfMonth(currentMonth);
           
-          return (resStartDate <= monthEnd && resEndDate >= monthStart);
+          return (res.startDate <= monthEnd && res.endDate >= monthStart);
         });
       } else {
         return getReservationsForMonth(
@@ -87,31 +78,13 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     if (!day) return [];
     
     return reservations.filter(reservation => {
-      const reservationStart = normalizeDate(new Date(reservation.startDate));
-      const reservationEnd = normalizeDate(new Date(reservation.endDate));
+      const reservationStart = reservation.startDate;
+      const reservationEnd = reservation.endDate;
       
       return isWithinInterval(day, { start: reservationStart, end: reservationEnd }) ||
         isSameDay(day, reservationStart) || 
         isSameDay(day, reservationEnd);
     });
-  };
-
-  // Check if a day is start of a reservation
-  const isReservationStart = (day: Date, reservationId: string): boolean => {
-    const reservation = reservations.find(r => r.id === reservationId);
-    if (!reservation) return false;
-    
-    const startDate = normalizeDate(new Date(reservation.startDate));
-    return isSameDay(day, startDate);
-  };
-
-  // Check if a day is end of a reservation
-  const isReservationEnd = (day: Date, reservationId: string): boolean => {
-    const reservation = reservations.find(r => r.id === reservationId);
-    if (!reservation) return false;
-    
-    const endDate = normalizeDate(new Date(reservation.endDate));
-    return isSameDay(day, endDate);
   };
 
   // Get reservations that start in a specific week
@@ -120,8 +93,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     if (validDays.length === 0) return [];
 
     return reservations.filter(reservation => {
-      const reservationStart = normalizeDate(new Date(reservation.startDate));
-      const reservationEnd = normalizeDate(new Date(reservation.endDate));
+      const reservationStart = reservation.startDate;
+      const reservationEnd = reservation.endDate;
 
       return validDays.some(day => {
         if (!day) return false;
@@ -190,8 +163,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
               {/* Reservation bars */}
               <div className="col-span-7 relative h-0">
                 {week[0] && getReservationsForWeek(week).map((reservation, resIndex) => {
-                  const startDate = normalizeDate(new Date(reservation.startDate));
-                  const endDate = normalizeDate(new Date(reservation.endDate));
+                  const startDate = reservation.startDate;
+                  const endDate = reservation.endDate;
                   
                   // Find position of start and end days in this week
                   let startPos = -1;
