@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,14 +7,15 @@ import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
 import AddReservationButton from '@/components/calendar/AddReservationButton';
 import { Property } from '@/types';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
 
 const CalendarPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
-  const initialPropertyId = queryParams.get('property') || 'all';
+  const initialPropertyId = queryParams.get('property') || '';
   
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
   
@@ -23,6 +24,29 @@ const CalendarPage: React.FC = () => {
     queryKey: ['properties'],
     queryFn: getProperties
   });
+  
+  // Set the first property as default if none is selected and properties are loaded
+  useEffect(() => {
+    if (properties.length > 0 && !selectedPropertyId) {
+      const firstPropertyId = properties[0]?.id || '';
+      setSelectedPropertyId(firstPropertyId);
+      
+      // Update URL with the first property
+      const params = new URLSearchParams(location.search);
+      params.set('property', firstPropertyId);
+      navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+    }
+  }, [properties, selectedPropertyId, location.pathname, location.search, navigate]);
+  
+  // Handle property selection change
+  const handlePropertyChange = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    
+    // Update URL with the selected property
+    const params = new URLSearchParams(location.search);
+    params.set('property', propertyId);
+    navigate(`${location.pathname}?${params.toString()}`);
+  };
   
   return (
     <div className="space-y-6">
@@ -35,13 +59,12 @@ const CalendarPage: React.FC = () => {
             ) : (
               <Select
                 value={selectedPropertyId}
-                onValueChange={setSelectedPropertyId}
+                onValueChange={handlePropertyChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a property" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Properties</SelectItem>
                   {properties.map((property: Property) => (
                     <SelectItem key={property.id} value={property.id}>
                       {property.name}
@@ -52,7 +75,7 @@ const CalendarPage: React.FC = () => {
             )}
           </div>
           <AddReservationButton 
-            propertyId={selectedPropertyId !== 'all' ? selectedPropertyId : undefined} 
+            propertyId={selectedPropertyId} 
           />
         </div>
       </div>
@@ -68,14 +91,12 @@ const CalendarPage: React.FC = () => {
             <CardHeader>
               <CardTitle>Monthly Calendar</CardTitle>
               <CardDescription>
-                {selectedPropertyId === 'all' 
-                  ? 'Showing all properties' 
-                  : `Showing ${properties.find(p => p.id === selectedPropertyId)?.name || 'selected property'}`}
+                {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected property'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <MonthlyCalendar 
-                propertyId={selectedPropertyId === 'all' ? undefined : selectedPropertyId} 
+                propertyId={selectedPropertyId} 
               />
             </CardContent>
           </Card>
