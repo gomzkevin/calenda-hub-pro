@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getReservations, createManualReservation, updateManualReservation, deleteManualReservation } from '@/services/reservationService';
+import { getReservations, createManualReservation, updateManualReservation, deleteManualReservation } from '@/services/reservation';
 import { getProperties } from '@/services/propertyService';
 import { Reservation, Property } from '@/types';
 import { Button } from '@/components/ui/button';

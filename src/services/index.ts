@@ -4,4 +4,4 @@ export * from './operatorService';
 export * from './userService';
 export * from './propertyService';
 export * from './icalLinkService';
-export * from './reservationService';
+export * from './reservation';  // Changed from './reservationService' to './reservation'

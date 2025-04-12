@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Lock, ShieldAlert } from 'lucide-react';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Reservation } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getPlatformColorClass } from '@/data/mockData';
-import { getReservationsForMonth, getReservationsForProperty, getPropertyName } from '@/services/reservationService';
+import { getReservationsForMonth, getReservationsForProperty, getPropertyName } from '@/services/reservation';
 import { useQuery } from '@tanstack/react-query';
 
 interface MonthlyCalendarProps {

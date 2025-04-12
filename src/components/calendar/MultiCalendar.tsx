@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Link } from 'lucide-react';
@@ -6,7 +7,7 @@ import { getPlatformColorClass } from '@/data/mockData';
 import { Reservation, Property } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
-import { getReservationsForMonth } from '@/services/reservationService';
+import { getReservationsForMonth } from '@/services/reservation';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
