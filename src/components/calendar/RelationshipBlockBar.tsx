@@ -58,7 +58,7 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 transition-all hover:brightness-90 hover:shadow-md`}
+            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 pointer-events-auto`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,

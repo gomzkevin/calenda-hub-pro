@@ -21,7 +21,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`propagated-week-${weekIndex}`} className="col-span-7 relative">
+        <div key={`propagated-week-${weekIndex}`} className="col-span-7 relative h-full">
           {week[0] && propagatedBlocks.filter(block => {
             return week.some(day => {
               if (!day) return false;

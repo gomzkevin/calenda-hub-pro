@@ -17,17 +17,17 @@ export const calculateBarPositionAndStyle = (
   let barStartPos = startPos;
   let barEndPos = endPos;
   
-  // If this is the actual check-in day, start at 60% of the cell
+  // If this is the actual check-in day, start at 0% of the cell (full cell)
   if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-    barStartPos += 0.6; // Start at 60% of the cell width
+    barStartPos = startPos; // Start at beginning of the cell
   }
   
-  // If this is the actual check-out day, end at 40% of the cell
+  // If this is the actual check-out day, end at 100% of the cell (full cell)
   if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-    barEndPos += 0.4; // End at 40% of the cell width
+    barEndPos = endPos + 1; // End at the end of the cell
   } else {
     // If not the actual check-out day, bar should extend to the end of the day
-    barEndPos += 1;
+    barEndPos = endPos + 1;
   }
   
   const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;

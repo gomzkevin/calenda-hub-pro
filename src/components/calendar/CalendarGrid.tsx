@@ -17,7 +17,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   cellHeight 
 }) => {
   return (
-    <>
+    <div className="grid grid-cols-7 relative w-full">
       {weeks.map((week, weekIndex) => (
         <React.Fragment key={`week-${weekIndex}`}>
           {week.map((day, dayIndex) => (
@@ -31,7 +31,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
           ))}
         </React.Fragment>
       ))}
-    </>
+    </div>
   );
 };
 

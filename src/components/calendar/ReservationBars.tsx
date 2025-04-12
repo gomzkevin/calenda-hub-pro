@@ -29,34 +29,36 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   const baseOffset = 40; // Adjusted base offset from top
   
   return (
-    <>
-      {/* Regular Reservation bars */}
-      <RegularReservationBars
-        weeks={weeks}
-        filteredReservations={filteredReservations}
-        weekReservationLanes={weekReservationLanes}
-        laneHeight={laneHeight}
-        baseOffset={baseOffset}
-      />
-      
-      {/* Relationship Block Bars (parent-child blocks) */}
-      <RelationshipBlockBars
-        weeks={weeks}
-        relationshipBlocks={relationshipBlocks}
-        weekRelationshipBlockLanes={weekRelationshipBlockLanes}
-        laneHeight={laneHeight}
-        baseOffset={baseOffset}
-      />
-      
-      {/* Regular Propagated Block Bars */}
-      <PropagatedBlockBars
-        weeks={weeks}
-        propagatedBlocks={propagatedBlocks}
-        weekPropagatedBlockLanes={weekPropagatedBlockLanes}
-        laneHeight={laneHeight}
-        baseOffset={baseOffset}
-      />
-    </>
+    <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+      <div className="grid grid-cols-7 w-full">
+        {/* Regular Reservation bars */}
+        <RegularReservationBars
+          weeks={weeks}
+          filteredReservations={filteredReservations}
+          weekReservationLanes={weekReservationLanes}
+          laneHeight={laneHeight}
+          baseOffset={baseOffset}
+        />
+        
+        {/* Relationship Block Bars (parent-child blocks) */}
+        <RelationshipBlockBars
+          weeks={weeks}
+          relationshipBlocks={relationshipBlocks}
+          weekRelationshipBlockLanes={weekRelationshipBlockLanes}
+          laneHeight={laneHeight}
+          baseOffset={baseOffset}
+        />
+        
+        {/* Regular Propagated Block Bars */}
+        <PropagatedBlockBars
+          weeks={weeks}
+          propagatedBlocks={propagatedBlocks}
+          weekPropagatedBlockLanes={weekPropagatedBlockLanes}
+          laneHeight={laneHeight}
+          baseOffset={baseOffset}
+        />
+      </div>
+    </div>
   );
 };
 
