@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Link } from 'lucide-react';
@@ -150,7 +149,11 @@ const MultiCalendar: React.FC = () => {
     return laneMap;
   }, [properties, getReservationsForProperty, normalizeDate, sortReservations]);
 
-  const getReservationStyle = useCallback((reservation: Reservation): string => {
+  const getReservationStyle = useCallback((reservation: Reservation, isIndirect = false): string => {
+    if (isIndirect) {
+      return 'bg-gray-100 text-gray-500 border border-dashed border-gray-300';
+    }
+    
     if (reservation.status === 'Blocked' && (reservation.sourceReservationId || reservation.isBlocking)) {
       return 'bg-gray-400 text-white border border-dashed border-white';
     }
@@ -323,7 +326,7 @@ const MultiCalendar: React.FC = () => {
                         >
                           {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                              <div className="w-3 h-3 rounded-full bg-gray-300"></div>
                             </div>
                           )}
                           
@@ -348,7 +351,11 @@ const MultiCalendar: React.FC = () => {
                                   ? 'rounded-r-full'
                                   : '';
                             
-                            const style = getReservationStyle(res);
+                            const isIndirectReservation = 
+                              (property.type === 'parent' && res.propertyId !== property.id) || 
+                              (property.type === 'child' && res.propertyId !== property.id);
+                            
+                            const style = getReservationStyle(res, isIndirectReservation);
                             
                             const sourceInfo = getSourceReservationInfo(res);
                             
