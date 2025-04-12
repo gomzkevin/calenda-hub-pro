@@ -6,6 +6,7 @@ import { getReservationsForMonth } from '@/services/reservation';
 import { getProperties } from '@/services/propertyService';
 import { Reservation, Property } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import CalendarLegend from '../CalendarLegend';
 
 // Import components
 import MultiCalendarHeader from './MultiCalendarHeader';
@@ -204,36 +205,41 @@ const MultiCalendar: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <ScrollArea className="h-[calc(100%-60px)] w-full">
-          <div className="relative min-w-max">
-            <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
-              {/* Property header cell */}
-              <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
-                Properties
+        <div className="flex flex-col h-[calc(100%-60px)]">
+          <ScrollArea className="flex-1 w-full">
+            <div className="relative min-w-max">
+              <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
+                {/* Property header cell */}
+                <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
+                  Properties
+                </div>
+                
+                {/* Day header cells */}
+                {visibleDays.map((day, index) => (
+                  <DayHeader key={index} day={day} index={index} />
+                ))}
+                
+                {/* Property rows with day cells */}
+                {properties.map((property: Property) => (
+                  <PropertyRow
+                    key={property.id}
+                    property={property}
+                    visibleDays={visibleDays}
+                    getDayReservationStatus={getDayReservationStatus}
+                    sortReservations={sortReservations}
+                    propertyLanes={propertyLanes}
+                    getReservationStyle={getReservationStyle}
+                    getSourceReservationInfo={getSourceReservationInfo}
+                    normalizeDate={normalizeDate}
+                  />
+                ))}
               </div>
-              
-              {/* Day header cells */}
-              {visibleDays.map((day, index) => (
-                <DayHeader key={index} day={day} index={index} />
-              ))}
-              
-              {/* Property rows with day cells */}
-              {properties.map((property: Property) => (
-                <PropertyRow
-                  key={property.id}
-                  property={property}
-                  visibleDays={visibleDays}
-                  getDayReservationStatus={getDayReservationStatus}
-                  sortReservations={sortReservations}
-                  propertyLanes={propertyLanes}
-                  getReservationStyle={getReservationStyle}
-                  getSourceReservationInfo={getSourceReservationInfo}
-                  normalizeDate={normalizeDate}
-                />
-              ))}
             </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+          
+          {/* Added CalendarLegend here */}
+          <CalendarLegend className="mt-auto" />
+        </div>
       )}
     </div>
   );
