@@ -1,12 +1,11 @@
-
 import React, { useState, useMemo } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reservation } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getPlatformColorClass } from '@/data/mockData';
-import { getReservationsForMonth, getReservationsForProperty } from '@/services/reservationService';
+import { getReservationsForMonth, getReservationsForProperty, getPropertyName } from '@/services/reservationService';
 import { useQuery } from '@tanstack/react-query';
 
 interface MonthlyCalendarProps {
@@ -45,10 +44,10 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     }
   });
   
-  // Filter reservations - main reservations and propagated blocks
-  const { filteredReservations, propagatedBlocks } = useMemo(() => {
+  // Filter reservations - main reservations, blocked and relationship blocks
+  const { filteredReservations, propagatedBlocks, relationshipBlocks } = useMemo(() => {
     if (!allReservations || allReservations.length === 0) {
-      return { filteredReservations: [], propagatedBlocks: [] };
+      return { filteredReservations: [], propagatedBlocks: [], relationshipBlocks: [] };
     }
     
     // Normalize dates
@@ -63,14 +62,22 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       res.sourceReservationId && (res.notes === 'Blocked' || res.status === 'Blocked')
     );
     
-    // Filter valid reservations (not blocked)
+    // Identify relationship blocks (parent-child blocks)
+    const relatedBlocks = normalizedReservations.filter(res => 
+      (res as any).isRelationshipBlock === true
+    );
+    
+    // Filter valid reservations (not blocked or relationship blocks)
     const validReservations = normalizedReservations.filter(res => 
-      res.notes !== 'Blocked' && res.status !== 'Blocked'
+      res.notes !== 'Blocked' && 
+      res.status !== 'Blocked' && 
+      !(res as any).isRelationshipBlock
     );
     
     return {
       filteredReservations: validReservations,
-      propagatedBlocks: blockedReservations
+      propagatedBlocks: blockedReservations,
+      relationshipBlocks: relatedBlocks
     };
   }, [allReservations]);
   
@@ -251,6 +258,42 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     return lanes;
   }, [weeks, propagatedBlocks]);
   
+  // Calculate relationship block lanes for each week
+  const weekRelationshipBlockLanes = useMemo(() => {
+    const lanes: Record<number, Record<string, number>> = {};
+    
+    if (relationshipBlocks.length === 0) return lanes;
+    
+    weeks.forEach((week, weekIndex) => {
+      const weekLanes: Record<string, number> = {};
+      
+      // Filter relationship blocks that overlap with this week
+      const weekBlocks = relationshipBlocks.filter(block => {
+        return week.some(day => {
+          if (!day) return false;
+          const normalizedDay = normalizeDate(day);
+          return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
+        });
+      });
+      
+      // Sort blocks by start date
+      const sortedBlocks = [...weekBlocks].sort(
+        (a, b) => a.startDate.getTime() - b.startDate.getTime()
+      );
+      
+      // Assign lanes starting from the highest number to keep them below regular reservations
+      const baseLane = 5; // Relationship blocks appear above propagated blocks
+      
+      sortedBlocks.forEach((block, index) => {
+        weekLanes[block.id] = baseLane + index;
+      });
+      
+      lanes[weekIndex] = weekLanes;
+    });
+    
+    return lanes;
+  }, [weeks, relationshipBlocks]);
+  
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="flex items-center justify-between p-4 border-b">
@@ -289,32 +332,50 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
             // Determine max lane for this week to calculate appropriate height
             const weekLanes = weekReservationLanes[weekIndex] || {};
             const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
+            const relationshipLanes = weekRelationshipBlockLanes[weekIndex] || {};
             
             const maxRegularLane = Object.values(weekLanes).reduce((max, lane) => Math.max(max, lane), 0);
             const maxBlockLane = Object.values(blockLanes).reduce((max, lane) => Math.max(max, lane), 0);
-            const maxLane = Math.max(maxRegularLane, maxBlockLane - 10); // Adjust for the base offset
+            const maxRelationshipLane = Object.values(relationshipLanes).reduce((max, lane) => Math.max(max, lane), 0);
+            
+            const maxLane = Math.max(maxRegularLane, Math.max(maxBlockLane - 10, maxRelationshipLane - 5));
             
             const laneHeight = 14; // Height for each reservation lane
-            const minCellHeight = 100; // Minimum height for calendar cells
+            const minCellHeight = 120; // Minimum height for calendar cells
             const cellHeight = Math.max(minCellHeight, 80 + (maxLane * laneHeight));
             
             return (
               <React.Fragment key={`week-${weekIndex}`}>
-                {week.map((day, dayIndex) => (
-                  <div 
-                    key={`day-${weekIndex}-${dayIndex}`} 
-                    className={`calendar-day border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''}`}
-                    style={{ height: `${cellHeight}px` }}
-                  >
-                    {day && (
-                      <>
-                        <div className="text-sm font-medium p-1">
-                          {format(day, 'd')}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                {week.map((day, dayIndex) => {
+                  // Identify relationship blocks for this day to visually mark the cell
+                  const hasRelationshipBlock = day && relationshipBlocks.some(block => {
+                    const normalizedDay = normalizeDate(day);
+                    return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
+                  });
+                  
+                  return (
+                    <div 
+                      key={`day-${weekIndex}-${dayIndex}`} 
+                      className={`calendar-day border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''} ${hasRelationshipBlock ? 'bg-amber-50' : ''}`}
+                      style={{ height: `${cellHeight}px` }}
+                    >
+                      {day && (
+                        <>
+                          <div className="text-sm font-medium p-1">
+                            {format(day, 'd')}
+                          </div>
+                          
+                          {/* Day indicator for relationship blocks */}
+                          {hasRelationshipBlock && (
+                            <div className="absolute top-1 right-1">
+                              <ShieldAlert size={14} className="text-amber-500" />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* Regular Reservation bars */}
                 <div className="col-span-7 relative h-0">
@@ -453,7 +514,123 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                   })}
                 </div>
                 
-                {/* Propagated Block Bars */}
+                {/* Relationship Block Bars (parent-child blocks) */}
+                <div className="col-span-7 relative h-0">
+                  {week[0] && relationshipBlocks.filter(block => {
+                    return week.some(day => {
+                      if (!day) return false;
+                      const normalizedDay = normalizeDate(day);
+                      return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
+                    });
+                  }).map((block) => {
+                    const startDate = block.startDate;
+                    const endDate = block.endDate;
+                    
+                    // Find exact positions in current week
+                    let startPos = -1;
+                    let endPos = -1;
+                    
+                    for (let i = 0; i < week.length; i++) {
+                      const day = week[i];
+                      if (!day) continue;
+                      
+                      const normalizedDay = normalizeDate(day);
+                      
+                      if (startPos === -1) {
+                        if (isSameDay(normalizedDay, startDate)) {
+                          startPos = i;
+                        } else if (normalizedDay > startDate) {
+                          startPos = i;
+                        }
+                      }
+                      
+                      if (isSameDay(normalizedDay, endDate)) {
+                        endPos = i;
+                        break;
+                      } else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
+                        endPos = i;
+                      }
+                    }
+                    
+                    if (startPos === -1) return null;
+                    if (endPos === -1 && startPos !== -1) {
+                      endPos = 6;
+                    }
+                    
+                    const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
+                    const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
+                    
+                    let barStartPos = startPos;
+                    let barEndPos = endPos;
+                    
+                    if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
+                      barStartPos += 0.6;
+                    }
+                    
+                    if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
+                      barEndPos += 0.4;
+                    } else {
+                      barEndPos += 1;
+                    }
+                    
+                    const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
+                    const barLeft = `${(barStartPos / 7) * 100}%`;
+                    
+                    let borderRadiusStyle = 'rounded-full';
+                    if (continuesFromPrevious && continuesToNext) {
+                      borderRadiusStyle = 'rounded-none';
+                    } else if (continuesFromPrevious) {
+                      borderRadiusStyle = 'rounded-r-full rounded-l-none';
+                    } else if (continuesToNext) {
+                      borderRadiusStyle = 'rounded-l-full rounded-r-none';
+                    }
+                    
+                    const relationshipLanes = weekRelationshipBlockLanes[weekIndex] || {};
+                    const lane = relationshipLanes[block.id] || 5;
+                    
+                    const laneHeight = 14;
+                    const baseOffset = -70;
+                    const verticalPosition = baseOffset - (lane * laneHeight);
+                    
+                    return (
+                      <TooltipProvider key={`rel-${weekIndex}-${block.id}`}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                              style={{
+                                top: `${verticalPosition}px`,
+                                left: barLeft,
+                                width: barWidth,
+                                minWidth: '40px'
+                              }}
+                            >
+                              <Lock size={12} />
+                              <span>Bloqueado</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs">
+                              <p><strong>Bloqueado automáticamente</strong></p>
+                              <p><strong>Reserva en {block.platform}</strong></p>
+                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
+                              <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
+                              <p>
+                                <strong>
+                                  {block.guestName ? 
+                                    `Reserva de ${block.guestName}` : 
+                                    "Bloqueado por reserva en otra propiedad"}
+                                </strong>
+                              </p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
+                </div>
+                
+                {/* Regular Propagated Block Bars */}
                 <div className="col-span-7 relative h-0">
                   {week[0] && propagatedBlocks.filter(block => {
                     return week.some(day => {
@@ -525,11 +702,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     }
                     
                     const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
-                    const lane = blockLanes[block.id] || 10; // Default to lane 10 if not found
+                    const lane = blockLanes[block.id] || 10;
                     
                     const laneHeight = 14;
                     const baseOffset = -70;
-                    const verticalPosition = baseOffset - (lane * laneHeight / 2); // Adjust to make blocks more compact
+                    const verticalPosition = baseOffset - (lane * laneHeight / 2);
                     
                     // Get source reservation info to display in tooltip
                     const sourceReservation = allReservations.find(r => r.id === block.sourceReservationId);
@@ -545,7 +722,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
-                              className={`absolute h-7 bg-gray-200 border border-dashed border-gray-400 ${borderRadiusStyle} flex items-center pl-2 text-gray-600 font-medium text-xs z-10 transition-all hover:brightness-90 hover:shadow-md`}
+                              className={`absolute h-7 bg-gray-300 border border-dashed border-gray-500 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-gray-700 font-medium text-xs z-10 transition-all hover:brightness-90 hover:shadow-md`}
                               style={{
                                 top: `${verticalPosition}px`,
                                 left: barLeft,
@@ -553,7 +730,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                                 minWidth: '40px'
                               }}
                             >
-                              Bloqueado
+                              <Lock size={12} />
+                              <span>Bloqueado</span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -576,6 +754,34 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
           })}
         </div>
       )}
+      
+      {/* Legend at the bottom of the calendar */}
+      <div className="flex flex-wrap gap-3 mt-4 p-4 border-t">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+          <span className="text-xs">Booking</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-400"></div>
+          <span className="text-xs">Airbnb</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+          <span className="text-xs">Vrbo</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <span className="text-xs">Manual</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+          <span className="text-xs">Bloqueado (Parent/Child)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-12 bg-gray-300 border border-dashed border-gray-500 rounded-full"></div>
+          <span className="text-xs">Otro bloqueo</span>
+        </div>
+      </div>
     </div>
   );
 };

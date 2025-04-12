@@ -90,6 +90,19 @@ export const getReservations = async (filters?: {
  * Fetch reservations for a specific property
  */
 export const getReservationsForProperty = async (propertyId: string): Promise<Reservation[]> => {
+  // Get the property details to determine if it's a parent or child
+  const { data: property, error: propertyError } = await supabase
+    .from("properties")
+    .select("*, parent:parent_id(*)")
+    .eq("id", propertyId)
+    .single();
+  
+  if (propertyError) {
+    console.error(`Error fetching property ${propertyId}:`, propertyError);
+    throw propertyError;
+  }
+  
+  // Get direct reservations for this property
   const { data, error } = await supabase
     .from("reservations")
     .select("*")
@@ -100,7 +113,58 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     throw error;
   }
   
-  return data ? data.map(mapReservationFromDatabase) : [];
+  const directReservations = data ? data.map(mapReservationFromDatabase) : [];
+  
+  // Now, get related block reservations, depending on if this is a parent or child property
+  let relatedReservations: Reservation[] = [];
+  
+  if (property) {
+    if (property.type === 'parent') {
+      // If this is a parent property, get blocks from child properties
+      const { data: childProperties, error: childError } = await supabase
+        .from("properties")
+        .select("id")
+        .eq("parent_id", propertyId);
+      
+      if (!childError && childProperties && childProperties.length > 0) {
+        const childIds = childProperties.map(child => child.id);
+        
+        // Get reservations from child properties that should block this parent
+        const { data: childReservations, error: childResError } = await supabase
+          .from("reservations")
+          .select("*")
+          .in("property_id", childIds)
+          .neq("status", "Blocked");  // Exclude those already marked as blocked
+        
+        if (!childResError && childReservations) {
+          relatedReservations = childReservations.map(mapReservationFromDatabase);
+        }
+      }
+    } else if (property.parent) {
+      // If this is a child property, get blocks from parent property
+      const parentId = property.parent_id;
+      
+      // Get reservations from parent property that should block this child
+      const { data: parentReservations, error: parentResError } = await supabase
+        .from("reservations")
+        .select("*")
+        .eq("property_id", parentId)
+        .neq("status", "Blocked");  // Exclude those already marked as blocked
+      
+      if (!parentResError && parentReservations) {
+        relatedReservations = parentReservations.map(mapReservationFromDatabase);
+      }
+    }
+  }
+  
+  // Include the special property relationship blocks with a special flag
+  const relationshipBlocks = relatedReservations.map(reservation => ({
+    ...reservation,
+    isRelationshipBlock: true
+  }));
+  
+  // Combine direct reservations with relationship blocks
+  return [...directReservations, ...relationshipBlocks];
 };
 
 /**
@@ -401,4 +465,22 @@ export const checkOtherRoomsAvailability = async (
   
   // If no rooms are available, return false
   return false;
+};
+
+/**
+ * Get the property name for a given property ID
+ */
+export const getPropertyName = async (propertyId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from("properties")
+    .select("name")
+    .eq("id", propertyId)
+    .single();
+  
+  if (error) {
+    console.error(`Error fetching property name for ${propertyId}:`, error);
+    return 'Propiedad desconocida';
+  }
+  
+  return data?.name || 'Propiedad desconocida';
 };
