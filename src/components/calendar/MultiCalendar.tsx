@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths } from 'date-fns';
+
+import React, { useState, useMemo } from 'react';
+import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -105,6 +106,107 @@ const MultiCalendar: React.FC = () => {
     return `${format(firstDay, 'MMMM d')} - ${format(lastDay, 'MMMM d, yyyy')}`;
   };
 
+  // Calculate reservation lanes for each property to prevent overlapping
+  const propertyReservationLanes = useMemo(() => {
+    const lanes: Record<string, Record<string, number>> = {};
+    
+    properties.forEach(property => {
+      const propertyLanes: Record<string, number> = {};
+      
+      // Get all reservations for this property that overlap with visible days
+      let propertyReservations = getReservationsForProperty(property.id).filter(reservation => {
+        return visibleDays.some(day => {
+          const normalizedDay = normalizeDate(day);
+          return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+        });
+      });
+      
+      // Sort reservations by start date to ensure consistent lane assignment
+      const sortedReservations = [...propertyReservations].sort(
+        (a, b) => a.startDate.getTime() - b.startDate.getTime()
+      );
+      
+      // Enhanced lane assignment strategy to prioritize consecutive reservations in same lane
+      sortedReservations.forEach((reservation, index) => {
+        const resId = reservation.id;
+        
+        // Check if this reservation follows the previous one (consecutive or close)
+        if (index > 0) {
+          const prevReservation = sortedReservations[index-1];
+          const prevResId = prevReservation.id;
+          
+          // If this reservation starts on the same day the previous one ends or within 3 days
+          const daysBetween = differenceInDays(reservation.startDate, prevReservation.endDate);
+          if (isSameDay(prevReservation.endDate, reservation.startDate) || 
+              (daysBetween >= 0 && daysBetween <= 3)) {
+            
+            // Try to assign the same lane as the previous reservation
+            const prevLane = propertyLanes[prevResId];
+            
+            // Check if this lane is available for the current reservation
+            let canUseSameLane = true;
+            
+            // Check for conflicts with other reservations in this lane
+            for (const existingResId in propertyLanes) {
+              if (existingResId === prevResId) continue;
+              if (propertyLanes[existingResId] !== prevLane) continue;
+              
+              const existingRes = propertyReservations.find(r => r.id === existingResId);
+              if (!existingRes) continue;
+              
+              // Check for date overlap
+              if (reservation.startDate <= existingRes.endDate && 
+                  reservation.endDate >= existingRes.startDate) {
+                canUseSameLane = false;
+                break;
+              }
+            }
+            
+            if (canUseSameLane) {
+              propertyLanes[resId] = prevLane;
+              return;
+            }
+          }
+        }
+        
+        // If we couldn't reuse the previous lane, find the first available lane
+        let lane = 0;
+        let laneFound = false;
+        
+        while (!laneFound) {
+          laneFound = true;
+          
+          // Check if any existing reservation in this lane overlaps with current reservation
+          for (const existingResId in propertyLanes) {
+            const existingLane = propertyLanes[existingResId];
+            if (existingLane !== lane) continue;
+            
+            const existingRes = propertyReservations.find(r => r.id === existingResId);
+            if (!existingRes) continue;
+            
+            // Check for date overlap
+            if (reservation.startDate <= existingRes.endDate && 
+                reservation.endDate >= existingRes.startDate) {
+              laneFound = false;
+              break;
+            }
+          }
+          
+          if (!laneFound) {
+            lane++;
+          }
+        }
+        
+        // Assign this lane to the reservation
+        propertyLanes[resId] = lane;
+      });
+      
+      lanes[property.id] = propertyLanes;
+    });
+    
+    return lanes;
+  }, [visibleDays, reservations, properties]);
+
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with date range and navigation buttons */}
@@ -161,76 +263,163 @@ const MultiCalendar: React.FC = () => {
               ))}
               
               {/* Property rows */}
-              {properties.map((property: Property) => (
-                <React.Fragment key={property.id}>
-                  {/* Property name (first column) */}
-                  <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate h-16">
-                    {property.name}
-                  </div>
-                  
-                  {/* Calendar cells for each property */}
-                  {visibleDays.map((day, dayIndex) => {
-                    const isToday = isSameDay(day, new Date());
+              {properties.map((property: Property) => {
+                // Determine max lane for this property to calculate appropriate height
+                const propertyLanes = propertyReservationLanes[property.id] || {};
+                const maxLane = Object.values(propertyLanes).reduce((max, lane) => Math.max(max, lane), 0);
+                const laneHeight = 15; // Height for each reservation lane
+                const minCellHeight = 64; // Minimum height for calendar cells
+                const rowHeight = Math.max(minCellHeight, minCellHeight + (maxLane * laneHeight));
+                
+                return (
+                  <React.Fragment key={property.id}>
+                    {/* Property name (first column) */}
+                    <div 
+                      className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate flex items-center"
+                      style={{ height: `${rowHeight}px` }}
+                    >
+                      {property.name}
+                    </div>
                     
-                    // Get reservations that include this day
-                    const dayReservations = getReservationsForProperty(property.id).filter(res => {
-                      const normalizedStart = normalizeDate(res.startDate);
-                      const normalizedEnd = normalizeDate(res.endDate);
-                      const normalizedDay = normalizeDate(day);
+                    {/* Calendar cells for each property */}
+                    {visibleDays.map((day, dayIndex) => {
+                      const isToday = isSameDay(day, new Date());
                       
-                      return isWithinInterval(normalizedDay, {
-                        start: normalizedStart,
-                        end: normalizedEnd,
-                      });
-                    });
+                      return (
+                        <div
+                          key={`day-${property.id}-${dayIndex}`}
+                          className={`border relative ${isToday ? 'bg-blue-50' : ''}`}
+                          style={{ height: `${rowHeight}px` }}
+                        >
+                          {/* Reservation rendering will occur outside of the grid */}
+                        </div>
+                      );
+                    })}
                     
-                    return (
-                      <div
-                        key={`day-${property.id}-${dayIndex}`}
-                        className={`border relative min-h-[4rem] h-16 ${isToday ? 'bg-blue-50' : ''}`}
-                      >
-                        {dayReservations.map((res, resIndex) => {
-                          // Determine if this is start/end of reservation for styling
-                          const isStartDay = isSameDay(res.startDate, day);
-                          const isEndDay = isSameDay(res.endDate, day);
+                    {/* Reservation bars - rendered outside the grid cells for better positioning */}
+                    <div className="col-span-16 relative h-0">
+                      {visibleDays.length > 0 && getReservationsForProperty(property.id)
+                        .filter(reservation => {
+                          // Only show reservations visible in current date range
+                          return visibleDays.some(day => {
+                            const normalizedDay = normalizeDate(day);
+                            return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+                          });
+                        })
+                        .map((reservation) => {
+                          // Work with normalized dates to avoid timezone issues
+                          const startDate = reservation.startDate;
+                          const endDate = reservation.endDate;
                           
-                          // Calculate position (center vertically)
-                          const top = 16; // Center the reservation (cell height is 64px, reservation height is 20px)
+                          // Find exact positions for this reservation within visible days
+                          let startPos = -1;
+                          let endPos = -1;
                           
-                          // Style based on platform
-                          const style = getPlatformColorClass(res.platform);
-                          const borderRadius = isStartDay && isEndDay 
-                            ? 'rounded-full' 
-                            : isStartDay 
-                              ? 'rounded-l-full' 
-                              : isEndDay 
-                                ? 'rounded-r-full'
-                                : '';
+                          // Find the position of start and end days
+                          for (let i = 0; i < visibleDays.length; i++) {
+                            const day = visibleDays[i];
+                            const normalizedDay = normalizeDate(day);
+                            
+                            // Check if this day is the start date or after it
+                            if (startPos === -1) {
+                              if (isSameDay(normalizedDay, startDate)) {
+                                startPos = i;
+                              } else if (normalizedDay > startDate) {
+                                startPos = i;
+                              }
+                            }
+                            
+                            // Check if this day is the end date
+                            if (isSameDay(normalizedDay, endDate)) {
+                              endPos = i;
+                              break;
+                            }
+                            // If at last day and reservation continues past visible range
+                            else if (i === visibleDays.length - 1 && endDate > normalizedDay && startPos !== -1) {
+                              endPos = i;
+                            }
+                          }
+                          
+                          // If we didn't find a starting position in visible days, don't render
+                          if (startPos === -1) return null;
+                          
+                          // If we found a start but no end, it extends beyond visible range
+                          if (endPos === -1 && startPos !== -1) {
+                            endPos = visibleDays.length - 1;
+                          }
+                          
+                          // Determine if the reservation continues from/to other periods
+                          const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(visibleDays[0]), startDate);
+                          const continuesToNext = endPos === visibleDays.length - 1 && !isSameDay(normalizeDate(visibleDays[endPos]), endDate);
+                          
+                          // Calculate bar width and position with 40-20-40 spacing
+                          let barStartPos = startPos;
+                          let barEndPos = endPos;
+                          
+                          // If this is the actual check-in day (40-20-40 rule)
+                          if (isSameDay(normalizeDate(visibleDays[startPos]), startDate)) {
+                            barStartPos += 0.6; // Start at 60% of the cell width
+                          }
+                          
+                          // If this is the actual check-out day (40-20-40 rule)
+                          if (isSameDay(normalizeDate(visibleDays[endPos]), endDate)) {
+                            barEndPos += 0.4; // End at 40% of the cell width
+                          } else {
+                            // If not the actual check-out day, bar extends to end of cell
+                            barEndPos += 1;
+                          }
+                          
+                          // Calculate position on the grid
+                          const leftStart = barStartPos + 1; // +1 for the property name column
+                          const width = barEndPos - barStartPos;
+                          
+                          // Define border radius style based on continuity
+                          let borderRadiusStyle = 'rounded-full';
+                          if (continuesFromPrevious && continuesToNext) {
+                            borderRadiusStyle = 'rounded-none';
+                          } else if (continuesFromPrevious) {
+                            borderRadiusStyle = 'rounded-r-full rounded-l-none';
+                          } else if (continuesToNext) {
+                            borderRadiusStyle = 'rounded-l-full rounded-r-none';
+                          }
+                          
+                          // Get the lane assigned to this reservation
+                          const propertyLanes = propertyReservationLanes[property.id] || {};
+                          const lane = propertyLanes[reservation.id] || 0;
+                          
+                          // Calculate vertical position based on lane
+                          const laneHeight = 15; // Height per lane
+                          const baseOffset = 16; // Base offset from top
+                          const top = baseOffset + (lane * laneHeight);
+                          
+                          // Determine text size based on reservation width
+                          const isShortReservation = width < 1;
                           
                           return (
-                            <TooltipProvider key={`res-${res.id}-${dayIndex}`}>
+                            <TooltipProvider key={`res-${property.id}-${reservation.id}`}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div 
-                                    className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs text-white font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
+                                    className={`absolute h-5 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center px-1 text-xs text-white font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
                                     style={{
                                       top: `${top}px`,
-                                      left: isStartDay ? '4px' : '0px',
-                                      right: isEndDay ? '4px' : '0px',
-                                      zIndex: 5
+                                      left: `calc(${leftStart} * 100% / 16)`,
+                                      width: `calc(${width} * 100% / 16)`,
+                                      minWidth: '40px',
+                                      zIndex: 10
                                     }}
                                   >
-                                    {isStartDay && res.platform}
+                                    {!isShortReservation && reservation.platform}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <div className="text-xs">
                                     <p><strong>{property.name}</strong></p>
-                                    <p><strong>Platform:</strong> {res.platform}</p>
-                                    <p><strong>Check-in:</strong> {format(res.startDate, 'MMM d, yyyy')}</p>
-                                    <p><strong>Check-out:</strong> {format(res.endDate, 'MMM d, yyyy')}</p>
-                                    {res.notes && res.notes !== 'Blocked' && (
-                                      <p><strong>Notes:</strong> {res.notes}</p>
+                                    <p><strong>Platform:</strong> {reservation.platform}</p>
+                                    <p><strong>Check-in:</strong> {format(reservation.startDate, 'MMM d, yyyy')}</p>
+                                    <p><strong>Check-out:</strong> {format(reservation.endDate, 'MMM d, yyyy')}</p>
+                                    {reservation.notes && reservation.notes !== 'Blocked' && (
+                                      <p><strong>Notes:</strong> {reservation.notes}</p>
                                     )}
                                   </div>
                                 </TooltipContent>
@@ -238,11 +427,10 @@ const MultiCalendar: React.FC = () => {
                             </TooltipProvider>
                           );
                         })}
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                    </div>
+                  </React.Fragment>
+                );
+              })}
             </div>
           </div>
         </ScrollArea>
