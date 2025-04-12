@@ -1,24 +1,22 @@
-
 import React, { useState, useMemo } from 'react';
-import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Lock, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { addMonths } from 'date-fns';
 import { Reservation } from '@/types';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getPlatformColorClass } from '@/data/mockData';
-import { getReservationsForMonth, getReservationsForProperty, getPropertyName } from '@/services/reservation';
+import { getReservationsForMonth, getReservationsForProperty } from '@/services/reservation';
 import { useQuery } from '@tanstack/react-query';
+import { 
+  calculateReservationLanes, 
+  calculateBlockLanes 
+} from './utils/calendarUtils';
+import { generateMonthDays, normalizeDate } from './utils/dateUtils';
+import CalendarHeader from './CalendarHeader';
+import CalendarDayHeader from './CalendarDayHeader';
+import CalendarGrid from './CalendarGrid';
+import ReservationBars from './ReservationBars';
+import CalendarLegend from './CalendarLegend';
 
 interface MonthlyCalendarProps {
   propertyId?: string;
 }
-
-// Helper to normalize date to noon UTC to avoid timezone issues
-const normalizeDate = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setUTCHours(12, 0, 0, 0);
-  return newDate;
-};
 
 const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -32,8 +30,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
         const allReservations = await getReservationsForProperty(propertyId);
         console.log('Got reservations:', allReservations);
         return allReservations.filter(res => {
-          const monthStart = startOfMonth(currentMonth);
-          const monthEnd = endOfMonth(currentMonth);
+          const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+          const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
           
           return (res.startDate <= monthEnd && res.endDate >= monthStart);
         });
@@ -96,234 +94,59 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     setCurrentMonth(addMonths(currentMonth, -1));
   };
   
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  // Generate the days for the current month
+  const weeks = useMemo(() => generateMonthDays(currentMonth), [currentMonth]);
   
-  // Get day of week for the first day (0 = Sunday, 1 = Monday, etc.)
-  const startDay = monthStart.getDay();
-  
-  // Create a 7x5 or 7x6 grid (depending on the month)
-  const daysInGrid = [];
-  const totalDaysInGrid = Math.ceil((monthDays.length + startDay) / 7) * 7;
-  
-  // Add empty cells for days before the start of the month
-  for (let i = 0; i < startDay; i++) {
-    daysInGrid.push(null);
-  }
-  
-  // Add the days of the month
-  daysInGrid.push(...monthDays);
-  
-  // Add empty cells for days after the end of the month
-  const remainingCells = totalDaysInGrid - daysInGrid.length;
-  for (let i = 0; i < remainingCells; i++) {
-    daysInGrid.push(null);
-  }
-  
-  // Group days into weeks
-  const weeks = [];
-  for (let i = 0; i < daysInGrid.length; i += 7) {
-    weeks.push(daysInGrid.slice(i, i + 7));
-  }
-
   // Calculate reservation lanes for each week
   const weekReservationLanes = useMemo(() => {
-    const lanes: Record<number, Record<string, number>> = {};
-    
-    weeks.forEach((week, weekIndex) => {
-      const weekLanes: Record<string, number> = {};
-      
-      // Filter reservations that overlap with this week
-      let weekReservations = filteredReservations.filter(reservation => {
-        return week.some(day => {
-          if (!day) return false;
-          const normalizedDay = normalizeDate(day);
-          return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
-        });
-      });
-      
-      // Sort reservations by start date to ensure consistent lane assignment
-      const sortedReservations = [...weekReservations].sort(
-        (a, b) => a.startDate.getTime() - b.startDate.getTime()
-      );
-      
-      // Enhanced lane assignment strategy to prioritize consecutive reservations in same lane
-      sortedReservations.forEach((reservation, index) => {
-        const resId = reservation.id;
-        
-        // Check if this reservation follows the previous one (consecutive or close)
-        if (index > 0) {
-          const prevReservation = sortedReservations[index-1];
-          const prevResId = prevReservation.id;
-          
-          // If this reservation starts on the same day the previous one ends or within 3 days
-          const daysBetween = differenceInDays(reservation.startDate, prevReservation.endDate);
-          if (isSameDay(prevReservation.endDate, reservation.startDate) || 
-              (daysBetween >= 0 && daysBetween <= 3)) {
-            
-            // Try to assign the same lane as the previous reservation
-            const prevLane = weekLanes[prevResId];
-            
-            // Check if this lane is available for the current reservation
-            let canUseSameLane = true;
-            
-            // Check for conflicts with other reservations in this lane
-            for (const existingResId in weekLanes) {
-              if (existingResId === prevResId) continue;
-              if (weekLanes[existingResId] !== prevLane) continue;
-              
-              const existingRes = weekReservations.find(r => r.id === existingResId);
-              if (!existingRes) continue;
-              
-              // Check for date overlap
-              if (reservation.startDate <= existingRes.endDate && 
-                  reservation.endDate >= existingRes.startDate) {
-                canUseSameLane = false;
-                break;
-              }
-            }
-            
-            if (canUseSameLane) {
-              weekLanes[resId] = prevLane;
-              return;
-            }
-          }
-        }
-        
-        // If we couldn't reuse the previous lane, find the first available lane
-        let lane = 0;
-        let laneFound = false;
-        
-        while (!laneFound) {
-          laneFound = true;
-          
-          // Check if any existing reservation in this lane overlaps with current reservation
-          for (const existingResId in weekLanes) {
-            const existingLane = weekLanes[existingResId];
-            if (existingLane !== lane) continue;
-            
-            const existingRes = weekReservations.find(r => r.id === existingResId);
-            if (!existingRes) continue;
-            
-            // Check for date overlap
-            if (reservation.startDate <= existingRes.endDate && 
-                reservation.endDate >= existingRes.startDate) {
-              laneFound = false;
-              break;
-            }
-          }
-          
-          if (!laneFound) {
-            lane++;
-          }
-        }
-        
-        // Assign this lane to the reservation
-        weekLanes[resId] = lane;
-      });
-      
-      lanes[weekIndex] = weekLanes;
-    });
-    
-    return lanes;
+    return calculateReservationLanes(weeks, filteredReservations);
   }, [weeks, filteredReservations]);
   
   // Calculate propagated block lanes for each week
   const weekPropagatedBlockLanes = useMemo(() => {
-    const lanes: Record<number, Record<string, number>> = {};
-    
-    if (propagatedBlocks.length === 0) return lanes;
-    
-    weeks.forEach((week, weekIndex) => {
-      const weekLanes: Record<string, number> = {};
-      
-      // Filter blocks that overlap with this week
-      const weekBlocks = propagatedBlocks.filter(block => {
-        return week.some(day => {
-          if (!day) return false;
-          const normalizedDay = normalizeDate(day);
-          return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
-        });
-      });
-      
-      // Sort blocks by start date
-      const sortedBlocks = [...weekBlocks].sort(
-        (a, b) => a.startDate.getTime() - b.startDate.getTime()
-      );
-      
-      // Assign lanes starting from the highest number to keep them below regular reservations
-      const baseLane = 10; // Start propagated blocks at lane 10 (below regular reservations)
-      
-      sortedBlocks.forEach((block, index) => {
-        weekLanes[block.id] = baseLane + index;
-      });
-      
-      lanes[weekIndex] = weekLanes;
-    });
-    
-    return lanes;
+    return calculateBlockLanes(weeks, propagatedBlocks, 10);
   }, [weeks, propagatedBlocks]);
   
   // Calculate relationship block lanes for each week
   const weekRelationshipBlockLanes = useMemo(() => {
-    const lanes: Record<number, Record<string, number>> = {};
+    return calculateBlockLanes(weeks, relationshipBlocks, 5);
+  }, [weeks, relationshipBlocks]);
+  
+  // Calculate cell height based on maximum lanes
+  const calculateCellHeight = () => {
+    const maxLanes: { [key: number]: number } = {};
     
-    if (relationshipBlocks.length === 0) return lanes;
-    
-    console.log('Calculating relationship block lanes for:', relationshipBlocks);
-    
-    weeks.forEach((week, weekIndex) => {
-      const weekLanes: Record<string, number> = {};
+    weeks.forEach((_, weekIndex) => {
+      const weekLanes = weekReservationLanes[weekIndex] || {};
+      const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
+      const relationshipLanes = weekRelationshipBlockLanes[weekIndex] || {};
       
-      // Filter relationship blocks that overlap with this week
-      const weekBlocks = relationshipBlocks.filter(block => {
-        return week.some(day => {
-          if (!day) return false;
-          const normalizedDay = normalizeDate(day);
-          return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
-        });
-      });
+      const maxRegularLane = Object.values(weekLanes).reduce((max, lane) => Math.max(max, lane), 0);
+      const maxBlockLane = Object.values(blockLanes).reduce((max, lane) => Math.max(max, lane), 0);
+      const maxRelationshipLane = Object.values(relationshipLanes).reduce((max, lane) => Math.max(max, lane), 0);
       
-      // Sort blocks by start date
-      const sortedBlocks = [...weekBlocks].sort(
-        (a, b) => a.startDate.getTime() - b.startDate.getTime()
-      );
-      
-      // Assign lanes starting from the highest number to keep them below regular reservations
-      const baseLane = 5; // Relationship blocks appear above propagated blocks
-      
-      sortedBlocks.forEach((block, index) => {
-        weekLanes[block.id] = baseLane + index;
-      });
-      
-      lanes[weekIndex] = weekLanes;
+      maxLanes[weekIndex] = Math.max(maxRegularLane, Math.max(maxBlockLane - 10, maxRelationshipLane - 5));
     });
     
-    return lanes;
-  }, [weeks, relationshipBlocks]);
+    const maxLaneAcrossWeeks = Object.values(maxLanes).reduce((max, lane) => Math.max(max, lane), 0);
+    const laneHeight = 14; // Height for each reservation lane
+    const minCellHeight = 120; // Minimum height for calendar cells
+    return Math.max(minCellHeight, 80 + (maxLaneAcrossWeeks * laneHeight));
+  };
+  
+  const cellHeight = useMemo(() => calculateCellHeight(), [
+    weekReservationLanes, 
+    weekPropagatedBlockLanes, 
+    weekRelationshipBlockLanes
+  ]);
   
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={prevMonth}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={nextMonth}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <CalendarHeader 
+        currentMonth={currentMonth}
+        onPrevMonth={prevMonth}
+        onNextMonth={nextMonth}
+      />
       
       {isLoading ? (
         <div className="flex justify-center items-center p-12">
@@ -331,466 +154,28 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
         </div>
       ) : (
         <div className="grid grid-cols-7">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-center py-2 font-medium text-gray-600 border-b">
-              {day}
-            </div>
-          ))}
+          <CalendarDayHeader />
           
-          {weeks.map((week, weekIndex) => {
-            // Determine max lane for this week to calculate appropriate height
-            const weekLanes = weekReservationLanes[weekIndex] || {};
-            const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
-            const relationshipLanes = weekRelationshipBlockLanes[weekIndex] || {};
-            
-            const maxRegularLane = Object.values(weekLanes).reduce((max, lane) => Math.max(max, lane), 0);
-            const maxBlockLane = Object.values(blockLanes).reduce((max, lane) => Math.max(max, lane), 0);
-            const maxRelationshipLane = Object.values(relationshipLanes).reduce((max, lane) => Math.max(max, lane), 0);
-            
-            const maxLane = Math.max(maxRegularLane, Math.max(maxBlockLane - 10, maxRelationshipLane - 5));
-            
-            const laneHeight = 14; // Height for each reservation lane
-            const minCellHeight = 120; // Minimum height for calendar cells
-            const cellHeight = Math.max(minCellHeight, 80 + (maxLane * laneHeight));
-            
-            return (
-              <React.Fragment key={`week-${weekIndex}`}>
-                {week.map((day, dayIndex) => {
-                  // Identify relationship blocks for this day to visually mark the cell
-                  const hasRelationshipBlock = day && relationshipBlocks.some(block => {
-                    const normalizedDay = normalizeDate(day);
-                    return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
-                  });
-                  
-                  return (
-                    <div 
-                      key={`day-${weekIndex}-${dayIndex}`} 
-                      className={`calendar-day border relative ${day && !isSameMonth(day, currentMonth) ? 'bg-gray-50' : ''} ${hasRelationshipBlock ? 'bg-amber-50' : ''}`}
-                      style={{ height: `${cellHeight}px` }}
-                    >
-                      {day && (
-                        <>
-                          <div className="text-sm font-medium p-1">
-                            {format(day, 'd')}
-                          </div>
-                          
-                          {/* Day indicator for relationship blocks */}
-                          {hasRelationshipBlock && (
-                            <div className="absolute top-1 right-1">
-                              <ShieldAlert size={14} className="text-amber-500" />
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Regular Reservation bars */}
-                <div className="col-span-7 relative h-0">
-                  {week[0] && filteredReservations.filter(reservation => {
-                    return week.some(day => {
-                      if (!day) return false;
-                      const normalizedDay = normalizeDate(day);
-                      return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
-                    });
-                  }).map((reservation) => {
-                    // Work with normalized dates to avoid timezone issues
-                    const startDate = reservation.startDate;
-                    const endDate = reservation.endDate;
-                    
-                    // Find exact positions for this reservation in the current week
-                    let startPos = -1;
-                    let endPos = -1;
-                    
-                    // Find the exact position of the start and end days in this week
-                    for (let i = 0; i < week.length; i++) {
-                      const day = week[i];
-                      if (!day) continue;
-                      
-                      const normalizedDay = normalizeDate(day);
-                      
-                      // Check if this day is the start date or after it
-                      if (startPos === -1) {
-                        if (isSameDay(normalizedDay, startDate)) {
-                          startPos = i;
-                        } else if (normalizedDay > startDate) {
-                          startPos = i;
-                        }
-                      }
-                      
-                      // Check if this day is the end date
-                      if (isSameDay(normalizedDay, endDate)) {
-                        endPos = i;
-                        break;
-                      }
-                      // If we're at the last day of the week and haven't found endPos,
-                      // but we know the reservation continues, set this as endPos
-                      else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
-                        endPos = i;
-                      }
-                    }
-                    
-                    // If we didn't find a starting position in this week, don't render anything
-                    if (startPos === -1) return null;
-                    
-                    // If we found a starting position but no ending, use the end of the week
-                    if (endPos === -1 && startPos !== -1) {
-                      endPos = 6; // Last day of week
-                    }
-                    
-                    // Determine if the reservation continues from/to other weeks
-                    const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
-                    const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
-                    
-                    // Calculate bar width and position with the new 40-20-40 spacing
-                    let barStartPos = startPos;
-                    let barEndPos = endPos;
-                    
-                    // If this is the actual check-in day, start at 60% of the cell
-                    if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-                      barStartPos += 0.6; // Start at 60% of the cell width
-                    }
-                    
-                    // If this is the actual check-out day, end at 40% of the cell
-                    if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-                      barEndPos += 0.4; // End at 40% of the cell width
-                    } else {
-                      // If not the actual check-out day, bar should extend to the end of the day
-                      barEndPos += 1;
-                    }
-                    
-                    const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-                    const barLeft = `${(barStartPos / 7) * 100}%`;
-                    
-                    // Define border radius style based on if the reservation continues
-                    let borderRadiusStyle = 'rounded-full';
-                    if (continuesFromPrevious && continuesToNext) {
-                      borderRadiusStyle = 'rounded-none';
-                    } else if (continuesFromPrevious) {
-                      borderRadiusStyle = 'rounded-r-full rounded-l-none';
-                    } else if (continuesToNext) {
-                      borderRadiusStyle = 'rounded-l-full rounded-r-none';
-                    }
-                    
-                    // Get the lane assigned to this reservation for consistent vertical positioning
-                    const weekLanes = weekReservationLanes[weekIndex] || {};
-                    const lane = weekLanes[reservation.id] || 0;
-                    
-                    // Calculate consistent vertical position based on lane
-                    const laneHeight = 14; // Height per lane
-                    const baseOffset = -70; // Base offset from top
-                    const verticalPosition = baseOffset - (lane * laneHeight);
-                    
-                    // Determine text size based on bar width - smaller text for short reservations
-                    const isShortReservation = barEndPos - barStartPos < 1;
-                    
-                    // Display status if it's a blocked reservation
-                    const isBlocked = reservation.status === 'Blocked' || reservation.isBlocking === true;
-                    const displayLabel = isBlocked ? 'Blocked' : reservation.platform;
-                    
-                    return (
-                      <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div 
-                              className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 transition-all hover:brightness-90 hover:shadow-md`}
-                              style={{
-                                top: `${verticalPosition}px`,
-                                left: barLeft,
-                                width: barWidth,
-                                minWidth: '40px'
-                              }}
-                            >
-                              {displayLabel}
-                              {reservation.isBlocking && <span className="ml-1 text-xs">(Block)</span>}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-xs">
-                              <p><strong>Platform:</strong> {reservation.platform}</p>
-                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
-                              <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                              {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
-                              {reservation.isBlocking && <p><strong>Blocking:</strong> Yes</p>}
-                              {reservation.guestName && <p><strong>Guest:</strong> {reservation.guestName}</p>}
-                              {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                </div>
-                
-                {/* Relationship Block Bars (parent-child blocks) */}
-                <div className="col-span-7 relative h-0">
-                  {week[0] && relationshipBlocks.filter(block => {
-                    return week.some(day => {
-                      if (!day) return false;
-                      const normalizedDay = normalizeDate(day);
-                      return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
-                    });
-                  }).map((block) => {
-                    const startDate = block.startDate;
-                    const endDate = block.endDate;
-                    
-                    // Find exact positions in current week
-                    let startPos = -1;
-                    let endPos = -1;
-                    
-                    for (let i = 0; i < week.length; i++) {
-                      const day = week[i];
-                      if (!day) continue;
-                      
-                      const normalizedDay = normalizeDate(day);
-                      
-                      if (startPos === -1) {
-                        if (isSameDay(normalizedDay, startDate)) {
-                          startPos = i;
-                        } else if (normalizedDay > startDate) {
-                          startPos = i;
-                        }
-                      }
-                      
-                      if (isSameDay(normalizedDay, endDate)) {
-                        endPos = i;
-                        break;
-                      } else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
-                        endPos = i;
-                      }
-                    }
-                    
-                    if (startPos === -1) return null;
-                    if (endPos === -1 && startPos !== -1) {
-                      endPos = 6;
-                    }
-                    
-                    const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
-                    const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
-                    
-                    let barStartPos = startPos;
-                    let barEndPos = endPos;
-                    
-                    if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-                      barStartPos += 0.6;
-                    }
-                    
-                    if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-                      barEndPos += 0.4;
-                    } else {
-                      barEndPos += 1;
-                    }
-                    
-                    const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-                    const barLeft = `${(barStartPos / 7) * 100}%`;
-                    
-                    let borderRadiusStyle = 'rounded-full';
-                    if (continuesFromPrevious && continuesToNext) {
-                      borderRadiusStyle = 'rounded-none';
-                    } else if (continuesFromPrevious) {
-                      borderRadiusStyle = 'rounded-r-full rounded-l-none';
-                    } else if (continuesToNext) {
-                      borderRadiusStyle = 'rounded-l-full rounded-r-none';
-                    }
-                    
-                    const relationshipLanes = weekRelationshipBlockLanes[weekIndex] || {};
-                    const lane = relationshipLanes[block.id] || 5;
-                    
-                    const laneHeight = 14;
-                    const baseOffset = -70;
-                    const verticalPosition = baseOffset - (lane * laneHeight);
-                    
-                    return (
-                      <TooltipProvider key={`rel-${weekIndex}-${block.id}`}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div 
-                              className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 transition-all hover:brightness-90 hover:shadow-md`}
-                              style={{
-                                top: `${verticalPosition}px`,
-                                left: barLeft,
-                                width: barWidth,
-                                minWidth: '40px'
-                              }}
-                            >
-                              <Lock size={12} />
-                              <span>Bloqueado</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-xs">
-                              <p><strong>Bloqueado automáticamente</strong></p>
-                              <p><strong>Reserva en {block.platform}</strong></p>
-                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
-                              <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                              <p>
-                                <strong>
-                                  {block.guestName ? 
-                                    `Reserva de ${block.guestName}` : 
-                                    "Bloqueado por reserva en otra propiedad"}
-                                </strong>
-                              </p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                </div>
-                
-                {/* Regular Propagated Block Bars */}
-                <div className="col-span-7 relative h-0">
-                  {week[0] && propagatedBlocks.filter(block => {
-                    return week.some(day => {
-                      if (!day) return false;
-                      const normalizedDay = normalizeDate(day);
-                      return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
-                    });
-                  }).map((block) => {
-                    const startDate = block.startDate;
-                    const endDate = block.endDate;
-                    
-                    // Find exact positions in current week
-                    let startPos = -1;
-                    let endPos = -1;
-                    
-                    for (let i = 0; i < week.length; i++) {
-                      const day = week[i];
-                      if (!day) continue;
-                      
-                      const normalizedDay = normalizeDate(day);
-                      
-                      if (startPos === -1) {
-                        if (isSameDay(normalizedDay, startDate)) {
-                          startPos = i;
-                        } else if (normalizedDay > startDate) {
-                          startPos = i;
-                        }
-                      }
-                      
-                      if (isSameDay(normalizedDay, endDate)) {
-                        endPos = i;
-                        break;
-                      } else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
-                        endPos = i;
-                      }
-                    }
-                    
-                    if (startPos === -1) return null;
-                    if (endPos === -1 && startPos !== -1) {
-                      endPos = 6;
-                    }
-                    
-                    const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
-                    const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
-                    
-                    let barStartPos = startPos;
-                    let barEndPos = endPos;
-                    
-                    if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-                      barStartPos += 0.6;
-                    }
-                    
-                    if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-                      barEndPos += 0.4;
-                    } else {
-                      barEndPos += 1;
-                    }
-                    
-                    const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-                    const barLeft = `${(barStartPos / 7) * 100}%`;
-                    
-                    let borderRadiusStyle = 'rounded-full';
-                    if (continuesFromPrevious && continuesToNext) {
-                      borderRadiusStyle = 'rounded-none';
-                    } else if (continuesFromPrevious) {
-                      borderRadiusStyle = 'rounded-r-full rounded-l-none';
-                    } else if (continuesToNext) {
-                      borderRadiusStyle = 'rounded-l-full rounded-r-none';
-                    }
-                    
-                    const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
-                    const lane = blockLanes[block.id] || 10;
-                    
-                    const laneHeight = 14;
-                    const baseOffset = -70;
-                    const verticalPosition = baseOffset - (lane * laneHeight / 2);
-                    
-                    // Get source reservation info to display in tooltip
-                    const sourceReservation = allReservations.find(r => r.id === block.sourceReservationId);
-                    const sourcePropertyId = sourceReservation?.propertyId;
-                    
-                    // Find property name from all reservations
-                    const sourcePropertyName = allReservations.find(
-                      r => r.propertyId === sourcePropertyId && r.id !== block.id
-                    )?.propertyId || 'otra propiedad';
-                    
-                    return (
-                      <TooltipProvider key={`block-${weekIndex}-${block.id}`}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div 
-                              className={`absolute h-7 bg-gray-300 border border-dashed border-gray-500 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-gray-700 font-medium text-xs z-10 transition-all hover:brightness-90 hover:shadow-md`}
-                              style={{
-                                top: `${verticalPosition}px`,
-                                left: barLeft,
-                                width: barWidth,
-                                minWidth: '40px'
-                              }}
-                            >
-                              <Lock size={12} />
-                              <span>Bloqueado</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-xs">
-                              <p><strong>Bloqueado automáticamente</strong></p>
-                              <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
-                              <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
-                              {block.sourceReservationId && (
-                                <p><strong>Bloqueado por reserva en otra propiedad</strong></p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                </div>
-              </React.Fragment>
-            );
-          })}
+          <CalendarGrid
+            weeks={weeks}
+            currentMonth={currentMonth}
+            relationshipBlocks={relationshipBlocks}
+            cellHeight={cellHeight}
+          />
+          
+          <ReservationBars
+            weeks={weeks}
+            filteredReservations={filteredReservations}
+            relationshipBlocks={relationshipBlocks}
+            propagatedBlocks={propagatedBlocks}
+            weekReservationLanes={weekReservationLanes}
+            weekRelationshipBlockLanes={weekRelationshipBlockLanes}
+            weekPropagatedBlockLanes={weekPropagatedBlockLanes}
+          />
         </div>
       )}
       
-      {/* Legend at the bottom of the calendar */}
-      <div className="flex flex-wrap gap-3 mt-4 p-4 border-t">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-          <span className="text-xs">Booking</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-400"></div>
-          <span className="text-xs">Airbnb</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-          <span className="text-xs">Vrbo</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span className="text-xs">Manual</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-          <span className="text-xs">Bloqueado (Parent/Child)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-12 bg-gray-300 border border-dashed border-gray-500 rounded-full"></div>
-          <span className="text-xs">Otro bloqueo</span>
-        </div>
-      </div>
+      <CalendarLegend />
     </div>
   );
 };
