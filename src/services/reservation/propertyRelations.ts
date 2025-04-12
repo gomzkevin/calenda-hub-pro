@@ -49,18 +49,22 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
       } else if (childProperties && childProperties.length > 0) {
         const childIds = childProperties.map(child => child.id);
         
-        // Step 3b: Get reservations from these children
-        const { data: childReservationsData, error: childResError } = await supabase
-          .from("reservations")
-          .select("*")
-          .in("property_id", childIds)
-          .neq("status", "Blocked");  // Exclude those already marked as blocked
-        
-        if (childResError) {
-          console.error(`Error fetching child reservations for parent ${propertyId}:`, childResError);
-        } else if (childReservationsData) {
-          // Add related blocks from children to parent
-          relatedReservations = childReservationsData.map(mapReservationFromDatabase);
+        // Step 3b: Get reservations from these children, using a simpler query
+        // Fixed: Simplified query to avoid excessive type depth
+        for (const childId of childIds) {
+          const { data: childReservations, error: childResError } = await supabase
+            .from("reservations")
+            .select("*")
+            .eq("property_id", childId)
+            .neq("status", "Blocked");
+            
+          if (childResError) {
+            console.error(`Error fetching reservations for child property ${childId}:`, childResError);
+          } else if (childReservations && childReservations.length > 0) {
+            // Map and add these reservations
+            const mappedReservations = childReservations.map(mapReservationFromDatabase);
+            relatedReservations = [...relatedReservations, ...mappedReservations];
+          }
         }
       }
     } 
