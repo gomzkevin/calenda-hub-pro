@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,6 +14,7 @@ interface MonthlyCalendarProps {
 }
 
 // Helper to normalize date to noon UTC to avoid timezone issues
+// This MUST be defined before being used in any other function
 const normalizeDate = (date: Date): Date => {
   const newDate = new Date(date);
   newDate.setUTCHours(12, 0, 0, 0);
@@ -532,7 +534,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     // Get source reservation info to display in tooltip
                     const sourceReservation = allReservations.find(r => r.id === block.sourceReservationId);
                     const sourcePropertyId = sourceReservation?.propertyId;
-                    const sourceProperty = sourcePropertyId ? allReservations.find(r => r.propertyId === sourcePropertyId)?.propertyId : null;
+                    
+                    // Find property name from all reservations
+                    const sourcePropertyName = allReservations.find(
+                      r => r.propertyId === sourcePropertyId && r.id !== block.id
+                    )?.propertyId || 'otra propiedad';
                     
                     return (
                       <TooltipProvider key={`block-${weekIndex}-${block.id}`}>
@@ -556,7 +562,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                               <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
                               <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
                               {block.sourceReservationId && (
-                                <p><strong>Bloqueado por otra reserva</strong></p>
+                                <p><strong>Bloqueado por reserva en otra propiedad</strong></p>
                               )}
                             </div>
                           </TooltipContent>
