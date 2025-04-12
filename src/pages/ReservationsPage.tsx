@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReservations, createManualReservation, updateManualReservation, deleteManualReservation } from '@/services/reservationService';
@@ -42,7 +43,7 @@ const ReservationsPage: React.FC = () => {
     queryFn: getProperties,
   });
   
-  const { data: reservations = [], isLoading: isLoadingReservations } = useQuery({
+  const { data: allReservations = [], isLoading: isLoadingReservations } = useQuery({
     queryKey: ['reservations', filters],
     queryFn: () => {
       // Only pass non-empty values to the API
@@ -233,12 +234,15 @@ const ReservationsPage: React.FC = () => {
             <div className="p-4 border-b">
               <div className="flex justify-between items-center">
                 <h2 className="font-medium">
-                  {reservations.length} {reservations.length === 1 ? 'reserva' : 'reservas'}
+                  {allReservations.filter(res => 
+                    res.notes !== 'Blocked' && 
+                    res.status !== 'Blocked'
+                  ).length} reservas activas
                 </h2>
               </div>
             </div>
             <ReservationsTable
-              reservations={reservations}
+              reservations={allReservations}
               properties={properties}
               onView={handleViewDetails}
               onEdit={handleOpenEditForm}

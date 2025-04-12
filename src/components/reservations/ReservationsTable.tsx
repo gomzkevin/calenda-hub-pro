@@ -29,8 +29,14 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
     return acc;
   }, {});
 
+  // Filter out blocked reservations first
+  const filteredReservations = reservations.filter(res => 
+    res.notes !== 'Blocked' && 
+    res.status !== 'Blocked'
+  );
+
   // Sort reservations by check-in date (startDate)
-  const sortedReservations = [...reservations].sort((a, b) => 
+  const sortedReservations = [...filteredReservations].sort((a, b) => 
     a.startDate.getTime() - b.startDate.getTime()
   );
 
