@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home } from 'lucide-react';
+import { Building2, BedDouble, Bath, Users, ImageIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Property } from '@/types';
 
@@ -11,7 +11,28 @@ interface PropertyDetailsProps {
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   return (
     <div className="space-y-6">
-      {/* Removed the image section */}
+      {/* Property Images */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center">
+            <ImageIcon className="w-5 h-5 mr-2" />
+            Imágenes de la Propiedad
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="aspect-video bg-secondary flex items-center justify-center rounded-md">
+            {property.imageUrl ? (
+              <img 
+                src={property.imageUrl} 
+                alt={property.name} 
+                className="h-full w-full object-cover rounded-md"
+              />
+            ) : (
+              <ImageIcon className="w-12 h-12 text-muted-foreground" />
+            )}
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Property Details */}
       <Card>
@@ -25,10 +46,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-medium">Tipo</h3>
-              <p className="text-muted-foreground flex items-center">
-                <Home className="w-4 h-4 mr-2" />
-                {property.type || 'No especificado'}
-              </p>
+              <p className="text-muted-foreground">{property.type || 'No especificado'}</p>
             </div>
             <div>
               <h3 className="font-medium">Dirección</h3>

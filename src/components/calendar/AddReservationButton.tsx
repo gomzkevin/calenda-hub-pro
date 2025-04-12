@@ -54,10 +54,6 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
     },
   });
 
-  const handleButtonClick = () => {
-    setIsOpen(true);
-  };
-
   const handleSubmit = async (formData: any) => {
     await createReservation.mutateAsync(formData);
   };
@@ -65,7 +61,7 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
   return (
     <>
       <Button
-        onClick={handleButtonClick}
+        onClick={() => setIsOpen(true)}
         className={className}
         size={size}
         variant={variant}

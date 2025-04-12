@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Reservation, Property } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,11 +28,6 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
     acc[property.id] = property;
     return acc;
   }, {});
-
-  // Sort reservations by check-in date (startDate)
-  const sortedReservations = [...reservations].sort((a, b) => 
-    a.startDate.getTime() - b.startDate.getTime()
-  );
 
   // Get platform color class
   const getPlatformColorClass = (platform: string): string => {
@@ -92,14 +87,14 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedReservations.length === 0 ? (
+          {reservations.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
                 No hay reservaciones que mostrar
               </TableCell>
             </TableRow>
           ) : (
-            sortedReservations.map((reservation) => {
+            reservations.map((reservation) => {
               const property = propertyMap[reservation.propertyId];
               const nights = differenceInCalendarDays(reservation.endDate, reservation.startDate);
               const { property: sourceProperty } = getSourceReservationInfo(reservation);

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReservations, createManualReservation, updateManualReservation, deleteManualReservation } from '@/services/reservationService';
@@ -18,15 +19,11 @@ const ReservationsPage: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Initialize with today's date for startDate filter
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set time to beginning of day
-  
   // State
   const [filters, setFilters] = useState({
     propertyId: '',
     platform: '',
-    startDate: today, // Default to today's date
+    startDate: null as Date | null,
     endDate: null as Date | null,
     searchText: '',
   });
@@ -164,7 +161,7 @@ const ReservationsPage: React.FC = () => {
     setFilters({
       propertyId: '',
       platform: '',
-      startDate: today, // Reset to today's date instead of null
+      startDate: null,
       endDate: null,
       searchText: '',
     });

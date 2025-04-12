@@ -319,7 +319,8 @@ export const checkAvailability = async (
     .from("reservations")
     .select("id")
     .eq("property_id", propertyId)
-    .or(`start_date.lt.${end},end_date.gt.${start}`);
+    .or(`start_date.lt.${end},end_date.gt.${start}`)
+    .not("status", "eq", "Tentative"); // Ignore tentative reservations
   
   if (excludeReservationId) {
     query = query.neq("id", excludeReservationId);

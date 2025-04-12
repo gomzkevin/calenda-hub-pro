@@ -37,13 +37,12 @@ const CalendarPage: React.FC = () => {
   
   const updateUrlParams = (propertyId: string, view: string) => {
     const params = new URLSearchParams(location.search);
-    if (propertyId) params.set('property', propertyId);
+    params.set('property', propertyId);
     params.set('view', view);
     navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
   
   const handlePropertyChange = (propertyId: string) => {
-    if (!propertyId) return; // Added check to prevent empty property IDs
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
   };
@@ -52,9 +51,6 @@ const CalendarPage: React.FC = () => {
     setActiveView(view);
     updateUrlParams(selectedPropertyId, view);
   };
-  
-  // Find the selected property name for display
-  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
   
   return (
     <div className="space-y-6 w-full max-w-full">
@@ -82,12 +78,10 @@ const CalendarPage: React.FC = () => {
               </Select>
             )}
           </div>
-          {selectedPropertyId && (
-            <AddReservationButton 
-              propertyId={selectedPropertyId} 
-              className="w-full sm:w-auto"
-            />
-          )}
+          <AddReservationButton 
+            propertyId={selectedPropertyId} 
+            className="w-full sm:w-auto"
+          />
         </div>
       </div>
       
@@ -102,15 +96,13 @@ const CalendarPage: React.FC = () => {
             <CardHeader>
               <CardTitle>Monthly Calendar</CardTitle>
               <CardDescription>
-                {selectedProperty?.name || 'Selected property'}
+                {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected property'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedPropertyId && (
-                <MonthlyCalendar 
-                  propertyId={selectedPropertyId} 
-                />
-              )}
+              <MonthlyCalendar 
+                propertyId={selectedPropertyId} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
