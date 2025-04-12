@@ -1,127 +1,142 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getProperties } from "../propertyService";
 import { Reservation } from "@/types";
-import { mapReservationFromDatabase } from "./utils";
+
+// Maps to store parent-child relationships
+let propertyRelationshipCache: {
+  parentToChildren: Map<string, string[]>;
+  childToParent: Map<string, string>;
+} | null = null;
 
 /**
- * Fetch reservations for a specific property
+ * Builds maps of parent-child property relationships
  */
-export const getReservationsForProperty = async (propertyId: string): Promise<Reservation[]> => {
-  // Step 1: Get basic property information first, without any nested selects
-  const { data: property, error: propertyError } = await supabase
-    .from("properties")
-    .select("id, parent_id, type")
-    .eq("id", propertyId)
-    .single();
-  
-  if (propertyError) {
-    console.error(`Error fetching property ${propertyId}:`, propertyError);
-    throw propertyError;
+export const buildPropertyRelationshipMaps = async (): Promise<{
+  parentToChildren: Map<string, string[]>;
+  childToParent: Map<string, string>;
+}> => {
+  // Use cached relationships if available
+  if (propertyRelationshipCache) {
+    return propertyRelationshipCache;
   }
+
+  const properties = await getProperties();
   
-  // Step 2: Get direct reservations for this property
-  const { data: directReservationsData, error } = await supabase
-    .from("reservations")
-    .select("*")
-    .eq("property_id", propertyId);
+  const parentToChildren = new Map<string, string[]>();
+  const childToParent = new Map<string, string>();
   
-  if (error) {
-    console.error(`Error fetching reservations for property ${propertyId}:`, error);
-    throw error;
-  }
-  
-  const directReservations = directReservationsData ? directReservationsData.map(mapReservationFromDatabase) : [];
-  
-  // Step 3: Get related block reservations based on property relationship
-  let relatedReservations: Reservation[] = [];
-  
-  if (property) {
-    // For parent property: get child property reservations
+  // First pass: identify parent properties
+  properties.forEach(property => {
     if (property.type === 'parent') {
-      // Step 3a: Get child properties as a separate query
-      const { data: childProperties, error: childError } = await supabase
-        .from("properties")
-        .select("id")
-        .eq("parent_id", propertyId);
-      
-      if (childError) {
-        console.error(`Error fetching child properties for parent ${propertyId}:`, childError);
-      } else if (childProperties && childProperties.length > 0) {
-        const childIds = childProperties.map(child => child.id);
-        
-        // Step 3b: Get reservations from these children, using a simpler query
-        // Fixed: Simplified query to avoid excessive type depth
-        for (const childId of childIds) {
-          const { data: childReservations, error: childResError } = await supabase
-            .from("reservations")
-            .select("*")
-            .eq("property_id", childId)
-            .neq("status", "Blocked");
-            
-          if (childResError) {
-            console.error(`Error fetching reservations for child property ${childId}:`, childResError);
-          } else if (childReservations && childReservations.length > 0) {
-            // Map and add these reservations
-            const mappedReservations = childReservations.map(mapReservationFromDatabase);
-            relatedReservations = [...relatedReservations, ...mappedReservations];
-          }
-        }
-      }
-    } 
-    // For child property: get parent property reservations
-    else if (property.parent_id) {
-      const parentId = property.parent_id;
-      
-      // Step 3c: Get reservations from parent property
-      const { data: parentReservationsData, error: parentResError } = await supabase
-        .from("reservations")
-        .select("*")
-        .eq("property_id", parentId)
-        .neq("status", "Blocked");  // Exclude those already marked as blocked
-      
-      if (parentResError) {
-        console.error(`Error fetching parent reservations for child ${propertyId}:`, parentResError);
-      } else if (parentReservationsData) {
-        // Add related blocks from parent to child
-        relatedReservations = parentReservationsData.map(mapReservationFromDatabase);
-      }
+      parentToChildren.set(property.id, []);
     }
-  }
+  });
   
-  // Step 4: Include the special property relationship blocks with a special flag
-  const relationshipBlocks = relatedReservations.map(reservation => ({
-    ...reservation,
-    isRelationshipBlock: true
-  }));
+  // Second pass: connect children to parents
+  properties.forEach(property => {
+    if (property.type === 'child' && property.parentId) {
+      // Add child to parent's children list
+      const children = parentToChildren.get(property.parentId) || [];
+      children.push(property.id);
+      parentToChildren.set(property.parentId, children);
+      
+      // Map child to its parent
+      childToParent.set(property.id, property.parentId);
+    }
+  });
   
-  // Step 5: Combine direct reservations with relationship blocks
-  return [...directReservations, ...relationshipBlocks];
+  propertyRelationshipCache = { parentToChildren, childToParent };
+  return propertyRelationshipCache;
 };
 
 /**
- * Check if all other child rooms are available for a specific date range
+ * Get all child property IDs for a given parent property
  */
-export const checkOtherRoomsAvailability = async (
-  childrenIds: string[],
-  currentChildId: string,
-  startDate: Date,
-  endDate: Date
-): Promise<boolean> => {
-  // Get all other child properties except the current one
-  const otherChildIds = childrenIds.filter(id => id !== currentChildId);
+export const getChildPropertyIds = async (parentId: string): Promise<string[]> => {
+  const { parentToChildren } = await buildPropertyRelationshipMaps();
+  return parentToChildren.get(parentId) || [];
+};
+
+/**
+ * Get the parent property ID for a given child property
+ */
+export const getParentPropertyId = async (childId: string): Promise<string | null> => {
+  const { childToParent } = await buildPropertyRelationshipMaps();
+  return childToParent.get(childId) || null;
+};
+
+/**
+ * Generate block reservations for related properties based on a source reservation
+ */
+export const generateRelatedPropertyBlocks = async (
+  sourceReservation: Reservation
+): Promise<Reservation[]> => {
+  const { parentToChildren, childToParent } = await buildPropertyRelationshipMaps();
+  const blocks: Reservation[] = [];
   
-  // Import the checkAvailability function
-  const { checkAvailability } = await import('./queries');
-  
-  // Check if at least one other room is available
-  for (const childId of otherChildIds) {
-    const isAvailable = await checkAvailability(childId, startDate, endDate);
-    if (isAvailable) {
-      // If at least one room is available, return true
-      return true;
+  // If the source reservation is on a parent property
+  if (parentToChildren.has(sourceReservation.propertyId)) {
+    // Create blocks for all child properties
+    const childIds = parentToChildren.get(sourceReservation.propertyId) || [];
+    
+    for (const childId of childIds) {
+      blocks.push({
+        id: crypto.randomUUID(),
+        propertyId: childId,
+        startDate: sourceReservation.startDate,
+        endDate: sourceReservation.endDate,
+        source: 'System',
+        platform: 'System',
+        status: 'Blocked',
+        notes: 'Blocked',
+        sourceReservationId: sourceReservation.id
+      });
     }
   }
   
-  // If no rooms are available, return false
-  return false;
+  // If the source reservation is on a child property
+  const parentId = childToParent.get(sourceReservation.propertyId);
+  if (parentId) {
+    // Create a block for the parent property
+    blocks.push({
+      id: crypto.randomUUID(),
+      propertyId: parentId,
+      startDate: sourceReservation.startDate,
+      endDate: sourceReservation.endDate,
+      source: 'System',
+      platform: 'System',
+      status: 'Blocked',
+      notes: 'Blocked',
+      sourceReservationId: sourceReservation.id
+    });
+    
+    // Create blocks for sibling properties
+    const siblingIds = parentToChildren.get(parentId) || [];
+    
+    for (const siblingId of siblingIds) {
+      // Skip the source property itself
+      if (siblingId === sourceReservation.propertyId) continue;
+      
+      blocks.push({
+        id: crypto.randomUUID(),
+        propertyId: siblingId,
+        startDate: sourceReservation.startDate,
+        endDate: sourceReservation.endDate,
+        source: 'System',
+        platform: 'System',
+        status: 'Blocked',
+        notes: 'Blocked',
+        sourceReservationId: sourceReservation.id
+      });
+    }
+  }
+  
+  return blocks;
+};
+
+/**
+ * Clear relationship cache (used for testing)
+ */
+export const clearPropertyRelationshipCache = (): void => {
+  propertyRelationshipCache = null;
 };
