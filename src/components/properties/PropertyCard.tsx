@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BedDouble, Bath, Users, MapPin } from 'lucide-react';
+import { BedDouble, Bath, Users, MapPin, Home } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
@@ -13,23 +13,32 @@ interface PropertyCardProps {
 const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
   const navigate = useNavigate();
   
+  // Determine the gradient based on the property bedrooms count
+  const getGradient = () => {
+    switch (property.bedrooms) {
+      case 1:
+        return "bg-gradient-to-r from-blue-50 to-blue-100";
+      case 2:
+        return "bg-gradient-to-r from-green-50 to-green-100";
+      case 3:
+        return "bg-gradient-to-r from-purple-50 to-purple-100";
+      case 4:
+        return "bg-gradient-to-r from-amber-50 to-amber-100";
+      default:
+        return "bg-gradient-to-r from-gray-50 to-gray-100";
+    }
+  };
+  
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <div 
-        className="aspect-video bg-muted cursor-pointer" 
+        className={`aspect-video cursor-pointer flex items-center justify-center ${getGradient()}`}
         onClick={() => navigate(`/properties/${property.id}`)}
       >
-        {property.imageUrl ? (
-          <img 
-            src={property.imageUrl} 
-            alt={property.name} 
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center bg-muted">
-            <span className="text-muted-foreground">{property.name}</span>
-          </div>
-        )}
+        <div className="text-center">
+          <Home className="h-12 w-12 mx-auto mb-2 text-primary/70" />
+          <span className="font-medium text-lg text-gray-700">{property.name}</span>
+        </div>
       </div>
       
       <CardContent className="p-4">
