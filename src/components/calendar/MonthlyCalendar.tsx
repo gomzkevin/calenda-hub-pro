@@ -12,6 +12,13 @@ interface MonthlyCalendarProps {
   propertyId?: string;
 }
 
+// Helper to normalize date to noon UTC to avoid timezone issues
+const normalizeDate = (date: Date): Date => {
+  const newDate = new Date(date);
+  newDate.setUTCHours(12, 0, 0, 0);
+  return newDate;
+};
+
 const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
@@ -153,13 +160,6 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     daysInGrid.push(null);
   }
   
-  // Helper to normalize date to noon UTC to avoid timezone issues
-  const normalizeDate = (date: Date): Date => {
-    const newDate = new Date(date);
-    newDate.setUTCHours(12, 0, 0, 0);
-    return newDate;
-  };
-
   // Group days into weeks
   const weeks = [];
   for (let i = 0; i < daysInGrid.length; i += 7) {
