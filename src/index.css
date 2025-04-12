@@ -138,4 +138,10 @@
   .reservation-bar:hover {
     @apply brightness-90 shadow-md;
   }
+  
+  /* Clase para reservas secundarias/bloqueadas */
+  .reservation-secondary {
+    @apply bg-gray-400 text-white border border-dashed border-white;
+  }
 }
+
