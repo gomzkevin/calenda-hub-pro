@@ -233,20 +233,6 @@ const MultiCalendar: React.FC = () => {
                     const isRealStartDay = isSameDay(normalizeDate(visibleDays[firstVisibleDayIndex]), normalizeDate(reservation.startDate));
                     const isRealEndDay = isSameDay(normalizeDate(visibleDays[lastVisibleDayIndex]), normalizeDate(reservation.endDate));
                     
-                    // Apply special styling for start/end days using clip-path
-                    let clipPath = '';
-                    
-                    if (isRealStartDay && isRealEndDay) {
-                      // For a single-day reservation, clip both sides
-                      clipPath = 'inset(0 40% 0 40%)';
-                    } else if (isRealStartDay) {
-                      // For start day, clip the left 60%
-                      clipPath = 'inset(0 0 0 60%)';
-                    } else if (isRealEndDay) {
-                      // For end day, clip the right 60%
-                      clipPath = 'inset(0 60% 0 0)';
-                    }
-                    
                     // Get platform color class
                     const colorClass = getPlatformColorClass(reservation.platform);
                     
@@ -260,13 +246,13 @@ const MultiCalendar: React.FC = () => {
                                 gridColumn: `${gridColumnStart} / ${gridColumnEnd}`,
                                 top: '50%', // Center vertically
                                 transform: 'translateY(-50%)',
-                                left: isRealStartDay ? 'calc(60%)' : 0,
-                                right: isRealEndDay ? 'calc(60%)' : 0,
-                                clipPath: clipPath || 'none'
+                                left: isRealStartDay ? '60%' : 0,
+                                right: isRealEndDay ? '60%' : 0,
+                                width: isRealStartDay && isRealEndDay ? '40%' : 'auto'
                               }}
                             >
                               {/* Only show platform name on the first visible day */}
-                              {firstVisibleDayIndex === dayIndex && reservation.platform}
+                              {reservation.platform}
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
