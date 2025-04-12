@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
@@ -9,7 +8,8 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from '@/components/ui/tooltip';
-import { findReservationPositionInWeek, calculateBarPositionAndStyle } from './utils/calendarUtils';
+import { findReservationPositionInWeek } from './utils/reservationPosition';
+import { calculateBarPositionAndStyle } from './utils/styleCalculation';
 
 interface PropagatedBlockBarProps {
   block: Reservation;

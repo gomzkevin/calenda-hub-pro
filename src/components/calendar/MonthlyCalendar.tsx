@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   calculateReservationLanes, 
   calculateBlockLanes 
-} from './utils/calendarUtils';
+} from './utils/laneCalculation';
 import { generateMonthDays, normalizeDate } from './utils/dateUtils';
 import CalendarHeader from './CalendarHeader';
 import CalendarDayHeader from './CalendarDayHeader';

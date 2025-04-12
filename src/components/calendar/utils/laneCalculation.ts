@@ -1,9 +1,11 @@
 
 import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
-import { differenceInDays, isSameDay } from "date-fns";
+import { isSameDay, differenceInDays } from "date-fns";
 
-// Calculate reservation lanes for each week
+/**
+ * Calculate reservation lanes for each week
+ */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
   reservations: Reservation[]
@@ -108,7 +110,9 @@ export const calculateReservationLanes = (
   return lanes;
 };
 
-// Calculate block lanes (propagated or relationship blocks)
+/**
+ * Calculate block lanes (propagated or relationship blocks)
+ */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
   blocks: Reservation[],
@@ -144,100 +148,4 @@ export const calculateBlockLanes = (
   });
   
   return lanes;
-};
-
-// Find positions for a reservation in a week
-export const findReservationPositionInWeek = (
-  week: (Date | null)[],
-  startDate: Date,
-  endDate: Date
-): { startPos: number, endPos: number, continuesFromPrevious: boolean, continuesToNext: boolean } => {
-  let startPos = -1;
-  let endPos = -1;
-  
-  // Find the exact position of the start and end days in this week
-  for (let i = 0; i < week.length; i++) {
-    const day = week[i];
-    if (!day) continue;
-    
-    const normalizedDay = normalizeDate(day);
-    
-    // Check if this day is the start date or after it
-    if (startPos === -1) {
-      if (isSameDay(normalizedDay, startDate)) {
-        startPos = i;
-      } else if (normalizedDay > startDate) {
-        startPos = i;
-      }
-    }
-    
-    // Check if this day is the end date
-    if (isSameDay(normalizedDay, endDate)) {
-      endPos = i;
-      break;
-    }
-    // If we're at the last day of the week and haven't found endPos,
-    // but we know the reservation continues, set this as endPos
-    else if (i === week.length - 1 && endDate > normalizedDay && startPos !== -1) {
-      endPos = i;
-    }
-  }
-  
-  // If we didn't find a starting position in this week, it's not in this week
-  if (startPos === -1) {
-    return { startPos: -1, endPos: -1, continuesFromPrevious: false, continuesToNext: false };
-  }
-  
-  // If we found a starting position but no ending, use the end of the week
-  if (endPos === -1 && startPos !== -1) {
-    endPos = 6; // Last day of week
-  }
-  
-  // Determine if the reservation continues from/to other weeks
-  const continuesFromPrevious = startPos === 0 && !isSameDay(normalizeDate(week[0]!), startDate);
-  const continuesToNext = endPos === 6 && !isSameDay(normalizeDate(week[6]!), endDate);
-  
-  return { startPos, endPos, continuesFromPrevious, continuesToNext };
-};
-
-// Calculate bar position and width
-export const calculateBarPositionAndStyle = (
-  startPos: number,
-  endPos: number,
-  continuesFromPrevious: boolean,
-  continuesToNext: boolean,
-  week: (Date | null)[],
-  startDate: Date, 
-  endDate: Date
-): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
-  let barStartPos = startPos;
-  let barEndPos = endPos;
-  
-  // If this is the actual check-in day, start at 60% of the cell
-  if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-    barStartPos += 0.6; // Start at 60% of the cell width
-  }
-  
-  // If this is the actual check-out day, end at 40% of the cell
-  if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-    barEndPos += 0.4; // End at 40% of the cell width
-  } else {
-    // If not the actual check-out day, bar should extend to the end of the day
-    barEndPos += 1;
-  }
-  
-  const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-  const barLeft = `${(barStartPos / 7) * 100}%`;
-  
-  // Define border radius style based on if the reservation continues
-  let borderRadiusStyle = 'rounded-full';
-  if (continuesFromPrevious && continuesToNext) {
-    borderRadiusStyle = 'rounded-none';
-  } else if (continuesFromPrevious) {
-    borderRadiusStyle = 'rounded-r-full rounded-l-none';
-  } else if (continuesToNext) {
-    borderRadiusStyle = 'rounded-l-full rounded-r-none';
-  }
-  
-  return { barLeft, barWidth, borderRadiusStyle };
 };
