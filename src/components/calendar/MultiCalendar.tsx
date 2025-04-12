@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -50,7 +49,7 @@ const MultiCalendar: React.FC = () => {
     }
   });
   
-  // Only filter out reservations with specifically "Blocked" in notes that are not relationship-based blocks
+  // Only keep unique reservations - no duplicates
   const reservations = (reservationsQueries.data || []).filter(res => {
     // Show if not blocked or if it's a relationship-based block
     return res.notes !== 'Blocked' || res.sourceReservationId || res.isBlocking;
@@ -71,15 +70,6 @@ const MultiCalendar: React.FC = () => {
     setStartDate(addDays(startDate, -DAYS_TO_SHOW));
   };
   
-  // For larger jumps (1 month forward/backward)
-  const goForwardMonth = () => {
-    setStartDate(addMonths(startDate, 1));
-  };
-  
-  const goBackwardMonth = () => {
-    setStartDate(subMonths(startDate, 1));
-  };
-  
   // Generate days array
   const visibleDays = Array.from({ length: DAYS_TO_SHOW }, (_, i) => 
     addDays(startDate, i)
@@ -97,17 +87,6 @@ const MultiCalendar: React.FC = () => {
     const newDate = new Date(date);
     newDate.setUTCHours(12, 0, 0, 0);
     return newDate;
-  };
-
-  // Get reservation style based on type
-  const getReservationStyle = (reservation: Reservation) => {
-    // If it's a block from a related property
-    if (reservation.notes === 'Blocked' && reservation.sourceReservationId) {
-      return 'bg-gray-400 opacity-70 border border-dashed border-white';
-    }
-    
-    // Normal reservation
-    return getPlatformColorClass(reservation.platform);
   };
 
   // Get the date range display
@@ -136,18 +115,6 @@ const MultiCalendar: React.FC = () => {
             <Button 
               variant="outline" 
               size="icon"
-              onClick={goBackwardMonth}
-              title="Previous Month"
-            >
-              <div className="flex">
-                <ChevronLeft className="h-4 w-4" />
-                <ChevronLeft className="h-4 w-4 -ml-2" />
-              </div>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="icon"
               onClick={goBackward}
               title="Previous 15 Days"
             >
@@ -161,18 +128,6 @@ const MultiCalendar: React.FC = () => {
               title="Next 15 Days"
             >
               <ChevronRight className="h-4 w-4" />
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={goForwardMonth}
-              title="Next Month"
-            >
-              <div className="flex">
-                <ChevronRight className="h-4 w-4" />
-                <ChevronRight className="h-4 w-4 -ml-2" />
-              </div>
             </Button>
           </div>
         </div>
@@ -239,11 +194,11 @@ const MultiCalendar: React.FC = () => {
                           const isStartDay = isSameDay(res.startDate, day);
                           const isEndDay = isSameDay(res.endDate, day);
                           
-                          // Calculate position (stacked if multiple)
-                          const top = resIndex * 24 + 4; 
+                          // Calculate position (center vertically)
+                          const top = 16; // Center the reservation (cell height is 64px, reservation height is 20px)
                           
-                          // Style based on platform and position
-                          const style = getReservationStyle(res);
+                          // Style based on platform
+                          const style = getPlatformColorClass(res.platform);
                           const borderRadius = isStartDay && isEndDay 
                             ? 'rounded-full' 
                             : isStartDay 
