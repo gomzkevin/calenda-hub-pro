@@ -92,6 +92,30 @@ const MultiCalendar: React.FC = () => {
     return reservations.filter(res => res.propertyId === propertyId);
   }, [reservations]);
 
+  // Get parent-child relationship mapping
+  const propertyRelationships = useMemo(() => {
+    const relationships = new Map<string, string[]>();
+    const childToParent = new Map<string, string>();
+    
+    // Build relationships map
+    properties.forEach(property => {
+      if (property.type === 'parent') {
+        // Initialize an array for this parent's children
+        relationships.set(property.id, []);
+      } else if (property.type === 'child' && property.parentId) {
+        // Add this child to its parent's array
+        const children = relationships.get(property.parentId) || [];
+        children.push(property.id);
+        relationships.set(property.parentId, children);
+        
+        // Also record child-to-parent mapping
+        childToParent.set(property.id, property.parentId);
+      }
+    });
+    
+    return { parentToChildren: relationships, childToParent };
+  }, [properties]);
+
   const isLoading = reservationsQueries.isLoading || isLoadingProperties;
 
   // Get the date range display
@@ -191,6 +215,74 @@ const MultiCalendar: React.FC = () => {
     return { property: sourceProperty, reservation: sourceReservation };
   }, [reservations, properties]);
 
+  // Check if a day has any parent or related child reservations
+  const getDayReservationStatus = useCallback((property: Property, day: Date) => {
+    const normalizedDay = normalizeDate(day);
+    
+    // Get direct reservations for this property
+    const directReservations = getReservationsForProperty(property.id).filter(res => {
+      const normalizedStart = normalizeDate(res.startDate);
+      const normalizedEnd = normalizeDate(res.endDate);
+      return normalizedDay >= normalizedStart && normalizedDay <= normalizedEnd;
+    });
+    
+    // If there are direct reservations, return them
+    if (directReservations.length > 0) {
+      return { 
+        hasReservation: true, 
+        isIndirect: false,
+        reservations: directReservations
+      };
+    }
+    
+    // For parent properties, check if any child is reserved
+    if (property.type === 'parent') {
+      const childrenIds = propertyRelationships.parentToChildren.get(property.id) || [];
+      
+      // Check if any child property has a reservation on this day
+      for (const childId of childrenIds) {
+        const childReservations = getReservationsForProperty(childId).filter(res => {
+          const normalizedStart = normalizeDate(res.startDate);
+          const normalizedEnd = normalizeDate(res.endDate);
+          return normalizedDay >= normalizedStart && normalizedDay <= normalizedEnd;
+        });
+        
+        if (childReservations.length > 0) {
+          // There's at least one child with a reservation
+          return { 
+            hasReservation: true, 
+            isIndirect: true,
+            reservations: childReservations
+          };
+        }
+      }
+    }
+    
+    // For child properties, check if parent is reserved
+    if (property.type === 'child' && property.parentId) {
+      const parentReservations = getReservationsForProperty(property.parentId).filter(res => {
+        const normalizedStart = normalizeDate(res.startDate);
+        const normalizedEnd = normalizeDate(res.endDate);
+        return normalizedDay >= normalizedStart && normalizedDay <= normalizedEnd;
+      });
+      
+      if (parentReservations.length > 0) {
+        return { 
+          hasReservation: true, 
+          isIndirect: true,
+          reservations: parentReservations
+        };
+      }
+    }
+    
+    // No reservations found
+    return { 
+      hasReservation: false, 
+      isIndirect: false,
+      reservations: []
+    };
+  }, [getReservationsForProperty, normalizeDate, properties, propertyRelationships.parentToChildren]);
+
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with date range and navigation buttons */}
@@ -247,125 +339,143 @@ const MultiCalendar: React.FC = () => {
               ))}
               
               {/* Property rows */}
-              {properties.map((property: Property) => (
-                <React.Fragment key={property.id}>
-                  {/* Property name (first column) */}
-                  <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate h-16">
-                    <div className="flex flex-col">
-                      <span>{property.name}</span>
-                      {property.type && property.type !== 'standalone' && (
-                        <span className="text-xs text-muted-foreground mt-1">
-                          {property.type === 'parent' ? 'Alojamiento principal' : 'Habitación'}
-                        </span>
-                      )}
+              {properties.map((property: Property) => {
+                // Get type indicator for property
+                const typeIndicator = 
+                  property.type === 'parent' ? 'Alojamiento principal' : 
+                  property.type === 'child' ? 'Habitación' : '';
+                
+                return (
+                  <React.Fragment key={property.id}>
+                    {/* Property name (first column) */}
+                    <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate h-16">
+                      <div className="flex flex-col">
+                        <span>{property.name}</span>
+                        {typeIndicator && (
+                          <span className="text-xs text-muted-foreground mt-1">
+                            {typeIndicator}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Calendar cells for each property */}
-                  {visibleDays.map((day, dayIndex) => {
-                    const isToday = isSameDay(day, new Date());
-                    const normalizedDay = normalizeDate(day);
                     
-                    // Get reservations that include this day
-                    const dayReservations = getReservationsForProperty(property.id).filter(res => {
-                      const normalizedStart = normalizeDate(res.startDate);
-                      const normalizedEnd = normalizeDate(res.endDate);
+                    {/* Calendar cells for each property */}
+                    {visibleDays.map((day, dayIndex) => {
+                      const isToday = isSameDay(day, new Date());
+                      const normalizedDay = normalizeDate(day);
+                      
+                      // Get reservation status for this day
+                      const { 
+                        hasReservation, 
+                        isIndirect, 
+                        reservations: dayReservations 
+                      } = getDayReservationStatus(property, day);
+                      
+                      // Sort reservations for consistent display order
+                      const sortedDayReservations = [...dayReservations].sort(sortReservations);
+                      
+                      // Apply background color to indicate status
+                      let bgColorClass = isToday ? 'bg-blue-50' : '';
+                      
+                      // Add status indicator for cells without visible reservations
+                      if (hasReservation && sortedDayReservations.length === 0) {
+                        // This is for cells affected by parent/child relationships
+                        bgColorClass = isIndirect ? 'bg-gray-100' : bgColorClass;
+                      }
                       
                       return (
-                        normalizedDay >= normalizedStart && 
-                        normalizedDay <= normalizedEnd
+                        <div
+                          key={`day-${property.id}-${dayIndex}`}
+                          className={`border relative min-h-[4rem] h-16 ${bgColorClass}`}
+                        >
+                          {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                            </div>
+                          )}
+                          
+                          {sortedDayReservations.map((res) => {
+                            // Determine if this is start/end of reservation for styling
+                            const isStartDay = isSameDay(normalizeDate(res.startDate), normalizedDay);
+                            const isEndDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
+                            const isSingleDay = isStartDay && isEndDay;
+                            
+                            // Get the lane assigned to this reservation
+                            const lane = propertyLanes.get(`${property.id}-${res.id}`) || 0;
+                            
+                            // Calculate vertical position based on lane
+                            const laneHeight = 24; // Height for each lane
+                            const baseOffset = 4;  // Base padding from the top
+                            const topPosition = baseOffset + (lane * laneHeight);
+                            
+                            // Style for the 60/40 rule and borders
+                            const leftValue = isStartDay ? '60%' : '0%';
+                            const rightValue = isEndDay ? '60%' : '0%';
+                            const borderRadius = isSingleDay
+                              ? 'rounded-full'
+                              : isStartDay
+                                ? 'rounded-l-full'
+                                : isEndDay
+                                  ? 'rounded-r-full'
+                                  : '';
+                            
+                            // Style based on platform/type
+                            const style = getReservationStyle(res);
+                            
+                            // Get source info for related blocks
+                            const sourceInfo = getSourceReservationInfo(res);
+                            
+                            return (
+                              <TooltipProvider key={`res-${res.id}-${dayIndex}`}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div 
+                                      className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
+                                      style={{
+                                        top: `${topPosition}px`,
+                                        left: leftValue,
+                                        right: rightValue,
+                                        zIndex: 5
+                                      }}
+                                    >
+                                      {isStartDay && (
+                                        <span className="truncate">
+                                          {res.sourceReservationId ? (
+                                            <Link className="h-3 w-3 inline mr-1" />
+                                          ) : null}
+                                          {res.platform}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs">
+                                      <p><strong>{property.name}</strong></p>
+                                      <p><strong>Platform:</strong> {res.platform}</p>
+                                      <p><strong>Check-in:</strong> {format(res.startDate, 'MMM d, yyyy')}</p>
+                                      <p><strong>Check-out:</strong> {format(res.endDate, 'MMM d, yyyy')}</p>
+                                      
+                                      {sourceInfo.property && (
+                                        <p className="text-muted-foreground mt-1">
+                                          <em>Bloqueado por reserva en {sourceInfo.property.name}</em>
+                                        </p>
+                                      )}
+                                      
+                                      {res.notes && res.notes !== 'Blocked' && (
+                                        <p><strong>Notes:</strong> {res.notes}</p>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })}
+                        </div>
                       );
-                    });
-                    
-                    // Sort reservations for consistent display order
-                    const sortedDayReservations = [...dayReservations].sort(sortReservations);
-                    
-                    return (
-                      <div
-                        key={`day-${property.id}-${dayIndex}`}
-                        className={`border relative min-h-[4rem] h-16 ${isToday ? 'bg-blue-50' : ''}`}
-                      >
-                        {sortedDayReservations.map((res) => {
-                          // Determine if this is start/end of reservation for styling
-                          const isStartDay = isSameDay(normalizeDate(res.startDate), normalizedDay);
-                          const isEndDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
-                          const isSingleDay = isStartDay && isEndDay;
-                          
-                          // Get the lane assigned to this reservation
-                          const lane = propertyLanes.get(`${property.id}-${res.id}`) || 0;
-                          
-                          // Calculate vertical position based on lane
-                          const laneHeight = 24; // Height for each lane
-                          const baseOffset = 4;  // Base padding from the top
-                          const topPosition = baseOffset + (lane * laneHeight);
-                          
-                          // Style for the 60/40 rule and borders
-                          const leftValue = isStartDay ? '60%' : '0%';
-                          const rightValue = isEndDay ? '60%' : '0%';
-                          const borderRadius = isSingleDay
-                            ? 'rounded-full'
-                            : isStartDay
-                              ? 'rounded-l-full'
-                              : isEndDay
-                                ? 'rounded-r-full'
-                                : '';
-                          
-                          // Style based on platform/type
-                          const style = getReservationStyle(res);
-                          
-                          // Get source info for related blocks
-                          const sourceInfo = getSourceReservationInfo(res);
-                          
-                          return (
-                            <TooltipProvider key={`res-${res.id}-${dayIndex}`}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div 
-                                    className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
-                                    style={{
-                                      top: `${topPosition}px`,
-                                      left: leftValue,
-                                      right: rightValue,
-                                      zIndex: 5
-                                    }}
-                                  >
-                                    {isStartDay && (
-                                      <span className="truncate">
-                                        {res.sourceReservationId ? (
-                                          <Link className="h-3 w-3 inline mr-1" />
-                                        ) : null}
-                                        {res.platform}
-                                      </span>
-                                    )}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="text-xs">
-                                    <p><strong>{property.name}</strong></p>
-                                    <p><strong>Platform:</strong> {res.platform}</p>
-                                    <p><strong>Check-in:</strong> {format(res.startDate, 'MMM d, yyyy')}</p>
-                                    <p><strong>Check-out:</strong> {format(res.endDate, 'MMM d, yyyy')}</p>
-                                    
-                                    {sourceInfo.property && (
-                                      <p className="text-muted-foreground mt-1">
-                                        <em>Bloqueado por reserva en {sourceInfo.property.name}</em>
-                                      </p>
-                                    )}
-                                    
-                                    {res.notes && res.notes !== 'Blocked' && (
-                                      <p><strong>Notes:</strong> {res.notes}</p>
-                                    )}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </div>
           </div>
         </ScrollArea>
