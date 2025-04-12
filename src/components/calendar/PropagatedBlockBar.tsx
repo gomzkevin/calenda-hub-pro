@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
@@ -49,8 +50,8 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
     block.endDate
   );
   
-  // Calculate vertical position
-  const verticalPosition = baseOffset - (lane * laneHeight / 2);
+  // Calculate vertical position relative to the week
+  const verticalPosition = baseOffset + (lane * laneHeight);
   
   return (
     <TooltipProvider key={`block-${weekIndex}-${block.id}`}>

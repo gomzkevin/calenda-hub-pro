@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
@@ -49,8 +50,8 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
     block.endDate
   );
   
-  // Calculate vertical position
-  const verticalPosition = baseOffset - (lane * laneHeight);
+  // Calculate vertical position relative to the week
+  const verticalPosition = baseOffset + (lane * laneHeight);
   
   return (
     <TooltipProvider key={`rel-${weekIndex}-${block.id}`}>

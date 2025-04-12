@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Reservation } from '@/types';
@@ -49,8 +50,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     reservation.endDate
   );
   
-  // Calculate consistent vertical position based on lane
-  const verticalPosition = baseOffset - (lane * laneHeight);
+  // Calculate vertical position relative to the week
+  const verticalPosition = baseOffset + (lane * laneHeight);
   
   // Determine text size based on bar width - smaller text for short reservations
   const isShortReservation = (endPos - startPos) < 1;

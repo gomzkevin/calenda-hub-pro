@@ -26,13 +26,13 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
 }) => {
   // Constants for layout calculations
   const laneHeight = 14; // Height for each reservation lane
-  const baseOffset = -70; // Base offset from top
+  const baseOffset = 40; // Adjusted base offset from top
   
   return (
     <>
       {/* Regular Reservation bars */}
       {weeks.map((week, weekIndex) => (
-        <div key={`reservations-week-${weekIndex}`} className="col-span-7 relative h-0">
+        <div key={`reservations-week-${weekIndex}`} className="col-span-7 relative">
           {week[0] && filteredReservations.filter(reservation => {
             return week.some(day => {
               if (!day) return false;
@@ -61,7 +61,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
       
       {/* Relationship Block Bars (parent-child blocks) */}
       {weeks.map((week, weekIndex) => (
-        <div key={`relationship-week-${weekIndex}`} className="col-span-7 relative h-0">
+        <div key={`relationship-week-${weekIndex}`} className="col-span-7 relative">
           {week[0] && relationshipBlocks.filter(block => {
             return week.some(day => {
               if (!day) return false;
@@ -90,7 +90,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
       
       {/* Regular Propagated Block Bars */}
       {weeks.map((week, weekIndex) => (
-        <div key={`propagated-week-${weekIndex}`} className="col-span-7 relative h-0">
+        <div key={`propagated-week-${weekIndex}`} className="col-span-7 relative">
           {week[0] && propagatedBlocks.filter(block => {
             return week.some(day => {
               if (!day) return false;
