@@ -13,7 +13,6 @@ interface MonthlyCalendarProps {
 }
 
 // Helper to normalize date to noon UTC to avoid timezone issues
-// This MUST be defined before being used in any other function
 const normalizeDate = (date: Date): Date => {
   const newDate = new Date(date);
   newDate.setUTCHours(12, 0, 0, 0);
@@ -28,7 +27,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     queryKey: ['reservations', currentMonth.getMonth() + 1, currentMonth.getFullYear(), propertyId],
     queryFn: async () => {
       if (propertyId) {
+        console.log('Fetching reservations for property:', propertyId);
         const allReservations = await getReservationsForProperty(propertyId);
+        console.log('Got reservations:', allReservations);
         return allReservations.filter(res => {
           const monthStart = startOfMonth(currentMonth);
           const monthEnd = endOfMonth(currentMonth);
@@ -57,6 +58,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
       endDate: normalizeDate(new Date(res.endDate))
     }));
     
+    // Check each reservation for relationship block flag
+    console.log('Normalized reservations:', normalizedReservations);
+    
     // Filter out blocked reservations (but keep sourceReservationId blocks for separate display)
     const blockedReservations = normalizedReservations.filter(res => 
       res.sourceReservationId && (res.notes === 'Blocked' || res.status === 'Blocked')
@@ -64,14 +68,16 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     
     // Identify relationship blocks (parent-child blocks)
     const relatedBlocks = normalizedReservations.filter(res => 
-      (res as any).isRelationshipBlock === true
+      res.isRelationshipBlock === true
     );
+    
+    console.log('Related blocks:', relatedBlocks);
     
     // Filter valid reservations (not blocked or relationship blocks)
     const validReservations = normalizedReservations.filter(res => 
       res.notes !== 'Blocked' && 
       res.status !== 'Blocked' && 
-      !(res as any).isRelationshipBlock
+      !res.isRelationshipBlock
     );
     
     return {
@@ -263,6 +269,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     const lanes: Record<number, Record<string, number>> = {};
     
     if (relationshipBlocks.length === 0) return lanes;
+    
+    console.log('Calculating relationship block lanes for:', relationshipBlocks);
     
     weeks.forEach((week, weekIndex) => {
       const weekLanes: Record<string, number> = {};

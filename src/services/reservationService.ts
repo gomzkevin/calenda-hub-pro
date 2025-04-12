@@ -137,10 +137,11 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
           .neq("status", "Blocked");  // Exclude those already marked as blocked
         
         if (!childResError && childReservations) {
+          // Add related blocks from children to parent
           relatedReservations = childReservations.map(mapReservationFromDatabase);
         }
       }
-    } else if (property.parent) {
+    } else if (property.parent_id) {
       // If this is a child property, get blocks from parent property
       const parentId = property.parent_id;
       
@@ -152,6 +153,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
         .neq("status", "Blocked");  // Exclude those already marked as blocked
       
       if (!parentResError && parentReservations) {
+        // Add related blocks from parent to child
         relatedReservations = parentReservations.map(mapReservationFromDatabase);
       }
     }
