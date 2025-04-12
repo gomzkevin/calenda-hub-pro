@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, eachWeekOfInterval, differenceInDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -37,8 +36,89 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     }
   });
   
-  // Filter out reservations with "Blocked" in notes
-  const reservations = allReservations.filter(res => res.notes !== 'Blocked');
+  // Filter and prioritize reservations with improved logic
+  const reservations = useMemo(() => {
+    if (!allReservations || allReservations.length === 0) return [];
+    
+    // Step 1: Normalize dates for consistency
+    const normalizedReservations = allReservations.map(res => ({
+      ...res,
+      startDate: normalizeDate(new Date(res.startDate)),
+      endDate: normalizeDate(new Date(res.endDate))
+    }));
+    
+    // Step 2: Group reservations by date range to identify duplicates
+    const reservationGroups: Record<string, Reservation[]> = {};
+    
+    normalizedReservations.forEach(res => {
+      // Create a unique key based on start and end dates for the property
+      const key = `${res.propertyId}_${res.startDate.toISOString()}_${res.endDate.toISOString()}`;
+      
+      if (!reservationGroups[key]) {
+        reservationGroups[key] = [];
+      }
+      
+      reservationGroups[key].push(res);
+    });
+    
+    // Step 3: Filter out duplicates and prioritize real reservations over blocks
+    const filteredReservations: Reservation[] = [];
+    
+    Object.values(reservationGroups).forEach(group => {
+      if (group.length === 1) {
+        // If not a duplicate and not a auto-block, add it
+        const res = group[0];
+        const isAutoBlock = res.notes === 'Blocked' || res.status === 'Blocked';
+        
+        // Keep the reservation if it's not an auto-block or if it's a manual block (isBlocking = true)
+        if (!isAutoBlock || res.isBlocking === true) {
+          filteredReservations.push(res);
+        }
+      } else {
+        // For duplicates, prioritize in this order:
+        // 1. Manual reservations (source = 'Manual')
+        // 2. External platform reservations (Airbnb, Booking, etc.)
+        // 3. Manual blocks (isBlocking = true)
+        // 4. Auto blocks only if nothing else is available
+        
+        // First, check for manual reservations
+        const manualReservation = group.find(res => 
+          res.source === 'Manual' && res.status !== 'Blocked' && !res.notes?.includes('Blocked')
+        );
+        
+        if (manualReservation) {
+          filteredReservations.push(manualReservation);
+          return;
+        }
+        
+        // Next, check for external platform reservations
+        const externalReservation = group.find(res => 
+          res.source === 'iCal' && res.status !== 'Blocked' && !res.notes?.includes('Blocked')
+        );
+        
+        if (externalReservation) {
+          filteredReservations.push(externalReservation);
+          return;
+        }
+        
+        // Then, check for manual blocks
+        const manualBlock = group.find(res => 
+          res.isBlocking === true
+        );
+        
+        if (manualBlock) {
+          filteredReservations.push(manualBlock);
+          return;
+        }
+        
+        // Finally, add an auto block if nothing else fits
+        // (this is unlikely to happen but handles edge cases)
+        filteredReservations.push(group[0]);
+      }
+    });
+    
+    return filteredReservations;
+  }, [allReservations]);
   
   const nextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1));
@@ -347,6 +427,10 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                     // Determine text size based on bar width - smaller text for short reservations
                     const isShortReservation = barEndPos - barStartPos < 1;
                     
+                    // Display status if it's a blocked reservation
+                    const isBlocked = reservation.status === 'Blocked' || reservation.isBlocking === true;
+                    const displayLabel = isBlocked ? 'Blocked' : reservation.platform;
+                    
                     return (
                       <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
                         <Tooltip>
@@ -360,7 +444,8 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                                 minWidth: '40px'
                               }}
                             >
-                              {reservation.platform}
+                              {displayLabel}
+                              {reservation.isBlocking && <span className="ml-1 text-xs">(Block)</span>}
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -368,6 +453,9 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
                               <p><strong>Platform:</strong> {reservation.platform}</p>
                               <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
                               <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
+                              {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
+                              {reservation.isBlocking && <p><strong>Blocking:</strong> Yes</p>}
+                              {reservation.guestName && <p><strong>Guest:</strong> {reservation.guestName}</p>}
                               {reservation.notes && <p><strong>Notes:</strong> {reservation.notes}</p>}
                             </div>
                           </TooltipContent>
