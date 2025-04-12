@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Property, PropertyType } from "@/types";
 
@@ -68,3 +67,63 @@ export const getPropertyById = async (propertyId: string): Promise<Property | nu
     createdAt: new Date(data.created_at)
   };
 };
+
+/**
+ * Fetch all properties with their relationships
+ */
+export const getPropertiesWithRelationships = async (): Promise<Property[]> => {
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*, parent:parent_id(id, name)");
+  
+  if (error) {
+    console.error("Error fetching properties with relationships:", error);
+    throw error;
+  }
+  
+  return data ? data.map(mapPropertyFromDatabase) : [];
+};
+
+/**
+ * Set property relationship
+ */
+export const setPropertyRelationship = async (
+  propertyId: string, 
+  parentId?: string, 
+  type?: PropertyType
+): Promise<Property> => {
+  const updates: any = {};
+  if (parentId !== undefined) updates.parent_id = parentId;
+  if (type !== undefined) updates.type = type;
+  
+  const { data, error } = await supabase
+    .from("properties")
+    .update(updates)
+    .eq("id", propertyId)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error(`Error updating property ${propertyId} relationships:`, error);
+    throw error;
+  }
+  
+  return mapPropertyFromDatabase(data);
+};
+
+const mapPropertyFromDatabase = (prop: any): Property => ({
+  id: prop.id,
+  operatorId: prop.operator_id,
+  name: prop.name,
+  address: prop.address,
+  internalCode: prop.internal_code,
+  notes: prop.notes || undefined,
+  imageUrl: prop.image_url || undefined,
+  bedrooms: prop.bedrooms,
+  bathrooms: prop.bathrooms,
+  capacity: prop.capacity,
+  type: prop.type as PropertyType || 'standalone',
+  parentId: prop.parent_id || undefined,
+  description: prop.description || undefined,
+  createdAt: new Date(prop.created_at)
+});

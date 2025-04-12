@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, Platform, ReservationSource, ReservationStatus } from "@/types";
 
@@ -31,6 +30,8 @@ const mapReservationFromDatabase = (dbRes: any): Reservation => {
     icalUrl: dbRes.ical_url || undefined,
     notes: dbRes.notes || undefined,
     externalId: dbRes.external_id || undefined,
+    isBlocking: dbRes.is_blocking || false,
+    sourceReservationId: dbRes.source_reservation_id || undefined,
     createdAt: new Date(dbRes.created_at)
   };
 };
@@ -175,6 +176,43 @@ export const createManualReservation = async (data: {
 };
 
 /**
+ * Create a new blocking reservation
+ */
+export const createBlockingReservation = async (data: {
+  propertyId: string;
+  startDate: Date;
+  endDate: Date;
+  isBlocking?: boolean;
+  sourceReservationId?: string;
+  notes?: string;
+}): Promise<Reservation> => {
+  const { propertyId, startDate, endDate, isBlocking, sourceReservationId, notes } = data;
+  
+  const { data: result, error } = await supabase
+    .from("reservations")
+    .insert({
+      property_id: propertyId,
+      start_date: normalizeDate(startDate).toISOString().split('T')[0],
+      end_date: normalizeDate(endDate).toISOString().split('T')[0],
+      platform: 'Manual',
+      source: 'Manual',
+      status: 'Blocked',
+      is_blocking: isBlocking || false,
+      source_reservation_id: sourceReservationId || null,
+      notes: notes || 'Blocked'
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error creating blocking reservation:", error);
+    throw error;
+  }
+  
+  return mapReservationFromDatabase(result);
+};
+
+/**
  * Update an existing manual reservation
  */
 export const updateManualReservation = async (
@@ -269,4 +307,46 @@ export const checkAvailability = async (
   
   // If data is empty, the property is available
   return !data || data.length === 0;
+};
+
+/**
+ * New method to propagate blocks between related properties
+ */
+export const propagateReservationBlocks = async (
+  reservation: Reservation
+): Promise<Reservation[]> => {
+  const { data: property, error: propertyError } = await supabase
+    .from("properties")
+    .select("*, children:properties(id)")
+    .eq("id", reservation.propertyId)
+    .single();
+  
+  if (propertyError) {
+    console.error("Error fetching property for block propagation:", propertyError);
+    return [];
+  }
+  
+  const propagatedReservations: Reservation[] = [];
+  
+  // If this is a parent property, block all child properties
+  if (property.type === 'parent' && property.children?.length) {
+    for (const child of property.children) {
+      try {
+        const blockedChildReservation = await createBlockingReservation({
+          propertyId: child.id,
+          startDate: reservation.startDate,
+          endDate: reservation.endDate,
+          isBlocking: true,
+          sourceReservationId: reservation.id,
+          notes: `Blocked by parent reservation ${reservation.id}`
+        });
+        
+        propagatedReservations.push(blockedChildReservation);
+      } catch (err) {
+        console.error(`Error blocking child property ${child.id}:`, err);
+      }
+    }
+  }
+  
+  return propagatedReservations;
 };
