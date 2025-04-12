@@ -92,7 +92,7 @@ export const getReservations = async (filters?: {
  * Fetch reservations for a specific property
  */
 export const getReservationsForProperty = async (propertyId: string): Promise<Reservation[]> => {
-  // First, get basic property information without any nested selects
+  // Get basic property information first, without any nested selects
   const { data: property, error: propertyError } = await supabase
     .from("properties")
     .select("id, parent_id, type")
@@ -105,7 +105,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
   }
   
   // Get direct reservations for this property
-  const { data, error } = await supabase
+  const { data: directReservationsData, error } = await supabase
     .from("reservations")
     .select("*")
     .eq("property_id", propertyId);
@@ -115,7 +115,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     throw error;
   }
   
-  const directReservations = data ? data.map(mapReservationFromDatabase) : [];
+  const directReservations = directReservationsData ? directReservationsData.map(mapReservationFromDatabase) : [];
   
   // Now, get related block reservations based on property relationship
   let relatedReservations: Reservation[] = [];
@@ -123,25 +123,29 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
   if (property) {
     // For parent property: get child property reservations
     if (property.type === 'parent') {
-      // Get child properties in a separate query
+      // First get child properties as a separate step
       const { data: childProperties, error: childError } = await supabase
         .from("properties")
         .select("id")
         .eq("parent_id", propertyId);
       
-      if (!childError && childProperties && childProperties.length > 0) {
+      if (childError) {
+        console.error(`Error fetching child properties for parent ${propertyId}:`, childError);
+      } else if (childProperties && childProperties.length > 0) {
         const childIds = childProperties.map(child => child.id);
         
-        // Get reservations from child properties that should block this parent
-        const { data: childReservations, error: childResError } = await supabase
+        // Then get reservations from these children
+        const { data: childReservationsData, error: childResError } = await supabase
           .from("reservations")
           .select("*")
           .in("property_id", childIds)
           .neq("status", "Blocked");  // Exclude those already marked as blocked
         
-        if (!childResError && childReservations) {
+        if (childResError) {
+          console.error(`Error fetching child reservations for parent ${propertyId}:`, childResError);
+        } else if (childReservationsData) {
           // Add related blocks from children to parent
-          relatedReservations = childReservations.map(mapReservationFromDatabase);
+          relatedReservations = childReservationsData.map(mapReservationFromDatabase);
         }
       }
     } 
@@ -149,16 +153,18 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     else if (property.parent_id) {
       const parentId = property.parent_id;
       
-      // Get reservations from parent property that should block this child
-      const { data: parentReservations, error: parentResError } = await supabase
+      // Get reservations from parent property
+      const { data: parentReservationsData, error: parentResError } = await supabase
         .from("reservations")
         .select("*")
         .eq("property_id", parentId)
         .neq("status", "Blocked");  // Exclude those already marked as blocked
       
-      if (!parentResError && parentReservations) {
+      if (parentResError) {
+        console.error(`Error fetching parent reservations for child ${propertyId}:`, parentResError);
+      } else if (parentReservationsData) {
         // Add related blocks from parent to child
-        relatedReservations = parentReservations.map(mapReservationFromDatabase);
+        relatedReservations = parentReservationsData.map(mapReservationFromDatabase);
       }
     }
   }
@@ -424,16 +430,18 @@ export const propagateReservationBlocks = async (
     return [];
   }
   
-  // Get child properties in a separate query
+  // Get child properties in a separate query to avoid type recursion
   let children: { id: string }[] = [];
   
-  if (property.type === 'parent') {
+  if (property && property.type === 'parent') {
     const { data: childProperties, error: childrenError } = await supabase
       .from("properties")
       .select("id")
       .eq("parent_id", property.id);
       
-    if (!childrenError && childProperties) {
+    if (childrenError) {
+      console.error(`Error fetching child properties for parent ${property.id}:`, childrenError);
+    } else if (childProperties) {
       children = childProperties;
     }
   }
@@ -441,7 +449,7 @@ export const propagateReservationBlocks = async (
   const propagatedReservations: Reservation[] = [];
   
   // If this is a parent property, block all child properties
-  if (property.type === 'parent' && children.length > 0) {
+  if (property && property.type === 'parent' && children.length > 0) {
     for (const child of children) {
       try {
         const blockedChildReservation = await createBlockingReservation({
