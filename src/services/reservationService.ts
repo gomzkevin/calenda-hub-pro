@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, Platform, ReservationSource, ReservationStatus } from "@/types";
 
@@ -32,6 +33,7 @@ const mapReservationFromDatabase = (dbRes: any): Reservation => {
     externalId: dbRes.external_id || undefined,
     isBlocking: dbRes.is_blocking || false,
     sourceReservationId: dbRes.source_reservation_id || undefined,
+    isRelationshipBlock: false, // Default value, we'll set this when needed
     createdAt: new Date(dbRes.created_at)
   };
 };
@@ -93,7 +95,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
   // Get the property details to determine if it's a parent or child
   const { data: property, error: propertyError } = await supabase
     .from("properties")
-    .select("*, parent:parent_id(*)")
+    .select("id, parent_id, type")
     .eq("id", propertyId)
     .single();
   
@@ -408,9 +410,10 @@ export const checkAvailability = async (
 export const propagateReservationBlocks = async (
   reservation: Reservation
 ): Promise<Reservation[]> => {
+  // Get property with its children, but using a simplified query to avoid recursion
   const { data: property, error: propertyError } = await supabase
     .from("properties")
-    .select("*, children:properties(id)")
+    .select("id, type")
     .eq("id", reservation.propertyId)
     .single();
   
@@ -419,11 +422,25 @@ export const propagateReservationBlocks = async (
     return [];
   }
   
+  // If this is a parent property, we need to get its children separately
+  let children: { id: string }[] = [];
+  
+  if (property.type === 'parent') {
+    const { data: childProperties, error: childrenError } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("parent_id", property.id);
+      
+    if (!childrenError && childProperties) {
+      children = childProperties;
+    }
+  }
+  
   const propagatedReservations: Reservation[] = [];
   
   // If this is a parent property, block all child properties
-  if (property.type === 'parent' && property.children?.length) {
-    for (const child of property.children) {
+  if (property.type === 'parent' && children.length > 0) {
+    for (const child of children) {
       try {
         const blockedChildReservation = await createBlockingReservation({
           propertyId: child.id,
