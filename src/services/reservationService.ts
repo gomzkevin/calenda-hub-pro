@@ -92,7 +92,7 @@ export const getReservations = async (filters?: {
  * Fetch reservations for a specific property
  */
 export const getReservationsForProperty = async (propertyId: string): Promise<Reservation[]> => {
-  // Get basic property information first, without any nested selects
+  // Step 1: Get basic property information first, without any nested selects
   const { data: property, error: propertyError } = await supabase
     .from("properties")
     .select("id, parent_id, type")
@@ -104,7 +104,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     throw propertyError;
   }
   
-  // Get direct reservations for this property
+  // Step 2: Get direct reservations for this property
   const { data: directReservationsData, error } = await supabase
     .from("reservations")
     .select("*")
@@ -117,13 +117,13 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
   
   const directReservations = directReservationsData ? directReservationsData.map(mapReservationFromDatabase) : [];
   
-  // Now, get related block reservations based on property relationship
+  // Step 3: Get related block reservations based on property relationship
   let relatedReservations: Reservation[] = [];
   
   if (property) {
     // For parent property: get child property reservations
     if (property.type === 'parent') {
-      // First get child properties as a separate step
+      // Step 3a: Get child properties as a separate query
       const { data: childProperties, error: childError } = await supabase
         .from("properties")
         .select("id")
@@ -134,7 +134,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
       } else if (childProperties && childProperties.length > 0) {
         const childIds = childProperties.map(child => child.id);
         
-        // Then get reservations from these children
+        // Step 3b: Get reservations from these children
         const { data: childReservationsData, error: childResError } = await supabase
           .from("reservations")
           .select("*")
@@ -153,7 +153,7 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     else if (property.parent_id) {
       const parentId = property.parent_id;
       
-      // Get reservations from parent property
+      // Step 3c: Get reservations from parent property
       const { data: parentReservationsData, error: parentResError } = await supabase
         .from("reservations")
         .select("*")
@@ -169,13 +169,13 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
     }
   }
   
-  // Include the special property relationship blocks with a special flag
+  // Step 4: Include the special property relationship blocks with a special flag
   const relationshipBlocks = relatedReservations.map(reservation => ({
     ...reservation,
     isRelationshipBlock: true
   }));
   
-  // Combine direct reservations with relationship blocks
+  // Step 5: Combine direct reservations with relationship blocks
   return [...directReservations, ...relationshipBlocks];
 };
 
