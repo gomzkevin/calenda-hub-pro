@@ -13,48 +13,43 @@ interface PropertyCardProps {
 const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
   const navigate = useNavigate();
   
-  // Determine the gradient based on the property bedrooms count
-  const getGradient = () => {
+  // Determine the color based on the property bedrooms count
+  const getBorderColor = () => {
     switch (property.bedrooms) {
       case 1:
-        return "bg-gradient-to-r from-blue-50 to-blue-100";
+        return "border-l-blue-400";
       case 2:
-        return "bg-gradient-to-r from-green-50 to-green-100";
+        return "border-l-green-400";
       case 3:
-        return "bg-gradient-to-r from-purple-50 to-purple-100";
+        return "border-l-purple-400";
       case 4:
-        return "bg-gradient-to-r from-amber-50 to-amber-100";
+        return "border-l-amber-400";
       default:
-        return "bg-gradient-to-r from-gray-50 to-gray-100";
+        return "border-l-gray-400";
     }
   };
   
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div 
-        className={`aspect-video cursor-pointer flex items-center justify-center ${getGradient()}`}
-        onClick={() => navigate(`/properties/${property.id}`)}
-      >
-        <div className="text-center">
-          <Home className="h-12 w-12 mx-auto mb-2 text-primary/70" />
-          <span className="font-medium text-lg text-gray-700">{property.name}</span>
-        </div>
-      </div>
-      
+    <Card className={`overflow-hidden hover:shadow-md transition-shadow border-l-4 ${getBorderColor()}`}>
       <CardContent className="p-4">
-        <div 
-          className="font-semibold text-lg truncate mb-1 cursor-pointer" 
-          onClick={() => navigate(`/properties/${property.id}`)}
-        >
-          {property.name}
+        <div className="flex items-start justify-between">
+          <div>
+            <div 
+              className="font-semibold text-lg truncate mb-1 cursor-pointer hover:text-primary transition-colors" 
+              onClick={() => navigate(`/properties/${property.id}`)}
+            >
+              {property.name}
+            </div>
+            
+            <div className="flex items-center text-muted-foreground text-sm mb-3">
+              <MapPin className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+              <span className="truncate">{property.address}</span>
+            </div>
+          </div>
+          <Home className="h-6 w-6 text-muted-foreground/70 flex-shrink-0" />
         </div>
         
-        <div className="flex items-center text-muted-foreground text-sm mb-3">
-          <MapPin className="w-3.5 h-3.5 mr-1" />
-          <span className="truncate">{property.address}</span>
-        </div>
-        
-        <div className="flex justify-between">
+        <div className="flex justify-between mt-3">
           <div className="flex items-center text-sm">
             <BedDouble className="w-4 h-4 mr-1" />
             <span>{property.bedrooms} {property.bedrooms === 1 ? 'bed' : 'beds'}</span>
