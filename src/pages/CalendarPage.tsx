@@ -82,10 +82,12 @@ const CalendarPage: React.FC = () => {
               </Select>
             )}
           </div>
-          <AddReservationButton 
-            propertyId={selectedPropertyId} 
-            className="w-full sm:w-auto"
-          />
+          {selectedPropertyId && (
+            <AddReservationButton 
+              propertyId={selectedPropertyId} 
+              className="w-full sm:w-auto"
+            />
+          )}
         </div>
       </div>
       

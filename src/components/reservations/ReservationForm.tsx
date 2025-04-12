@@ -75,6 +75,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             ...prev,
             availability: "Error al verificar disponibilidad"
           }));
+          setIsAvailable(false); // Set to false when error occurs
         })
         .finally(() => setIsCheckingAvailability(false));
     }
