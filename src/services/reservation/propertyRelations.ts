@@ -85,11 +85,12 @@ export const generateRelatedPropertyBlocks = async (
         propertyId: childId,
         startDate: sourceReservation.startDate,
         endDate: sourceReservation.endDate,
-        source: 'System',
-        platform: 'System',
+        source: 'Manual', // Changed from 'System' to valid ReservationSource
+        platform: 'Manual', // Changed from 'System' to valid Platform
         status: 'Blocked',
         notes: 'Blocked',
-        sourceReservationId: sourceReservation.id
+        sourceReservationId: sourceReservation.id,
+        createdAt: new Date()
       });
     }
   }
@@ -103,11 +104,12 @@ export const generateRelatedPropertyBlocks = async (
       propertyId: parentId,
       startDate: sourceReservation.startDate,
       endDate: sourceReservation.endDate,
-      source: 'System',
-      platform: 'System',
+      source: 'Manual', // Changed from 'System' to valid ReservationSource
+      platform: 'Manual', // Changed from 'System' to valid Platform
       status: 'Blocked',
       notes: 'Blocked',
-      sourceReservationId: sourceReservation.id
+      sourceReservationId: sourceReservation.id,
+      createdAt: new Date()
     });
     
     // Create blocks for sibling properties
@@ -122,11 +124,12 @@ export const generateRelatedPropertyBlocks = async (
         propertyId: siblingId,
         startDate: sourceReservation.startDate,
         endDate: sourceReservation.endDate,
-        source: 'System',
-        platform: 'System',
+        source: 'Manual', // Changed from 'System' to valid ReservationSource
+        platform: 'Manual', // Changed from 'System' to valid Platform
         status: 'Blocked',
         notes: 'Blocked',
-        sourceReservationId: sourceReservation.id
+        sourceReservationId: sourceReservation.id,
+        createdAt: new Date()
       });
     }
   }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { addMonths } from 'date-fns';
 import { Reservation } from '@/types';
-import { getReservationsForMonth, getReservationsForProperty } from '@/services/reservation';
+import { getReservationsForMonth } from '@/services/reservation';
 import { useQuery } from '@tanstack/react-query';
 import { 
   calculateReservationLanes, 
@@ -27,14 +27,13 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
     queryFn: async () => {
       if (propertyId) {
         console.log('Fetching reservations for property:', propertyId);
-        const allReservations = await getReservationsForProperty(propertyId);
-        console.log('Got reservations:', allReservations);
-        return allReservations.filter(res => {
-          const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-          const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-          
-          return (res.startDate <= monthEnd && res.endDate >= monthStart);
-        });
+        const monthlyReservations = await getReservationsForMonth(
+          currentMonth.getMonth() + 1, 
+          currentMonth.getFullYear()
+        );
+        console.log('Got monthly reservations:', monthlyReservations);
+        // Filter reservations for the specific property
+        return monthlyReservations.filter(res => res.propertyId === propertyId);
       } else {
         return getReservationsForMonth(
           currentMonth.getMonth() + 1, 
