@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Link } from 'lucide-react';
@@ -9,6 +10,9 @@ import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservationService';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Define the number of days to show in the multi-calendar view
+const DAYS_TO_SHOW = 15;
 
 const MultiCalendar: React.FC = () => {
   const [startDate, setStartDate] = useState<Date>(new Date());
