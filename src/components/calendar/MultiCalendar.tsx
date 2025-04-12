@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
 import { Reservation, Property } from '@/types';
@@ -51,8 +52,14 @@ const MultiCalendar: React.FC = () => {
   
   // Only keep unique reservations - no duplicates
   const reservations = (reservationsQueries.data || []).filter(res => {
-    // Show if not blocked or if it's a relationship-based block
-    return res.notes !== 'Blocked' || res.sourceReservationId || res.isBlocking;
+    // Show all regular reservations
+    if (res.notes !== 'Blocked') return true;
+    
+    // Also show related blocks (with sourceReservationId or isBlocking=true)
+    if (res.sourceReservationId || res.isBlocking) return true;
+    
+    // Hide normal 'Blocked' without relationships
+    return false;
   });
   
   // Fetch properties
@@ -161,6 +168,29 @@ const MultiCalendar: React.FC = () => {
     return laneMap;
   }, [properties, getReservationsForProperty, normalizeDate, sortReservations]);
 
+  // Helper to get the UI style for a reservation
+  const getReservationStyle = useCallback((reservation: Reservation): string => {
+    // If this is a related block
+    if (reservation.status === 'Blocked' && (reservation.sourceReservationId || reservation.isBlocking)) {
+      return 'bg-gray-400 text-white border border-dashed border-white';
+    }
+    
+    // Regular reservation
+    return getPlatformColorClass(reservation.platform);
+  }, []);
+
+  // Find source property for a blocking reservation
+  const getSourceReservationInfo = useCallback((reservation: Reservation): { property?: Property, reservation?: Reservation } => {
+    if (!reservation.sourceReservationId) return {};
+    
+    const sourceReservation = reservations.find(r => r.id === reservation.sourceReservationId);
+    if (!sourceReservation) return {};
+    
+    const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
+    
+    return { property: sourceProperty, reservation: sourceReservation };
+  }, [reservations, properties]);
+
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       {/* Fixed header with date range and navigation buttons */}
@@ -221,7 +251,14 @@ const MultiCalendar: React.FC = () => {
                 <React.Fragment key={property.id}>
                   {/* Property name (first column) */}
                   <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate h-16">
-                    {property.name}
+                    <div className="flex flex-col">
+                      <span>{property.name}</span>
+                      {property.type && property.type !== 'standalone' && (
+                        <span className="text-xs text-muted-foreground mt-1">
+                          {property.type === 'parent' ? 'Alojamiento principal' : 'Habitación'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Calendar cells for each property */}
@@ -273,15 +310,18 @@ const MultiCalendar: React.FC = () => {
                                 ? 'rounded-r-full'
                                 : '';
                           
-                          // Style based on platform
-                          const style = getPlatformColorClass(res.platform);
+                          // Style based on platform/type
+                          const style = getReservationStyle(res);
+                          
+                          // Get source info for related blocks
+                          const sourceInfo = getSourceReservationInfo(res);
                           
                           return (
                             <TooltipProvider key={`res-${res.id}-${dayIndex}`}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div 
-                                    className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs text-white font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
+                                    className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
                                     style={{
                                       top: `${topPosition}px`,
                                       left: leftValue,
@@ -290,7 +330,12 @@ const MultiCalendar: React.FC = () => {
                                     }}
                                   >
                                     {isStartDay && (
-                                      <span className="truncate">{res.platform}</span>
+                                      <span className="truncate">
+                                        {res.sourceReservationId ? (
+                                          <Link className="h-3 w-3 inline mr-1" />
+                                        ) : null}
+                                        {res.platform}
+                                      </span>
                                     )}
                                   </div>
                                 </TooltipTrigger>
@@ -300,6 +345,13 @@ const MultiCalendar: React.FC = () => {
                                     <p><strong>Platform:</strong> {res.platform}</p>
                                     <p><strong>Check-in:</strong> {format(res.startDate, 'MMM d, yyyy')}</p>
                                     <p><strong>Check-out:</strong> {format(res.endDate, 'MMM d, yyyy')}</p>
+                                    
+                                    {sourceInfo.property && (
+                                      <p className="text-muted-foreground mt-1">
+                                        <em>Bloqueado por reserva en {sourceInfo.property.name}</em>
+                                      </p>
+                                    )}
+                                    
                                     {res.notes && res.notes !== 'Blocked' && (
                                       <p><strong>Notes:</strong> {res.notes}</p>
                                     )}

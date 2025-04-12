@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, Platform, ReservationSource, ReservationStatus } from "@/types";
 
@@ -172,7 +173,12 @@ export const createManualReservation = async (data: {
     throw new Error("Failed to create reservation");
   }
   
-  return mapReservationFromDatabase(result);
+  const reservation = mapReservationFromDatabase(result);
+  
+  // Propagate blocks between related properties
+  await propagateReservationBlocks(reservation);
+  
+  return reservation;
 };
 
 /**
@@ -349,4 +355,68 @@ export const propagateReservationBlocks = async (
   }
   
   return propagatedReservations;
+};
+
+/**
+ * Check if all other child rooms are available for a specific date range
+ */
+export const checkOtherRoomsAvailability = async (
+  childrenIds: string[],
+  currentChildId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<boolean> => {
+  // Get all other child properties except the current one
+  const otherChildIds = childrenIds.filter(id => id !== currentChildId);
+  
+  // Check if at least one other room is available
+  for (const childId of otherChildIds) {
+    const isAvailable = await checkAvailability(childId, startDate, endDate);
+    if (isAvailable) {
+      // If at least one room is available, return true
+      return true;
+    }
+  }
+  
+  // If no rooms are available, return false
+  return false;
+};
+
+/**
+ * Delete propagated blocks when a source reservation is deleted
+ */
+export const deletePropagatedBlocks = async (sourceReservationId: string): Promise<void> => {
+  const { error } = await supabase
+    .from("reservations")
+    .delete()
+    .eq("source_reservation_id", sourceReservationId);
+  
+  if (error) {
+    console.error(`Error deleting propagated blocks for source reservation ${sourceReservationId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Override the original deleteManualReservation to also delete propagated blocks
+ */
+export const deleteManualReservation = async (id: string): Promise<void> => {
+  // First delete any propagated blocks
+  try {
+    await deletePropagatedBlocks(id);
+  } catch (error) {
+    console.error(`Error deleting propagated blocks for reservation ${id}:`, error);
+  }
+  
+  // Then delete the reservation itself
+  const { error } = await supabase
+    .from("reservations")
+    .delete()
+    .eq("id", id)
+    .eq("source", "Manual"); // Only delete manual reservations
+  
+  if (error) {
+    console.error(`Error deleting reservation ${id}:`, error);
+    throw error;
+  }
 };

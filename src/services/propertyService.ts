@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Property, PropertyType } from "@/types";
 
@@ -26,6 +27,7 @@ export const getProperties = async (): Promise<Property[]> => {
     bathrooms: prop.bathrooms,
     capacity: prop.capacity,
     type: prop.type as PropertyType || undefined,
+    parentId: prop.parent_id || undefined,
     description: prop.description || undefined,
     createdAt: new Date(prop.created_at)
   })) : [];
@@ -63,6 +65,7 @@ export const getPropertyById = async (propertyId: string): Promise<Property | nu
     bathrooms: data.bathrooms,
     capacity: data.capacity,
     type: data.type as PropertyType || undefined,
+    parentId: data.parent_id || undefined,
     description: data.description || undefined,
     createdAt: new Date(data.created_at)
   };
@@ -82,6 +85,38 @@ export const getPropertiesWithRelationships = async (): Promise<Property[]> => {
   }
   
   return data ? data.map(mapPropertyFromDatabase) : [];
+};
+
+/**
+ * Get child properties for a parent property
+ */
+export const getChildProperties = async (parentId: string): Promise<Property[]> => {
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("parent_id", parentId);
+  
+  if (error) {
+    console.error(`Error fetching child properties for parent ${parentId}:`, error);
+    throw error;
+  }
+  
+  return data ? data.map(mapPropertyFromDatabase) : [];
+};
+
+/**
+ * Get available properties that can be used in relationships
+ * (excludes the current property and its children)
+ */
+export const getPropertiesForRelation = async (currentPropertyId: string): Promise<Property[]> => {
+  // First, get all properties
+  const allProperties = await getProperties();
+  
+  // Filter out the current property and its children
+  return allProperties.filter(property => 
+    property.id !== currentPropertyId && 
+    property.parentId !== currentPropertyId
+  );
 };
 
 /**

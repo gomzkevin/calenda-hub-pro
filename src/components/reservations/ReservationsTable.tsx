@@ -4,8 +4,9 @@ import { format, differenceInCalendarDays } from 'date-fns';
 import { Reservation, Property } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Info } from 'lucide-react';
+import { Edit, Trash2, Info, Link } from 'lucide-react';
 import { es } from 'date-fns/locale';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ReservationsTableProps {
   reservations: Reservation[];
@@ -58,6 +59,18 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
     }
   };
 
+  // Find source reservation property
+  const getSourceReservationInfo = (reservation: Reservation): { property?: Property, reservation?: Reservation } => {
+    if (!reservation.sourceReservationId) return {};
+    
+    const sourceReservation = reservations.find(r => r.id === reservation.sourceReservationId);
+    if (!sourceReservation) return {};
+    
+    const sourceProperty = propertyMap[sourceReservation.propertyId];
+    
+    return { property: sourceProperty, reservation: sourceReservation };
+  };
+
   return (
     <div className="w-full overflow-auto">
       <Table>
@@ -84,11 +97,30 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
             reservations.map((reservation) => {
               const property = propertyMap[reservation.propertyId];
               const nights = differenceInCalendarDays(reservation.endDate, reservation.startDate);
+              const { property: sourceProperty } = getSourceReservationInfo(reservation);
               
               return (
                 <TableRow key={reservation.id}>
                   <TableCell>
-                    {property?.name || 'Propiedad desconocida'}
+                    <div className="flex flex-col">
+                      {property?.name || 'Propiedad desconocida'}
+                      
+                      {reservation.sourceReservationId && sourceProperty && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                                <Link className="h-3 w-3 mr-1" />
+                                <span>Bloqueado por {sourceProperty.name}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Esta propiedad está bloqueada automáticamente debido a una reserva en {sourceProperty.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(reservation.platform)}`}>
@@ -129,7 +161,7 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
                         <Info className="h-4 w-4" />
                       </Button>
                       
-                      {reservation.source === 'Manual' && (
+                      {reservation.source === 'Manual' && !reservation.sourceReservationId && (
                         <>
                           <Button
                             variant="ghost"

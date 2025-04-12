@@ -120,6 +120,7 @@ export type Database = {
           name: string
           notes: string | null
           operator_id: string
+          parent_id: string | null
           type: string | null
         }
         Insert: {
@@ -135,6 +136,7 @@ export type Database = {
           name: string
           notes?: string | null
           operator_id: string
+          parent_id?: string | null
           type?: string | null
         }
         Update: {
@@ -150,6 +152,7 @@ export type Database = {
           name?: string
           notes?: string | null
           operator_id?: string
+          parent_id?: string | null
           type?: string | null
         }
         Relationships: [
@@ -158,6 +161,13 @@ export type Database = {
             columns: ["operator_id"]
             isOneToOne: false
             referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -169,10 +179,12 @@ export type Database = {
           external_id: string | null
           ical_url: string | null
           id: string
+          is_blocking: boolean | null
           notes: string | null
           platform: string
           property_id: string
           source: string
+          source_reservation_id: string | null
           start_date: string
           updated_at: string | null
           user_id: string | null
@@ -183,10 +195,12 @@ export type Database = {
           external_id?: string | null
           ical_url?: string | null
           id?: string
+          is_blocking?: boolean | null
           notes?: string | null
           platform: string
           property_id: string
           source: string
+          source_reservation_id?: string | null
           start_date: string
           updated_at?: string | null
           user_id?: string | null
@@ -197,10 +211,12 @@ export type Database = {
           external_id?: string | null
           ical_url?: string | null
           id?: string
+          is_blocking?: boolean | null
           notes?: string | null
           platform?: string
           property_id?: string
           source?: string
+          source_reservation_id?: string | null
           start_date?: string
           updated_at?: string | null
           user_id?: string | null
@@ -211,6 +227,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_source_reservation_id_fkey"
+            columns: ["source_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
             referencedColumns: ["id"]
           },
         ]
