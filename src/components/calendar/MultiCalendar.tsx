@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -197,6 +198,19 @@ const MultiCalendar: React.FC = () => {
                           // Calculate position (center vertically)
                           const top = 16; // Center the reservation (cell height is 64px, reservation height is 20px)
                           
+                          // Calculate horizontal positioning with 40-20-40 rule
+                          let left = 0;
+                          let right = 0;
+                          
+                          if (isStartDay) {
+                            // Start at 60% of cell width (last 40%)
+                            left = '60%';
+                            right = isEndDay ? '40%' : '0px';
+                          } else {
+                            left = '0px';
+                            right = isEndDay ? '40%' : '0px';
+                          }
+                          
                           // Style based on platform
                           const style = getPlatformColorClass(res.platform);
                           const borderRadius = isStartDay && isEndDay 
@@ -215,8 +229,8 @@ const MultiCalendar: React.FC = () => {
                                     className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs text-white font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
                                     style={{
                                       top: `${top}px`,
-                                      left: isStartDay ? '4px' : '0px',
-                                      right: isEndDay ? '4px' : '0px',
+                                      left: isStartDay ? left : '0px',
+                                      right: isEndDay ? right : '0px',
                                       zIndex: 5
                                     }}
                                   >
