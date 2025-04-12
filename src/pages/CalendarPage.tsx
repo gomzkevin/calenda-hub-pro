@@ -30,7 +30,6 @@ const CalendarPage: React.FC = () => {
     if (properties.length > 0 && !selectedPropertyId) {
       const firstPropertyId = properties[0]?.id || '';
       setSelectedPropertyId(firstPropertyId);
-      
       updateUrlParams(firstPropertyId, activeView);
     }
   }, [properties, selectedPropertyId, activeView]);
@@ -46,6 +45,7 @@ const CalendarPage: React.FC = () => {
     if (!propertyId) return; // Added check to prevent empty property IDs
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
+    // Don't open the form here, just update the selected property
   };
   
   const handleViewChange = (view: string) => {

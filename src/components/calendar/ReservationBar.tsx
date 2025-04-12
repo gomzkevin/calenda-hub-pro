@@ -65,12 +65,13 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} z-10 pointer-events-auto cursor-pointer`}
+            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
               width: barWidth,
-              minWidth: '40px'
+              minWidth: '40px',
+              zIndex: 20
             }}
           >
             {displayLabel}

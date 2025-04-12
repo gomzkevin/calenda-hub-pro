@@ -14,26 +14,12 @@ export const calculateBarPositionAndStyle = (
   startDate: Date, 
   endDate: Date
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
-  let barStartPos = startPos;
-  let barEndPos = endPos;
+  // Calculate the bar width in cell units
+  const barStartPos = startPos;
+  const barEndPos = endPos + 1; // Include the full cell for the end day
   
-  // If this is the actual check-in day, start at 0% of the cell (full cell)
-  if (week[startPos] && isSameDay(normalizeDate(week[startPos]!), startDate)) {
-    barStartPos = startPos; // Start at beginning of the cell
-  }
-  
-  // If this is the actual check-out day, end at 100% of the cell (full cell)
-  if (week[endPos] && isSameDay(normalizeDate(week[endPos]!), endDate)) {
-    barEndPos = endPos + 1; // End at the end of the cell
-  } else {
-    // If not the actual check-out day, bar should extend to the end of the day
-    barEndPos = endPos + 1;
-  }
-  
-  // Calculate width as percentage of the full week width
+  // Calculate percentage values for positioning
   const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-  
-  // Calculate left position as percentage of the full week width
   const barLeft = `${(barStartPos / 7) * 100}%`;
   
   // Define border radius style based on if the reservation continues

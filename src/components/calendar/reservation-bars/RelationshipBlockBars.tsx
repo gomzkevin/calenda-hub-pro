@@ -21,8 +21,8 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`relationship-week-${weekIndex}`} className="grid grid-cols-7 w-full relative">
-          <div className="col-span-7 relative h-full">
+        <div key={`relationship-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 120}px`, height: '120px' }}>
+          <div className="col-span-7 relative h-full w-full">
             {week[0] && relationshipBlocks.filter(block => {
               return week.some(day => {
                 if (!day) return false;

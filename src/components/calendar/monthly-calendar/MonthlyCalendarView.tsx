@@ -61,7 +61,7 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="relative">
+        <div>
           <div className="grid grid-cols-7">
             <CalendarDayHeader />
           </div>

@@ -29,7 +29,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   const baseOffset = 40; // Adjusted base offset from top
   
   return (
-    <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
+    <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
       {/* Regular Reservation bars */}
       <RegularReservationBars
         weeks={weeks}

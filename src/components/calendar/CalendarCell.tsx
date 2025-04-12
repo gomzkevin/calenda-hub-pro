@@ -21,7 +21,7 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
   if (!day) {
     return (
       <div 
-        className="calendar-day border"
+        className="calendar-day border bg-gray-50"
         style={{ height: `${cellHeight}px` }}
       />
     );
