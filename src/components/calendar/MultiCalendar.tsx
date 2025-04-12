@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths, startOfDay, endOfDay } from 'date-fns';
+import React, { useState, useMemo, useCallback } from 'react';
+import { addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -75,17 +75,17 @@ const MultiCalendar: React.FC = () => {
     addDays(startDate, i)
   );
   
+  // Helper to normalize date to midnight local time to avoid timezone issues
+  const normalizeDate = useCallback((date: Date): Date => {
+    return startOfDay(date);
+  }, []);
+
   // Get reservations for a specific property
-  const getReservationsForProperty = (propertyId: string): Reservation[] => {
+  const getReservationsForProperty = useCallback((propertyId: string): Reservation[] => {
     return reservations.filter(res => res.propertyId === propertyId);
-  };
+  }, [reservations]);
 
   const isLoading = reservationsQueries.isLoading || isLoadingProperties;
-
-  // Helper to normalize date to midnight local time to avoid timezone issues
-  const normalizeDate = (date: Date): Date => {
-    return startOfDay(date);
-  };
 
   // Get the date range display
   const getDateRangeDisplay = () => {
@@ -103,101 +103,63 @@ const MultiCalendar: React.FC = () => {
     return `${format(firstDay, 'MMMM d')} - ${format(lastDay, 'MMMM d, yyyy')}`;
   };
 
-  // Calculate lanes for each property and day
+  // Stable sorting function for reservations to ensure consistent lane assignments
+  const sortReservations = useCallback((resA: Reservation, resB: Reservation): number => {
+    // First sort by start date
+    const startDiff = resA.startDate.getTime() - resB.startDate.getTime();
+    if (startDiff !== 0) return startDiff;
+    
+    // Then by end date (longer reservations first)
+    const endDiff = resB.endDate.getTime() - resA.endDate.getTime();
+    if (endDiff !== 0) return endDiff;
+    
+    // Then by ID for consistent ordering of same-date reservations
+    return resA.id.localeCompare(resB.id);
+  }, []);
+
+  // Calculate lanes for each property and reservation globally
   const propertyLanes = useMemo(() => {
-    const lanes: Record<string, Record<string, number>> = {};
+    // Map to store global lane assignments: key = reservationId, value = lane number
+    const laneMap = new Map<string, number>();
     
-    // Pre-calculate global lane assignments for all reservations
-    const globalLaneAssignments = new Map<string, number>();
-    
+    // Process each property to assign global lanes
     properties.forEach(property => {
-      const propertyId = property.id;
-      if (!lanes[propertyId]) {
-        lanes[propertyId] = {};
-      }
+      const propertyReservations = getReservationsForProperty(property.id);
       
-      // Get all reservations for this property
-      const propertyReservations = getReservationsForProperty(propertyId);
+      // Sort reservations consistently
+      const sortedReservations = [...propertyReservations].sort(sortReservations);
       
-      // Sort all property reservations by start date for consistency
-      const sortedReservations = [...propertyReservations].sort((a, b) => {
-        // Primary sort by start date
-        const startDiff = a.startDate.getTime() - b.startDate.getTime();
-        if (startDiff !== 0) return startDiff;
-        
-        // Secondary sort by end date (longer reservations first)
-        return b.endDate.getTime() - a.endDate.getTime();
-      });
+      // Track end dates for each lane
+      const lanesToEndDates = new Map<number, Date>();
       
-      // Track the end dates of each lane for this property
-      const laneEndDates: Record<number, Date> = {};
-      
-      // First pass: assign lanes to all reservations for this property
+      // Process each reservation
       sortedReservations.forEach(reservation => {
-        const key = `${propertyId}-${reservation.id}`;
+        const reservationStart = normalizeDate(reservation.startDate);
+        const reservationEnd = normalizeDate(reservation.endDate);
         
-        // Find the first available lane for this reservation
+        // Find the first available lane
         let lane = 0;
-        let laneFound = false;
+        let foundLane = false;
         
-        while (!laneFound) {
-          laneFound = true;
+        // Check if we can fit this reservation in an existing lane
+        while (!foundLane) {
+          const endDate = lanesToEndDates.get(lane);
           
-          // If this lane has an end date and it's >= the start date of the current reservation,
-          // this lane is not available
-          if (laneEndDates[lane] && laneEndDates[lane] >= normalizeDate(reservation.startDate)) {
-            laneFound = false;
+          // If lane doesn't exist or ends before current reservation starts
+          if (!endDate || endDate < reservationStart) {
+            foundLane = true;
+            lanesToEndDates.set(lane, reservationEnd);
+            laneMap.set(`${property.id}-${reservation.id}`, lane);
+          } else {
+            // Try next lane
             lane++;
-            continue;
           }
-          
-          // Lane is available, assign it
-          laneFound = true;
         }
-        
-        // Assign the lane and update the end date for this lane
-        globalLaneAssignments.set(key, lane);
-        laneEndDates[lane] = normalizeDate(reservation.endDate);
       });
     });
     
-    // Now, build the day-specific lane map using the global assignments
-    properties.forEach(property => {
-      const propertyId = property.id;
-      
-      // Get all reservations for this property
-      const propertyReservations = getReservationsForProperty(propertyId);
-      
-      // Process each day
-      visibleDays.forEach(day => {
-        const dayKey = format(day, 'yyyy-MM-dd');
-        
-        // Get reservations for this day
-        const dayReservations = propertyReservations.filter(res => {
-          const normalizedStart = normalizeDate(res.startDate);
-          const normalizedEnd = normalizeDate(res.endDate);
-          const normalizedDay = normalizeDate(day);
-          
-          return (
-            normalizedDay >= normalizedStart && 
-            normalizedDay <= normalizedEnd
-          );
-        });
-        
-        // Assign the globally calculated lanes for each reservation on this day
-        dayReservations.forEach(reservation => {
-          const key = `${propertyId}-${reservation.id}`;
-          const lane = globalLaneAssignments.get(key) || 0;
-          
-          if (!lanes[propertyId][reservation.id]) {
-            lanes[propertyId][reservation.id] = lane;
-          }
-        });
-      });
-    });
-    
-    return lanes;
-  }, [properties, reservations, visibleDays]);
+    return laneMap;
+  }, [properties, getReservationsForProperty, normalizeDate, sortReservations]);
 
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
@@ -265,13 +227,12 @@ const MultiCalendar: React.FC = () => {
                   {/* Calendar cells for each property */}
                   {visibleDays.map((day, dayIndex) => {
                     const isToday = isSameDay(day, new Date());
-                    const dayKey = format(day, 'yyyy-MM-dd');
+                    const normalizedDay = normalizeDate(day);
                     
                     // Get reservations that include this day
                     const dayReservations = getReservationsForProperty(property.id).filter(res => {
                       const normalizedStart = normalizeDate(res.startDate);
                       const normalizedEnd = normalizeDate(res.endDate);
-                      const normalizedDay = normalizeDate(day);
                       
                       return (
                         normalizedDay >= normalizedStart && 
@@ -279,23 +240,26 @@ const MultiCalendar: React.FC = () => {
                       );
                     });
                     
+                    // Sort reservations for consistent display order
+                    const sortedDayReservations = [...dayReservations].sort(sortReservations);
+                    
                     return (
                       <div
                         key={`day-${property.id}-${dayIndex}`}
                         className={`border relative min-h-[4rem] h-16 ${isToday ? 'bg-blue-50' : ''}`}
                       >
-                        {dayReservations.map((res) => {
+                        {sortedDayReservations.map((res) => {
                           // Determine if this is start/end of reservation for styling
-                          const isStartDay = isSameDay(normalizeDate(res.startDate), normalizeDate(day));
-                          const isEndDay = isSameDay(normalizeDate(res.endDate), normalizeDate(day));
+                          const isStartDay = isSameDay(normalizeDate(res.startDate), normalizedDay);
+                          const isEndDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
                           const isSingleDay = isStartDay && isEndDay;
                           
                           // Get the lane assigned to this reservation
-                          const lane = propertyLanes[property.id]?.[res.id] || 0;
+                          const lane = propertyLanes.get(`${property.id}-${res.id}`) || 0;
                           
                           // Calculate vertical position based on lane
-                          const laneHeight = 24;
-                          const baseOffset = 4;
+                          const laneHeight = 24; // Height for each lane
+                          const baseOffset = 4;  // Base padding from the top
                           const topPosition = baseOffset + (lane * laneHeight);
                           
                           // Style for the 60/40 rule and borders
