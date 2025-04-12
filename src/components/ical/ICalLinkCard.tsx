@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, Trash, RefreshCw, AlertTriangle, Calendar, User, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -69,7 +68,6 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     
     fetchProperty();
     
-    // Try to load cached iCal data on component mount
     const cachedData = getCachedICalData(icalLink.url);
     if (cachedData) {
       setIcalDetails(cachedData);
@@ -102,65 +100,58 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     }
   };
   
-  const refreshICalLink = async () => {
-    setIsSyncing(true);
+  const handleRefreshAndShowDetails = async () => {
+    if (isSyncing || isProcessing) return;
+
+    setIsProcessing(true);
     setSyncError(null);
     
-    // First, process the iCal data to get detailed information
     try {
-      console.log("Iniciando sincronización para:", icalLink);
+      console.log("Procesando y mostrando detalles del calendario:", icalLink.url);
       toast({
-        title: "Sincronizando calendario",
-        description: "Obteniendo datos del calendario..."
+        title: "Procesando calendario",
+        description: "Obteniendo detalles del calendario..."
       });
       
-      const processedData = await processICalData();
+      const data = await processICalLink(icalLink.url);
       
-      // If processing failed, stop here
-      if (!processedData) {
-        setIsSyncing(false);
-        return;
-      }
-      
-      toast({
-        title: "Sincronizando calendario",
-        description: `Encontradas ${processedData.reservations.length} reservas. Actualizando base de datos...`
-      });
-      
-      const result = await syncICalLink(icalLink);
-      
-      if (result.success && result.results) {
-        toast({
-          title: "Calendario sincronizado",
-          description: `Se encontraron ${result.results.total} eventos. ${result.results.added} nuevas reservas añadidas, ${result.results.updated} actualizadas.`
-        });
+      if (data) {
+        showCalendarDetailsToast(data);
         
-        // Invalidate reservations queries to refresh the calendar
-        queryClient.invalidateQueries({ queryKey: ['reservations'] });
+        const result = await syncICalLink(icalLink);
         
-        if (onSyncComplete) {
-          onSyncComplete();
+        if (result.success && result.results) {
+          toast({
+            title: "Calendario sincronizado",
+            description: `Se encontraron ${result.results.total} eventos. ${result.results.added} nuevas reservas añadidas, ${result.results.updated} actualizadas.`
+          });
+          
+          queryClient.invalidateQueries({ queryKey: ['reservations'] });
+          
+          if (onSyncComplete) {
+            onSyncComplete();
+          }
+        } else {
+          console.error('Error syncing iCal:', result.error);
+          setSyncError(result.error || "Error desconocido");
+          toast({
+            variant: "destructive",
+            title: "Error al sincronizar",
+            description: result.error || "No se pudieron sincronizar las reservas."
+          });
         }
-      } else {
-        console.error('Error syncing iCal:', result.error);
-        setSyncError(result.error || "Error desconocido");
-        toast({
-          variant: "destructive",
-          title: "Error al sincronizar",
-          description: result.error || "No se pudieron sincronizar las reservas."
-        });
       }
     } catch (error) {
-      console.error('Error syncing iCal:', error);
+      console.error('Error procesando o sincronizando calendario:', error);
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";
       setSyncError(errorMessage);
       toast({
         variant: "destructive",
-        title: "Error al sincronizar",
-        description: "Ocurrió un error al sincronizar el calendario."
+        title: "Error al procesar o sincronizar",
+        description: "Ocurrió un error al procesar o sincronizar el calendario."
       });
     } finally {
-      setIsSyncing(false);
+      setIsProcessing(false);
     }
   };
   
@@ -179,40 +170,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     })}`;
   };
   
-  const viewCalendarDetails = async () => {
-    if (icalDetails) {
-      // If we already have details, show them
-      showCalendarDetailsToast(icalDetails);
-    } else {
-      // Otherwise process the data first
-      setIsProcessing(true);
-      toast({
-        title: "Procesando calendario",
-        description: "Obteniendo detalles del calendario..."
-      });
-      
-      try {
-        console.log("Procesando calendario para detalles:", icalLink.url);
-        const data = await processICalData();
-        
-        if (data) {
-          showCalendarDetailsToast(data);
-        }
-      } catch (error) {
-        console.error("Error al procesar detalles:", error);
-        toast({
-          variant: "destructive",
-          title: "Error en detalles",
-          description: "No se pudieron obtener los detalles del calendario."
-        });
-      } finally {
-        setIsProcessing(false);
-      }
-    }
-  };
-  
   const showCalendarDetailsToast = (data: ICalProcessResult) => {
-    // Format the reservation details for display
     const upcomingReservations = data.reservations
       .filter(r => new Date(r.checkIn) >= new Date())
       .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
@@ -241,7 +199,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     toast({
       title: "Detalles del Calendario",
       description: detailsMessage,
-      duration: 10000, // Longer duration for reading
+      duration: 10000,
     });
   };
   
@@ -331,21 +289,12 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
             <ExternalLink className="w-4 h-4 mr-1" />
             Ver URL
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={viewCalendarDetails}
-            disabled={isProcessing}
-          >
-            <Calendar className={`w-4 h-4 mr-1 ${isProcessing ? "animate-spin" : ""}`} />
-            Detalles
-          </Button>
         </div>
         <div className="flex space-x-2">
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={refreshICalLink} 
+            onClick={handleRefreshAndShowDetails} 
             disabled={isSyncing || isProcessing}
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing || isProcessing ? "animate-spin" : ""}`} />
