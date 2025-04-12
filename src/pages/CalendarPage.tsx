@@ -37,12 +37,13 @@ const CalendarPage: React.FC = () => {
   
   const updateUrlParams = (propertyId: string, view: string) => {
     const params = new URLSearchParams(location.search);
-    params.set('property', propertyId);
+    if (propertyId) params.set('property', propertyId);
     params.set('view', view);
     navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
   
   const handlePropertyChange = (propertyId: string) => {
+    if (!propertyId) return; // Added check to prevent empty property IDs
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
   };
@@ -51,6 +52,9 @@ const CalendarPage: React.FC = () => {
     setActiveView(view);
     updateUrlParams(selectedPropertyId, view);
   };
+  
+  // Find the selected property name for display
+  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
   
   return (
     <div className="space-y-6 w-full max-w-full">
@@ -96,13 +100,15 @@ const CalendarPage: React.FC = () => {
             <CardHeader>
               <CardTitle>Monthly Calendar</CardTitle>
               <CardDescription>
-                {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected property'}
+                {selectedProperty?.name || 'Selected property'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MonthlyCalendar 
-                propertyId={selectedPropertyId} 
-              />
+              {selectedPropertyId && (
+                <MonthlyCalendar 
+                  propertyId={selectedPropertyId} 
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
