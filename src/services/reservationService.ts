@@ -92,7 +92,7 @@ export const getReservations = async (filters?: {
  * Fetch reservations for a specific property
  */
 export const getReservationsForProperty = async (propertyId: string): Promise<Reservation[]> => {
-  // Get the property details to determine if it's a parent or child
+  // First, get basic property information without any nested selects
   const { data: property, error: propertyError } = await supabase
     .from("properties")
     .select("id, parent_id, type")
@@ -117,12 +117,13 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
   
   const directReservations = data ? data.map(mapReservationFromDatabase) : [];
   
-  // Now, get related block reservations, depending on if this is a parent or child property
+  // Now, get related block reservations based on property relationship
   let relatedReservations: Reservation[] = [];
   
   if (property) {
+    // For parent property: get child property reservations
     if (property.type === 'parent') {
-      // If this is a parent property, get blocks from child properties
+      // Get child properties in a separate query
       const { data: childProperties, error: childError } = await supabase
         .from("properties")
         .select("id")
@@ -143,8 +144,9 @@ export const getReservationsForProperty = async (propertyId: string): Promise<Re
           relatedReservations = childReservations.map(mapReservationFromDatabase);
         }
       }
-    } else if (property.parent_id) {
-      // If this is a child property, get blocks from parent property
+    } 
+    // For child property: get parent property reservations
+    else if (property.parent_id) {
       const parentId = property.parent_id;
       
       // Get reservations from parent property that should block this child
@@ -410,7 +412,7 @@ export const checkAvailability = async (
 export const propagateReservationBlocks = async (
   reservation: Reservation
 ): Promise<Reservation[]> => {
-  // Get property with its children, but using a simplified query to avoid recursion
+  // Get property information without nested selects
   const { data: property, error: propertyError } = await supabase
     .from("properties")
     .select("id, type")
@@ -422,7 +424,7 @@ export const propagateReservationBlocks = async (
     return [];
   }
   
-  // If this is a parent property, we need to get its children separately
+  // Get child properties in a separate query
   let children: { id: string }[] = [];
   
   if (property.type === 'parent') {
