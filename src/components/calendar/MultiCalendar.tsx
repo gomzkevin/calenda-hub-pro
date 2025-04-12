@@ -105,12 +105,13 @@ const MultiCalendar: React.FC = () => {
 
   // Calculate lanes for each property and day
   const propertyLanes = useMemo(() => {
-    const lanes: Record<string, Record<string, Record<string, number>>> = {};
+    const lanes: Record<string, Record<string, number>> = {};
+    
+    // Pre-calculate global lane assignments for all reservations
+    const globalLaneAssignments = new Map<string, number>();
     
     properties.forEach(property => {
       const propertyId = property.id;
-      
-      // Skip if no lanes needed for this property
       if (!lanes[propertyId]) {
         lanes[propertyId] = {};
       }
@@ -118,14 +119,58 @@ const MultiCalendar: React.FC = () => {
       // Get all reservations for this property
       const propertyReservations = getReservationsForProperty(propertyId);
       
+      // Sort all property reservations by start date for consistency
+      const sortedReservations = [...propertyReservations].sort((a, b) => {
+        // Primary sort by start date
+        const startDiff = a.startDate.getTime() - b.startDate.getTime();
+        if (startDiff !== 0) return startDiff;
+        
+        // Secondary sort by end date (longer reservations first)
+        return b.endDate.getTime() - a.endDate.getTime();
+      });
+      
+      // Track the end dates of each lane for this property
+      const laneEndDates: Record<number, Date> = {};
+      
+      // First pass: assign lanes to all reservations for this property
+      sortedReservations.forEach(reservation => {
+        const key = `${propertyId}-${reservation.id}`;
+        
+        // Find the first available lane for this reservation
+        let lane = 0;
+        let laneFound = false;
+        
+        while (!laneFound) {
+          laneFound = true;
+          
+          // If this lane has an end date and it's >= the start date of the current reservation,
+          // this lane is not available
+          if (laneEndDates[lane] && laneEndDates[lane] >= normalizeDate(reservation.startDate)) {
+            laneFound = false;
+            lane++;
+            continue;
+          }
+          
+          // Lane is available, assign it
+          laneFound = true;
+        }
+        
+        // Assign the lane and update the end date for this lane
+        globalLaneAssignments.set(key, lane);
+        laneEndDates[lane] = normalizeDate(reservation.endDate);
+      });
+    });
+    
+    // Now, build the day-specific lane map using the global assignments
+    properties.forEach(property => {
+      const propertyId = property.id;
+      
+      // Get all reservations for this property
+      const propertyReservations = getReservationsForProperty(propertyId);
+      
       // Process each day
       visibleDays.forEach(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
-        
-        // Skip if no lanes needed for this day
-        if (!lanes[propertyId][dayKey]) {
-          lanes[propertyId][dayKey] = {};
-        }
         
         // Get reservations for this day
         const dayReservations = propertyReservations.filter(res => {
@@ -139,95 +184,13 @@ const MultiCalendar: React.FC = () => {
           );
         });
         
-        // Create a lookup of which reservations end on this day
-        const endingReservations = new Set(
-          dayReservations
-            .filter(res => isSameDay(normalizeDate(res.endDate), normalizeDate(day)))
-            .map(res => res.id)
-        );
-
-        // Create a lookup of which reservations start on this day
-        const startingReservations = new Set(
-          dayReservations
-            .filter(res => isSameDay(normalizeDate(res.startDate), normalizeDate(day)))
-            .map(res => res.id)
-        );
-
-        // Keep track of lane end times
-        const laneEndTimes: Record<number, Date> = {};
-        
-        // Sort reservations to prioritize those that don't start today
-        // This ensures consistent lane assignment across days
-        const sortedReservations = [...dayReservations].sort((a, b) => {
-          // First, prioritize reservations that don't start today
-          const aStartsToday = startingReservations.has(a.id);
-          const bStartsToday = startingReservations.has(b.id);
+        // Assign the globally calculated lanes for each reservation on this day
+        dayReservations.forEach(reservation => {
+          const key = `${propertyId}-${reservation.id}`;
+          const lane = globalLaneAssignments.get(key) || 0;
           
-          if (!aStartsToday && bStartsToday) return -1;
-          if (aStartsToday && !bStartsToday) return 1;
-          
-          // If both start today or both don't, sort by start date
-          return a.startDate.getTime() - b.startDate.getTime();
-        });
-        
-        // Assign lanes to reservations
-        sortedReservations.forEach(reservation => {
-          const isStartDay = startingReservations.has(reservation.id);
-          const isEndDay = endingReservations.has(reservation.id);
-          
-          // Find the first available lane that doesn't have a conflict
-          let lane = 0;
-          let laneFound = false;
-          
-          // If this reservation starts today, check if we can reuse a lane
-          // from a reservation that ends today
-          if (isStartDay && !isEndDay) {  // only for reservations that start but don't end today
-            // Look through lane end times to find one we can reuse
-            for (const [laneName, endTime] of Object.entries(laneEndTimes)) {
-              // If this lane ends today, we can potentially reuse it
-              if (isSameDay(endTime, normalizeDate(day))) {
-                const laneToCheck = parseInt(laneName);
-                
-                // See if any other reservation is using this lane
-                const isLaneUsed = Object.entries(lanes[propertyId][dayKey]).some(([resId, resLane]) => {
-                  return resLane === laneToCheck && !endingReservations.has(resId);
-                });
-                
-                if (!isLaneUsed) {
-                  lane = laneToCheck;
-                  laneFound = true;
-                  break;
-                }
-              }
-            }
-          }
-          
-          // If we couldn't reuse a lane, find a new one
-          if (!laneFound) {
-            while (!laneFound) {
-              // Assume lane is available initially
-              laneFound = true;
-              
-              // Check if this lane is already used by another reservation
-              for (const [resId, resLane] of Object.entries(lanes[propertyId][dayKey])) {
-                if (resId !== reservation.id && resLane === lane) {
-                  laneFound = false;
-                  break;
-                }
-              }
-              
-              if (!laneFound) {
-                lane++;
-              }
-            }
-          }
-          
-          // Assign lane to this reservation
-          lanes[propertyId][dayKey][reservation.id] = lane;
-          
-          // Update lane end time if this reservation ends on this day or later
-          if (isEndDay) {
-            laneEndTimes[lane] = reservation.endDate;
+          if (!lanes[propertyId][reservation.id]) {
+            lanes[propertyId][reservation.id] = lane;
           }
         });
       });
@@ -328,7 +291,7 @@ const MultiCalendar: React.FC = () => {
                           const isSingleDay = isStartDay && isEndDay;
                           
                           // Get the lane assigned to this reservation
-                          const lane = propertyLanes[property.id]?.[dayKey]?.[res.id] || 0;
+                          const lane = propertyLanes[property.id]?.[res.id] || 0;
                           
                           // Calculate vertical position based on lane
                           const laneHeight = 24;
