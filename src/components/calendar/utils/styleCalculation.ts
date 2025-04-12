@@ -19,6 +19,7 @@ export const calculateBarPositionAndStyle = (
   const barEndPos = endPos + 1; // Include the full cell for the end day
   
   // Calculate percentage values for positioning
+  // Ensure the calculations match the grid cell widths exactly
   const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
   const barLeft = `${(barStartPos / 7) * 100}%`;
   

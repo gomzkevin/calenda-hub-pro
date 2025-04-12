@@ -45,7 +45,7 @@ const CalendarPage: React.FC = () => {
     if (!propertyId) return; // Added check to prevent empty property IDs
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
-    // Don't open the form here, just update the selected property
+    // Don't open the form here - removed any form opening logic
   };
   
   const handleViewChange = (view: string) => {
