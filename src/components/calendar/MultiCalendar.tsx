@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths } from 'date-fns';
+
+import React, { useState, useMemo } from 'react';
+import { addDays, format, isSameDay, isWithinInterval, addMonths, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -82,11 +83,9 @@ const MultiCalendar: React.FC = () => {
 
   const isLoading = reservationsQueries.isLoading || isLoadingProperties;
 
-  // Helper to normalize date to noon UTC to avoid timezone issues
+  // Helper to normalize date to midnight local time to avoid timezone issues
   const normalizeDate = (date: Date): Date => {
-    const newDate = new Date(date);
-    newDate.setUTCHours(12, 0, 0, 0);
-    return newDate;
+    return startOfDay(date);
   };
 
   // Get the date range display
@@ -104,6 +103,79 @@ const MultiCalendar: React.FC = () => {
     // If they span different months
     return `${format(firstDay, 'MMMM d')} - ${format(lastDay, 'MMMM d, yyyy')}`;
   };
+
+  // Calculate lanes for each property and day
+  const propertyLanes = useMemo(() => {
+    const lanes: Record<string, Record<string, Record<string, number>>> = {};
+    
+    properties.forEach(property => {
+      const propertyId = property.id;
+      
+      // Skip if no lanes needed for this property
+      if (!lanes[propertyId]) {
+        lanes[propertyId] = {};
+      }
+      
+      // Get all reservations for this property
+      const propertyReservations = getReservationsForProperty(propertyId);
+      
+      // Process each day
+      visibleDays.forEach(day => {
+        const dayKey = format(day, 'yyyy-MM-dd');
+        
+        // Skip if no lanes needed for this day
+        if (!lanes[propertyId][dayKey]) {
+          lanes[propertyId][dayKey] = {};
+        }
+        
+        // Get reservations for this day
+        const dayReservations = propertyReservations.filter(res => {
+          const normalizedStart = normalizeDate(res.startDate);
+          const normalizedEnd = normalizeDate(res.endDate);
+          const normalizedDay = normalizeDate(day);
+          
+          return (
+            normalizedDay >= normalizedStart && 
+            normalizedDay <= normalizedEnd
+          );
+        });
+        
+        // Sort reservations by start date for consistent lane assignment
+        const sortedReservations = [...dayReservations].sort(
+          (a, b) => a.startDate.getTime() - b.startDate.getTime()
+        );
+        
+        // Assign lanes to reservations
+        sortedReservations.forEach(reservation => {
+          // Find the first available lane
+          let lane = 0;
+          let laneFound = false;
+          
+          while (!laneFound) {
+            laneFound = true;
+            
+            // Check if this lane is already used by another reservation
+            const laneReservations = Object.entries(lanes[propertyId][dayKey]);
+            for (const [resId, resLane] of laneReservations) {
+              if (resLane === lane) {
+                laneFound = false;
+                break;
+              }
+            }
+            
+            if (!laneFound) {
+              lane++;
+            }
+          }
+          
+          // Assign lane to this reservation
+          lanes[propertyId][dayKey][reservation.id] = lane;
+        });
+      });
+    });
+    
+    return lanes;
+  }, [properties, reservations, visibleDays]);
 
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
@@ -171,6 +243,7 @@ const MultiCalendar: React.FC = () => {
                   {/* Calendar cells for each property */}
                   {visibleDays.map((day, dayIndex) => {
                     const isToday = isSameDay(day, new Date());
+                    const dayKey = format(day, 'yyyy-MM-dd');
                     
                     // Get reservations that include this day
                     const dayReservations = getReservationsForProperty(property.id).filter(res => {
@@ -178,10 +251,10 @@ const MultiCalendar: React.FC = () => {
                       const normalizedEnd = normalizeDate(res.endDate);
                       const normalizedDay = normalizeDate(day);
                       
-                      return isWithinInterval(normalizedDay, {
-                        start: normalizedStart,
-                        end: normalizedEnd,
-                      });
+                      return (
+                        normalizedDay >= normalizedStart && 
+                        normalizedDay <= normalizedEnd
+                      );
                     });
                     
                     return (
@@ -189,23 +262,33 @@ const MultiCalendar: React.FC = () => {
                         key={`day-${property.id}-${dayIndex}`}
                         className={`border relative min-h-[4rem] h-16 ${isToday ? 'bg-blue-50' : ''}`}
                       >
-                        {dayReservations.map((res, resIndex) => {
+                        {dayReservations.map((res) => {
                           // Determine if this is start/end of reservation for styling
-                          const isStartDay = isSameDay(res.startDate, day);
-                          const isEndDay = isSameDay(res.endDate, day);
+                          const isStartDay = isSameDay(normalizeDate(res.startDate), normalizeDate(day));
+                          const isEndDay = isSameDay(normalizeDate(res.endDate), normalizeDate(day));
+                          const isSingleDay = isStartDay && isEndDay;
                           
-                          // Calculate position (center vertically)
-                          const top = 16; // Center the reservation (cell height is 64px, reservation height is 20px)
+                          // Get the lane assigned to this reservation
+                          const lane = propertyLanes[property.id]?.[dayKey]?.[res.id] || 0;
+                          
+                          // Calculate vertical position based on lane
+                          const laneHeight = 24;
+                          const baseOffset = 4;
+                          const topPosition = baseOffset + (lane * laneHeight);
+                          
+                          // Style for the 60/40 rule and borders
+                          const leftValue = isStartDay ? '60%' : '0%';
+                          const rightValue = isEndDay ? '60%' : '0%';
+                          const borderRadius = isSingleDay
+                            ? 'rounded-full'
+                            : isStartDay
+                              ? 'rounded-l-full'
+                              : isEndDay
+                                ? 'rounded-r-full'
+                                : '';
                           
                           // Style based on platform
                           const style = getPlatformColorClass(res.platform);
-                          const borderRadius = isStartDay && isEndDay 
-                            ? 'rounded-full' 
-                            : isStartDay 
-                              ? 'rounded-l-full' 
-                              : isEndDay 
-                                ? 'rounded-r-full'
-                                : '';
                           
                           return (
                             <TooltipProvider key={`res-${res.id}-${dayIndex}`}>
@@ -214,13 +297,15 @@ const MultiCalendar: React.FC = () => {
                                   <div 
                                     className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs text-white font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
                                     style={{
-                                      top: `${top}px`,
-                                      left: isStartDay ? '4px' : '0px',
-                                      right: isEndDay ? '4px' : '0px',
+                                      top: `${topPosition}px`,
+                                      left: leftValue,
+                                      right: rightValue,
                                       zIndex: 5
                                     }}
                                   >
-                                    {isStartDay && res.platform}
+                                    {isStartDay && (
+                                      <span className="truncate">{res.platform}</span>
+                                    )}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
