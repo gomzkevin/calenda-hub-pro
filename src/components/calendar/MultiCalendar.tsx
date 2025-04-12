@@ -199,16 +199,17 @@ const MultiCalendar: React.FC = () => {
                           const top = 16; // Center the reservation (cell height is 64px, reservation height is 20px)
                           
                           // Calculate horizontal positioning with 40-20-40 rule
-                          let left = 0;
-                          let right = 0;
+                          // Using CSS string values for left and right properties
+                          let leftPosition = '0';
+                          let rightPosition = '0';
                           
                           if (isStartDay) {
                             // Start at 60% of cell width (last 40%)
-                            left = '60%';
-                            right = isEndDay ? '40%' : '0px';
+                            leftPosition = '60%';
+                            rightPosition = isEndDay ? '40%' : '0';
                           } else {
-                            left = '0px';
-                            right = isEndDay ? '40%' : '0px';
+                            leftPosition = '0';
+                            rightPosition = isEndDay ? '40%' : '0';
                           }
                           
                           // Style based on platform
@@ -229,8 +230,8 @@ const MultiCalendar: React.FC = () => {
                                     className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs text-white font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
                                     style={{
                                       top: `${top}px`,
-                                      left: isStartDay ? left : '0px',
-                                      right: isEndDay ? right : '0px',
+                                      left: isStartDay ? leftPosition : '0',
+                                      right: isEndDay ? rightPosition : '0',
                                       zIndex: 5
                                     }}
                                   >
