@@ -30,7 +30,10 @@ export const calculateBarPositionAndStyle = (
     barEndPos = endPos + 1;
   }
   
+  // Calculate width as percentage of the full week width
   const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
+  
+  // Calculate left position as percentage of the full week width
   const barLeft = `${(barStartPos / 7) * 100}%`;
   
   // Define border radius style based on if the reservation continues

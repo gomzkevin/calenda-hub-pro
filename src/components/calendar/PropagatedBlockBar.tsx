@@ -58,7 +58,7 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-7 bg-gray-300 border border-dashed border-gray-500 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-gray-700 font-medium text-xs z-10 pointer-events-auto`}
+            className={`absolute h-7 bg-gray-300 border border-dashed border-gray-500 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-gray-700 font-medium text-xs z-10 pointer-events-auto cursor-pointer`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,

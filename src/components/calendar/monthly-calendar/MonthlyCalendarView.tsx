@@ -66,22 +66,24 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
             <CalendarDayHeader />
           </div>
           
-          <CalendarGrid
-            weeks={weeks}
-            currentMonth={currentMonth}
-            relationshipBlocks={relationshipBlocks}
-            cellHeight={cellHeight}
-          />
-          
-          <ReservationBars
-            weeks={weeks}
-            filteredReservations={filteredReservations}
-            relationshipBlocks={relationshipBlocks}
-            propagatedBlocks={propagatedBlocks}
-            weekReservationLanes={weekReservationLanes}
-            weekRelationshipBlockLanes={weekRelationshipBlockLanes}
-            weekPropagatedBlockLanes={weekPropagatedBlockLanes}
-          />
+          <div className="relative">
+            <CalendarGrid
+              weeks={weeks}
+              currentMonth={currentMonth}
+              relationshipBlocks={relationshipBlocks}
+              cellHeight={cellHeight}
+            />
+            
+            <ReservationBars
+              weeks={weeks}
+              filteredReservations={filteredReservations}
+              relationshipBlocks={relationshipBlocks}
+              propagatedBlocks={propagatedBlocks}
+              weekReservationLanes={weekReservationLanes}
+              weekRelationshipBlockLanes={weekRelationshipBlockLanes}
+              weekPropagatedBlockLanes={weekPropagatedBlockLanes}
+            />
+          </div>
         </div>
       )}
       

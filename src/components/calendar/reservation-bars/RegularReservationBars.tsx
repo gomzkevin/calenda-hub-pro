@@ -21,30 +21,32 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`reservations-week-${weekIndex}`} className="col-span-7 relative h-full">
-          {week[0] && filteredReservations.filter(reservation => {
-            return week.some(day => {
-              if (!day) return false;
-              const normalizedDay = new Date(day);
-              normalizedDay.setUTCHours(12, 0, 0, 0);
-              return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
-            });
-          }).map((reservation) => {
-            const weekLanes = weekReservationLanes[weekIndex] || {};
-            const lane = weekLanes[reservation.id] || 0;
-            
-            return (
-              <ReservationBar
-                key={`res-${weekIndex}-${reservation.id}`}
-                reservation={reservation}
-                week={week}
-                weekIndex={weekIndex}
-                lane={lane}
-                laneHeight={laneHeight}
-                baseOffset={baseOffset}
-              />
-            );
-          })}
+        <div key={`reservations-week-${weekIndex}`} className="grid grid-cols-7 w-full relative">
+          <div className="col-span-7 relative h-full">
+            {week[0] && filteredReservations.filter(reservation => {
+              return week.some(day => {
+                if (!day) return false;
+                const normalizedDay = new Date(day);
+                normalizedDay.setUTCHours(12, 0, 0, 0);
+                return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+              });
+            }).map((reservation) => {
+              const weekLanes = weekReservationLanes[weekIndex] || {};
+              const lane = weekLanes[reservation.id] || 0;
+              
+              return (
+                <ReservationBar
+                  key={`res-${weekIndex}-${reservation.id}`}
+                  reservation={reservation}
+                  week={week}
+                  weekIndex={weekIndex}
+                  lane={lane}
+                  laneHeight={laneHeight}
+                  baseOffset={baseOffset}
+                />
+              );
+            })}
+          </div>
         </div>
       ))}
     </>
