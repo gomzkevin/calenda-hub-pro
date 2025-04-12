@@ -71,5 +71,6 @@ export interface Reservation {
   externalId?: string;
   isBlocking?: boolean;  // New field to indicate if this reservation blocks related properties
   sourceReservationId?: string;  // New field to track the source of a blocking reservation
+  isRelationshipBlock?: boolean;  // Added property to identify blocks from parent-child relationships
   createdAt: Date;
 }
