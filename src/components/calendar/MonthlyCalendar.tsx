@@ -7,8 +7,13 @@ interface MonthlyCalendarProps {
 }
 
 const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ propertyId }) => {
-  // Just pass the propertyId to the view component
-  return <MonthlyCalendarView propertyId={propertyId} />;
+  // Pass the propertyId to the view component
+  // Added h-full flex-1 flex flex-col to ensure height propagation
+  return (
+    <div className="h-full flex-1 flex flex-col">
+      <MonthlyCalendarView propertyId={propertyId} />
+    </div>
+  );
 };
 
 export default MonthlyCalendar;

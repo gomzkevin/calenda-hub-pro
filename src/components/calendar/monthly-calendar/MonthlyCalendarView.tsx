@@ -48,7 +48,7 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
   };
   
   return (
-    <div className="bg-white rounded-lg shadow monthly-calendar-container">
+    <div className="bg-white rounded-lg shadow monthly-calendar-container flex flex-col h-full overflow-hidden">
       <MonthlyCalendarHeader 
         currentMonth={currentMonth}
         onPrevMonth={handlePrevMonth}
@@ -60,7 +60,7 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div>
+        <div className="flex-1 overflow-auto">
           <div className="grid grid-cols-7">
             <CalendarDayHeader />
           </div>

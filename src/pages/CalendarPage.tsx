@@ -56,7 +56,7 @@ const CalendarPage: React.FC = () => {
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
   
   return (
-    <div className="space-y-6 w-full max-w-full">
+    <div className="space-y-6 w-full max-w-full h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
@@ -90,13 +90,13 @@ const CalendarPage: React.FC = () => {
         </div>
       </div>
       
-      <Tabs value={activeView} onValueChange={handleViewChange} className="w-full">
+      <Tabs value={activeView} onValueChange={handleViewChange} className="w-full flex-1 flex flex-col">
         <TabsList className="w-full grid grid-cols-2 sm:w-auto">
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
           <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="monthly" className="w-full h-[calc(100vh-220px)]">
+        <TabsContent value="monthly" className="w-full flex-1 flex flex-col">
           <Card className="w-full h-full flex flex-col">
             <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
               {selectedPropertyId && (
@@ -108,7 +108,7 @@ const CalendarPage: React.FC = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="multi" className="w-full h-[calc(100vh-220px)]">
+        <TabsContent value="multi" className="w-full flex-1 flex flex-col">
           <Card className="w-full h-full flex flex-col">
             <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
               <MultiCalendar />

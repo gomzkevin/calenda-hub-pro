@@ -29,10 +29,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         <Header toggleSidebar={toggleSidebar} />
         
-        <main className="p-4 md:p-6 overflow-auto" style={{ height: 'calc(100vh - 57px)' }}>
+        <main className="p-4 md:p-6 overflow-auto flex-1 flex flex-col" style={{ height: 'calc(100vh - 57px)' }}>
           {children}
         </main>
       </div>
