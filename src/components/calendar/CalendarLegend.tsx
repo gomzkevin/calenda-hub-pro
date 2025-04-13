@@ -15,8 +15,8 @@ interface CalendarLegendProps {
 const DEFAULT_LEGEND_ITEMS: CalendarLegendItem[] = [
   { color: 'bg-blue-500', label: 'Booking' },
   { color: 'bg-red-400', label: 'Airbnb' },
-  { color: 'bg-purple-500', label: 'Vrbo' },
-  { color: 'bg-green-500', label: 'Manual' },
+  { color: 'bg-green-500', label: 'Vrbo' },
+  { color: 'bg-purple-500', label: 'Manual' },
   { color: 'bg-amber-400', label: 'Bloqueado (Parent/Child)' },
   { color: 'bg-gray-300', label: 'Otro bloqueo', isDashed: true }
 ];

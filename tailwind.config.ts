@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -66,8 +65,8 @@ export default {
 				platform: {
 					'airbnb': '#FF5A5F',
 					'booking': '#003580',
-					'vrbo': '#3D67FF',
-					'manual': '#4CAF50',
+					'vrbo': '#4CAF50',
+					'manual': '#9C27B0',
 					'other': '#9E9E9E'
 				}
 			},
