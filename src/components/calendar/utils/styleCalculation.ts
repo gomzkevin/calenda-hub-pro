@@ -34,7 +34,7 @@ export const calculateBarPositionAndStyle = (
   const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
   const barLeft = `${(adjustedStartPos / 7) * 100}%`;
   
-  // Define border radius style 
+  // Define border radius style - ensure last day of month gets proper rounding
   let borderRadiusStyle = 'rounded-none';
   if (!continuesFromPrevious && !continuesToNext) {
     // Single day reservation
@@ -43,11 +43,12 @@ export const calculateBarPositionAndStyle = (
     // First day of multi-day reservation
     borderRadiusStyle = 'rounded-l-lg rounded-r-none';
   } else if (!continuesToNext) {
-    // Last day of multi-day reservation
+    // Last day of multi-day reservation (including last day of month)
     borderRadiusStyle = 'rounded-r-lg rounded-l-none';
   }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
+  console.log(`Border style: ${borderRadiusStyle}, continuesToNext: ${continuesToNext}`);
   
   return { barLeft, barWidth, borderRadiusStyle };
 };
