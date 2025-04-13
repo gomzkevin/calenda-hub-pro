@@ -25,7 +25,7 @@ export const createManualReservation = async (data: {
     user_id: userId || null,
     start_date: normalizeDate(startDate).toISOString().split('T')[0],
     end_date: normalizeDate(endDate).toISOString().split('T')[0],
-    platform: 'Manual' as Platform,
+    platform: 'Other' as Platform, // Changed from 'Manual' to 'Other' which is in the allowed values
     source: 'Manual',
     status: status || 'Reserved',
     guest_name: guestName,
@@ -83,7 +83,7 @@ export const createBlockingReservation = async (data: {
       property_id: propertyId,
       start_date: normalizeDate(startDate).toISOString().split('T')[0],
       end_date: normalizeDate(endDate).toISOString().split('T')[0],
-      platform: 'Manual',
+      platform: 'Other', // Changed from 'Manual' to 'Other'
       source: 'Manual',
       status: 'Blocked',
       is_blocking: isBlocking || false,
