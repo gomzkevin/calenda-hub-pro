@@ -59,11 +59,11 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   // Determine the label to display
   let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
   
-  // Debug information for last row reservations
+  // Enhanced debugging for last week reservations
   const isLastRow = weekIndex >= 4;
-  const isLastDayOfWeek = endPos === 6;
-  if (isLastRow && isLastDayOfWeek && !continuesToNext) {
-    console.log(`Last row reservation at week ${weekIndex}: ${displayLabel}, endPos=${endPos}, continuesToNext=${continuesToNext}, borderStyle=${borderRadiusStyle}`);
+  const isLastDayOfWeek = endPos === week.length - 1;
+  if (isLastRow && isLastDayOfWeek) {
+    console.log(`CRITICAL-RENDER: Week=${weekIndex}, Reservation=${displayLabel}, endPos=${endPos}, continues=${continuesToNext}, style=${borderRadiusStyle}`);
   }
   
   return (

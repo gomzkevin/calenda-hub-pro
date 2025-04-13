@@ -37,34 +37,34 @@ export const calculateBarPositionAndStyle = (
   // Define border radius style - ensure last day of month gets proper rounding
   let borderRadiusStyle = 'rounded-none';
   
-  // Check if this ends on the last day of the week
+  // Special case: Last day of week/month handling
   const isLastDayOfWeek = endPos === 6;
-  const isLastDayCheckOut = isLastDayOfWeek && !continuesToNext;
   
-  // Single day reservations
+  // Determine the correct border radius based on reservation position
   if (startPos === endPos && !continuesFromPrevious && !continuesToNext) {
+    // Single day reservation (check-in and check-out on same day)
     borderRadiusStyle = 'rounded-full';
   } 
-  // First day of multi-day reservation
-  else if (!continuesFromPrevious && continuesToNext) {
-    borderRadiusStyle = 'rounded-l-lg rounded-r-none';
-  } 
-  // Last day of multi-day reservation
-  else if (continuesFromPrevious && !continuesToNext) {
-    borderRadiusStyle = 'rounded-r-lg rounded-l-none';
-  }
-  // Middle days of multi-day reservation
-  else if (continuesFromPrevious && continuesToNext) {
-    borderRadiusStyle = 'rounded-none';
-  }
-  // Special case: 2-day reservation within the same week
-  else if (!continuesFromPrevious && !continuesToNext && startPos !== endPos) {
+  else if (!continuesFromPrevious && !continuesToNext) {
+    // Multi-day reservation that starts and ends within the same week (not continuing)
     borderRadiusStyle = 'rounded-l-lg rounded-r-lg';
   }
+  else if (!continuesFromPrevious && continuesToNext) {
+    // First day of multi-day reservation that continues to next week
+    borderRadiusStyle = 'rounded-l-lg rounded-r-none';
+  } 
+  else if (continuesFromPrevious && !continuesToNext) {
+    // Last day of multi-day reservation (critical for last week of month)
+    borderRadiusStyle = 'rounded-r-lg rounded-l-none';
+  }
+  else if (continuesFromPrevious && continuesToNext) {
+    // Middle days of multi-day reservation
+    borderRadiusStyle = 'rounded-none';
+  }
   
-  // Debug information
-  if (isLastDayCheckOut) {
-    console.log(`Last day checkout detected: endPos=${endPos}, continuesToNext=${continuesToNext}, style=${borderRadiusStyle}`);
+  // Force debug information for all reservations ending on last day
+  if (isLastDayOfWeek) {
+    console.log(`Last day reservation: endPos=${endPos}, continuesToNext=${continuesToNext}, style=${borderRadiusStyle}`);
   }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
