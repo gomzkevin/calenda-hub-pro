@@ -86,9 +86,9 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
       ))}
       
       {/* Reservation Bars */}
-      <div className="absolute left-[160px] w-[calc(100%-160px)] h-16">
+      <div className="absolute left-[160px] w-[calc(100%-160px)] h-16 pointer-events-none">
         {weeks.map((week, weekIndex) => (
-          <div key={`week-${property.id}-${weekIndex}`} className="absolute h-16" style={{ left: `${weekIndex * 7 * 100}%`, width: '100%' }}>
+          <div key={`week-${property.id}-${weekIndex}`} className="absolute h-16" style={{ left: `${weekIndex * (100 / weeks.length)}%`, width: `${100 / weeks.length}%` }}>
             {propertyReservations.filter(reservation => {
               return week.some(day => {
                 if (!day) return false;

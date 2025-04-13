@@ -54,6 +54,15 @@ const MultiCalendar: React.FC = () => {
 
   const isLoading = isLoadingReservations || isLoadingProperties;
 
+  // Group days into weeks for reservation bar rendering
+  const weeks = React.useMemo(() => {
+    const result: Date[][] = [];
+    for (let i = 0; i < visibleDays.length; i += 7) {
+      result.push(visibleDays.slice(i, i + 7));
+    }
+    return result;
+  }, [visibleDays]);
+
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
       <MultiCalendarHeader 
@@ -71,7 +80,8 @@ const MultiCalendar: React.FC = () => {
         <div className="flex flex-col h-[calc(100%-60px)]">
           <ScrollArea className="flex-1 w-full">
             <div className="relative min-w-max">
-              <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
+              {/* Add a key to force re-render when visibleDays changes */}
+              <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]" key={`grid-${visibleDays[0]?.toISOString()}`}>
                 {/* Property header cell */}
                 <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
                   Properties
@@ -84,18 +94,19 @@ const MultiCalendar: React.FC = () => {
                 
                 {/* Property rows with day cells */}
                 {properties.map((property) => (
-                  <PropertyRow
-                    key={property.id}
-                    property={property}
-                    visibleDays={visibleDays}
-                    getDayReservationStatus={getDayReservationStatus}
-                    sortReservations={sortReservations}
-                    propertyLanes={propertyLanes}
-                    getReservationStyle={getReservationStyle}
-                    getSourceReservationInfo={getSourceReservationInfo}
-                    normalizeDate={normalizeDate}
-                    getReservationsForProperty={getReservationsForProperty}
-                  />
+                  <React.Fragment key={property.id}>
+                    <PropertyRow
+                      property={property}
+                      visibleDays={visibleDays}
+                      getDayReservationStatus={getDayReservationStatus}
+                      sortReservations={sortReservations}
+                      propertyLanes={propertyLanes}
+                      getReservationStyle={getReservationStyle}
+                      getSourceReservationInfo={getSourceReservationInfo}
+                      normalizeDate={normalizeDate}
+                      getReservationsForProperty={getReservationsForProperty}
+                    />
+                  </React.Fragment>
                 ))}
               </div>
             </div>
