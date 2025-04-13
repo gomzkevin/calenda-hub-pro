@@ -170,7 +170,7 @@ export const sampleReservations: Reservation[] = [
     userId: 'user-2',
     startDate: createDate(2025, 5, 5),
     endDate: createDate(2025, 5, 10),
-    platform: 'Manual',
+    platform: 'Other',
     source: 'Manual',
     notes: 'Direct booking by phone',
     createdAt: new Date('2025-02-10')
@@ -253,7 +253,7 @@ export const getPlatformColorClass = (platform: Platform): string => {
       return 'booking-booking';
     case 'vrbo':
       return 'booking-vrbo';
-    case 'manual':
+    case 'other':
       return 'booking-manual';
     default:
       return 'booking-other';

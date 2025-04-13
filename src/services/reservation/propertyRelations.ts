@@ -85,8 +85,8 @@ export const generateRelatedPropertyBlocks = async (
         propertyId: childId,
         startDate: sourceReservation.startDate,
         endDate: sourceReservation.endDate,
-        source: 'Manual', // Changed from 'System' to valid ReservationSource
-        platform: 'Manual', // Changed from 'System' to valid Platform
+        source: 'Manual',
+        platform: 'Other', // Changed from 'Manual' to 'Other' to match Platform type
         status: 'Blocked',
         notes: 'Blocked',
         sourceReservationId: sourceReservation.id,
@@ -104,8 +104,8 @@ export const generateRelatedPropertyBlocks = async (
       propertyId: parentId,
       startDate: sourceReservation.startDate,
       endDate: sourceReservation.endDate,
-      source: 'Manual', // Changed from 'System' to valid ReservationSource
-      platform: 'Manual', // Changed from 'System' to valid Platform
+      source: 'Manual',
+      platform: 'Other', // Changed from 'Manual' to 'Other' to match Platform type
       status: 'Blocked',
       notes: 'Blocked',
       sourceReservationId: sourceReservation.id,
