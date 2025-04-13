@@ -30,8 +30,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     propertyId: reservation?.propertyId || '',
-    startDate: reservation?.startDate || new Date(),
-    endDate: reservation?.endDate || addDays(new Date(), 1),
+    startDate: reservation?.startDate || null,
+    endDate: reservation?.endDate || null,
     guestName: reservation?.guestName || '',
     guestCount: reservation?.guestCount || 1,
     contactInfo: reservation?.contactInfo || '',
@@ -43,7 +43,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   
-  const nights = differenceInCalendarDays(formData.endDate, formData.startDate);
+  const nights = formData.startDate && formData.endDate 
+    ? differenceInCalendarDays(formData.endDate, formData.startDate) 
+    : 0;
 
   useEffect(() => {
     if (formData.propertyId && formData.startDate && formData.endDate) {
@@ -91,7 +93,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     if (!formData.endDate) newErrors.endDate = "Selecciona fecha de check-out";
     if (!formData.guestName) newErrors.guestName = "Ingresa el nombre del huésped";
     
-    if (formData.endDate <= formData.startDate) {
+    if (formData.startDate && formData.endDate && formData.endDate <= formData.startDate) {
       newErrors.endDate = "La fecha de check-out debe ser posterior a la fecha de check-in";
     }
     
@@ -167,9 +169,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={formData.startDate}
+                selected={formData.startDate || undefined}
                 onSelect={(date) => date && setFormData({...formData, startDate: date})}
                 initialFocus
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
@@ -195,9 +198,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={formData.endDate}
+                selected={formData.endDate || undefined}
                 onSelect={(date) => date && setFormData({...formData, endDate: date})}
                 initialFocus
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
