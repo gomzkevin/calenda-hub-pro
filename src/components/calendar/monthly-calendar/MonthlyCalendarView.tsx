@@ -1,7 +1,5 @@
 
 import React, { useState } from 'react';
-import { Reservation } from '@/types';
-import CalendarHeader from '../CalendarHeader';
 import CalendarDayHeader from '../CalendarDayHeader';
 import CalendarGrid from '../CalendarGrid';
 import ReservationBars from '../ReservationBars';
@@ -9,6 +7,7 @@ import CalendarLegend from '../CalendarLegend';
 import { useRelatedProperties } from './hooks/useRelatedProperties';
 import { useMonthlyReservations } from './hooks/useMonthlyReservations';
 import { useCalendarGrid } from './hooks/useCalendarGrid';
+import MonthlyCalendarHeader from './MonthlyCalendarHeader';
 
 interface MonthlyCalendarViewProps {
   propertyId?: string;
@@ -49,8 +48,8 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
   };
   
   return (
-    <div className="bg-white rounded-lg shadow">
-      <CalendarHeader 
+    <div className="bg-white rounded-lg shadow monthly-calendar-container">
+      <MonthlyCalendarHeader 
         currentMonth={currentMonth}
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}

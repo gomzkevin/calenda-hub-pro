@@ -45,7 +45,6 @@ const CalendarPage: React.FC = () => {
     if (!propertyId) return; // Added check to prevent empty property IDs
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
-    // Don't open the form here - removed any form opening logic
   };
   
   const handleViewChange = (view: string) => {
@@ -98,14 +97,8 @@ const CalendarPage: React.FC = () => {
         </TabsList>
         
         <TabsContent value="monthly" className="w-full h-[calc(100vh-220px)]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Calendar</CardTitle>
-              <CardDescription>
-                {selectedProperty?.name || 'Selected property'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Card className="w-full h-full flex flex-col">
+            <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
               {selectedPropertyId && (
                 <MonthlyCalendar 
                   propertyId={selectedPropertyId} 
