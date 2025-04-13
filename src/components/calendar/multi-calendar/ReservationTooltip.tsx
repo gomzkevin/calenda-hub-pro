@@ -37,7 +37,6 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   // Single day reservation (both check-in and check-out)
   if (isCheckInDay && isCheckOutDay) {
     width = '100%';
-    borderRadius = 'rounded-full';
   }
   // Check-in day only - start at 60% and go to 100%
   else if (isCheckInDay) {
@@ -57,23 +56,12 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   // Adjust label position/visibility based on bar width
   const showLabel = !isCheckOutDay || (isCheckInDay && isCheckOutDay);
   
-  // Additional styles for multi-day reservations
-  let additionalStyles = '';
-  
-  if (isCheckInDay && !isCheckOutDay) {
-    additionalStyles = 'mr-0 border-r-0';
-  } else if (!isCheckInDay && isCheckOutDay) {
-    additionalStyles = 'ml-0 border-l-0';
-  } else if (!isCheckInDay && !isCheckOutDay) {
-    additionalStyles = 'mx-0 border-l-0 border-r-0';
-  }
-  
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`absolute h-8 ${style} ${borderRadius} ${additionalStyles} flex items-center px-2 text-white text-xs cursor-pointer overflow-hidden`}
+            className={`absolute h-8 ${style} ${borderRadius} flex items-center px-2 text-white text-xs cursor-pointer overflow-hidden`}
             style={{
               top: `${topPosition}px`,
               left,

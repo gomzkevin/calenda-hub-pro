@@ -132,7 +132,7 @@
   
   /* New classes for reservation bars */
   .reservation-bar {
-    @apply transition-all;
+    @apply rounded-full transition-all;
   }
   
   .reservation-bar:hover {
@@ -143,17 +143,5 @@
   .reservation-secondary {
     @apply bg-gray-400 text-white border border-dashed border-white;
   }
-  
-  /* Clases para multiday reservations */
-  .reservation-bar-first-day {
-    @apply rounded-l-full rounded-r-none mr-0 border-r-0;
-  }
-  
-  .reservation-bar-middle-day {
-    @apply rounded-none mx-0 border-l-0 border-r-0;
-  }
-  
-  .reservation-bar-last-day {
-    @apply rounded-r-full rounded-l-none ml-0 border-l-0;
-  }
 }
+

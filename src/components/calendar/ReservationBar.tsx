@@ -66,23 +66,12 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   // For check-in/check-out days, adjust label position
   const labelClasses = `truncate ${isCheckInDay && !isCheckOutDay ? 'pl-8' : ''} ${isCheckOutDay && !isCheckInDay ? 'pr-8' : ''}`;
   
-  // Calculate additional styles for multi-day reservations
-  let additionalStyles = '';
-  
-  if (isCheckInDay && !isCheckOutDay) {
-    additionalStyles = 'mr-0 border-r-0';
-  } else if (!isCheckInDay && isCheckOutDay) {
-    additionalStyles = 'ml-0 border-l-0';
-  } else if (!isCheckInDay && !isCheckOutDay) {
-    additionalStyles = 'mx-0 border-l-0 border-r-0';
-  }
-  
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} ${additionalStyles} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer overflow-hidden`}
+            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer overflow-hidden`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,

@@ -68,19 +68,17 @@ export const calculateBarPositionAndStyle = (
   }
   
   // Define border radius style based on if the reservation continues
-  let borderRadiusStyle = '';
-  if (isCheckInDay && isCheckOutDay) {
-    borderRadiusStyle = 'rounded-full'; // Both ends rounded for single-day events
-  } else if (isCheckInDay) {
-    borderRadiusStyle = 'rounded-l-full'; // Only left end rounded for check-in days
-  } else if (isCheckOutDay) {
-    borderRadiusStyle = 'rounded-r-full'; // Only right end rounded for check-out days
-  } else {
-    borderRadiusStyle = 'rounded-none'; // No rounding for middle days
+  let borderRadiusStyle = 'rounded-full';
+  if (continuesFromPrevious && continuesToNext) {
+    borderRadiusStyle = 'rounded-none';
+  } else if (continuesFromPrevious) {
+    borderRadiusStyle = 'rounded-r-full rounded-l-none';
+  } else if (continuesToNext) {
+    borderRadiusStyle = 'rounded-l-full rounded-r-none';
   }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, isCheckIn=${isCheckInDay}, isCheckOut=${isCheckOutDay}`);
-  console.log(`Bar position: left=${barLeft}, width=${barWidth}, borderRadius=${borderRadiusStyle}`);
+  console.log(`Bar position: left=${barLeft}, width=${barWidth}`);
   
   return { barLeft, barWidth, borderRadiusStyle, clipPath, zIndex };
 };

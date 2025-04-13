@@ -95,10 +95,6 @@ const DayCell: React.FC<DayCellProps> = ({
         const isCheckInDay = normalizedDay.getTime() === normalizeDate(new Date(res.startDate)).getTime();
         const isCheckOutDay = normalizedDay.getTime() === normalizeDate(new Date(res.endDate)).getTime();
         
-        // Check if this reservation continues in previous or next days
-        const continuesFromPrevious = dayIndex > 0 && normalizeDate(new Date(res.startDate)).getTime() < normalizedDay.getTime();
-        const continuesToNext = dayIndex < 6 && normalizeDate(new Date(res.endDate)).getTime() > normalizedDay.getTime();
-        
         // Calculate z-index based on reservation type
         let zIndex = 10;
         if (isCheckInDay && isCheckOutDay) zIndex = 30; // Highest for single-day
