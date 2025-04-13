@@ -42,23 +42,32 @@ export const calculateBarPositionAndStyle = (
     };
   }
   
-  // Calculate positions and sizes based on check-in/check-out status
-  let barWidth: string;
-  let barLeft: string;
-  
   // If this is just a check-in day (start of reservation)
   if (isCheckInDay) {
-    // Start at 60% of the cell and go to the end (100%)
-    barWidth = `${((1 / 7) * 0.4) * 100}%`;  // 40% of cell width
-    barLeft = `${((startPos / 7) + ((1 / 7) * 0.6)) * 100}%`;  // Start at 60% position
+    // Use triangle shape pointing right (narrow left, wide right)
+    clipPath = 'polygon(30% 0%, 100% 0%, 100% 100%, 30% 100%)';
     zIndex = 20; // Higher z-index for check-ins
   }
   // If this is just a check-out day (end of reservation)
   else if (isCheckOutDay) {
-    // Start at 0% of the cell and go to 30%
-    barWidth = `${((1 / 7) * 0.3) * 100}%`;  // 30% of cell width
-    barLeft = `${(endPos / 7) * 100}%`;  // Start at beginning of cell
+    // Use triangle shape pointing left (wide left, narrow right)
+    clipPath = 'polygon(0% 0%, 70% 0%, 70% 100%, 0% 100%)';
     zIndex = 15; // Medium z-index for check-outs
+  }
+  
+  // Calculate standard bar positions (different for check-in and check-out)
+  let barWidth: string;
+  let barLeft: string;
+  
+  // For check-in days, we want to occupy the full cell
+  if (isCheckInDay) {
+    barWidth = `${(1 / 7) * 100}%`;
+    barLeft = `${(startPos / 7) * 100}%`;
+  } 
+  // For check-out days, we also want to occupy the full cell 
+  else if (isCheckOutDay) {
+    barWidth = `${(1 / 7) * 100}%`;
+    barLeft = `${(endPos / 7) * 100}%`;
   }
   // For middle days (neither check-in nor check-out)
   else {
@@ -78,7 +87,6 @@ export const calculateBarPositionAndStyle = (
   }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, isCheckIn=${isCheckInDay}, isCheckOut=${isCheckOutDay}`);
-  console.log(`Bar position: left=${barLeft}, width=${barWidth}`);
   
   return { barLeft, barWidth, borderRadiusStyle, clipPath, zIndex };
 };

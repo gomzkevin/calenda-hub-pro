@@ -95,7 +95,15 @@ const DayCell: React.FC<DayCellProps> = ({
         const isCheckInDay = normalizedDay.getTime() === normalizeDate(new Date(res.startDate)).getTime();
         const isCheckOutDay = normalizedDay.getTime() === normalizeDate(new Date(res.endDate)).getTime();
         
-        // Calculate z-index based on reservation type
+        // Only generate clip-path if it's either check-in or check-out (not both)
+        let clipPath;
+        if (isCheckInDay && !isCheckOutDay) {
+          clipPath = 'polygon(30% 0%, 100% 0%, 100% 100%, 30% 100%)';
+        } else if (isCheckOutDay && !isCheckInDay) {
+          clipPath = 'polygon(0% 0%, 70% 0%, 70% 100%, 0% 100%)';
+        }
+        
+        // Apply different z-index based on reservation type
         let zIndex = 10;
         if (isCheckInDay && isCheckOutDay) zIndex = 30; // Highest for single-day
         else if (isCheckInDay) zIndex = 20; // Higher for check-in
@@ -109,8 +117,8 @@ const DayCell: React.FC<DayCellProps> = ({
             sourceInfo={sourceInfo}
             style={style}
             topPosition={topPosition}
-            isCheckInDay={isCheckInDay}
-            isCheckOutDay={isCheckOutDay}
+            isStartDay={isCheckInDay}
+            clipPath={clipPath}
             zIndex={zIndex}
           />
         );
