@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Reservation } from '@/types';
 import CalendarHeader from '../CalendarHeader';
 import CalendarDayHeader from '../CalendarDayHeader';
 import CalendarGrid from '../CalendarGrid';
@@ -23,8 +22,7 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
   // Get reservations
   const { 
     filteredReservations, 
-    propagatedBlocks, 
-    relationshipBlocks,
+    blockedReservations, 
     isLoading 
   } = useMonthlyReservations(currentMonth, propertyId, relatedPropertyIds);
   
@@ -33,11 +31,10 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
     weeks,
     cellHeight,
     weekReservationLanes,
-    weekPropagatedBlockLanes,
-    weekRelationshipBlockLanes,
+    weekBlockedLanes,
     nextMonth,
     prevMonth
-  } = useCalendarGrid(currentMonth, filteredReservations, propagatedBlocks, relationshipBlocks);
+  } = useCalendarGrid(currentMonth, filteredReservations, blockedReservations);
   
   // Navigation handlers
   const handleNextMonth = () => {
@@ -70,18 +67,18 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
             <CalendarGrid
               weeks={weeks}
               currentMonth={currentMonth}
-              relationshipBlocks={relationshipBlocks}
+              relationshipBlocks={[]} // Pasamos array vacío ya que no tenemos más estos bloques
               cellHeight={cellHeight}
             />
             
             <ReservationBars
               weeks={weeks}
               filteredReservations={filteredReservations}
-              relationshipBlocks={relationshipBlocks}
-              propagatedBlocks={propagatedBlocks}
+              blockedReservations={blockedReservations}
               weekReservationLanes={weekReservationLanes}
-              weekRelationshipBlockLanes={weekRelationshipBlockLanes}
-              weekPropagatedBlockLanes={weekPropagatedBlockLanes}
+              weekBlockedLanes={weekBlockedLanes}
+              laneHeight={14}
+              baseOffset={40}
             />
           </div>
         </div>
