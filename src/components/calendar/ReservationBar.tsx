@@ -56,26 +56,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   // Determine text size based on bar width - smaller text for short reservations
   const isShortReservation = (endPos - startPos) < 1;
   
-  // Display status if it's a blocked reservation
-  const isBlocked = reservation.status === 'Blocked' || reservation.isBlocking === true;
-  
   // Determine the label to display
-  let displayLabel;
-  if (isBlocked) {
-    displayLabel = 'Blocked';
-  } else if (!continuesFromPrevious && !continuesToNext) {
-    // One-day stay
-    displayLabel = `${reservation.platform} (1-day)`;
-  } else if (!continuesFromPrevious) {
-    // Check-in only
-    displayLabel = `${reservation.platform} (In)`;
-  } else if (!continuesToNext) {
-    // Check-out only
-    displayLabel = `${reservation.platform} (Out)`;
-  } else {
-    // Middle of stay
-    displayLabel = reservation.platform;
-  }
+  let displayLabel = reservation.platform;
   
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
@@ -112,3 +94,4 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
 };
 
 export default ReservationBar;
+
