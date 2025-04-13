@@ -63,9 +63,9 @@ export const findReservationPositionInWeek = (
   const continuesFromPrevious = normalizedStartDate < firstDayOfWeek || 
                                (startPos === 0 && !isSameDay(firstDayOfWeek, normalizedStartDate));
   
-  // For the last week of the month, correctly identify if a reservation ends on the last day or continues
-  // The key fix: We need to be explicit when checking if the end date is exactly the same as the last day
-  const continuesToNext = normalizedEndDate > lastDayOfWeek;
+  // Key fix: Only consider a reservation as "continuing to next" if the end date is AFTER the last day
+  // This ensures that if a reservation ends exactly on the last day, it gets proper border radius
+  const continuesToNext = normalizedEndDate > lastDayOfWeek && !isSameDay(normalizedEndDate, lastDayOfWeek);
   
   // Enhanced debugging for the last week
   console.log(`Week ${firstDayOfWeek.toDateString()} to ${lastDayOfWeek.toDateString()}, reservation ${normalizedStartDate.toDateString()} to ${normalizedEndDate.toDateString()}`);
@@ -73,7 +73,7 @@ export const findReservationPositionInWeek = (
   
   // Additional debug for the last week of the month
   if (endPos === week.length - 1) {
-    console.log(`END-OF-WEEK: Last day=${lastDayOfWeek.toDateString()}, End date=${normalizedEndDate.toDateString()}, isSameDay=${isSameDay(lastDayOfWeek, normalizedEndDate)}`);
+    console.log(`END-OF-WEEK: Last day=${lastDayOfWeek.toDateString()}, End date=${normalizedEndDate.toDateString()}, isSameDay=${isSameDay(lastDayOfWeek, normalizedEndDate)}, continuesToNext=${continuesToNext}`);
   }
   
   return { startPos, endPos, continuesFromPrevious, continuesToNext };
