@@ -10,8 +10,8 @@ interface ReservationTooltipProps {
   sourceInfo: { property?: Property, reservation?: any };
   style: string;
   topPosition: number;
-  isStartDay: boolean;
-  clipPath?: string;
+  isCheckInDay?: boolean;
+  isCheckOutDay?: boolean;
   zIndex?: number;
 }
 
@@ -21,33 +21,60 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   sourceInfo,
   style,
   topPosition,
-  isStartDay,
-  clipPath,
+  isCheckInDay,
+  isCheckOutDay,
   zIndex = 10
 }) => {
   const isBlock = reservation.status === 'Blocked' || reservation.isBlocking;
   const showSourceInfo = sourceInfo.property && sourceInfo.reservation;
   
-  // Adjust label position for triangular clips
-  const labelClass = clipPath ? 'truncate' : 'truncate';
+  // Calculate width and position based on check-in/check-out status
+  let width = '100%';
+  let left = '0';
+  let right = '0';
+  let borderRadius = 'rounded-full';
+  
+  // Single day reservation (both check-in and check-out)
+  if (isCheckInDay && isCheckOutDay) {
+    width = '100%';
+  }
+  // Check-in day only - start at 60% and go to 100%
+  else if (isCheckInDay) {
+    width = '40%';
+    left = '60%';
+    right = 'auto';
+    borderRadius = 'rounded-l-full';
+  }
+  // Check-out day only - start at 0% and go to 30%
+  else if (isCheckOutDay) {
+    width = '30%';
+    left = '0';
+    right = 'auto';
+    borderRadius = 'rounded-r-full';
+  }
+  
+  // Adjust label position/visibility based on bar width
+  const showLabel = !isCheckOutDay || (isCheckInDay && isCheckOutDay);
   
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`absolute h-8 ${style} rounded-full flex items-center px-2 text-white text-xs cursor-pointer overflow-hidden`}
+            className={`absolute h-8 ${style} ${borderRadius} flex items-center px-2 text-white text-xs cursor-pointer overflow-hidden`}
             style={{
               top: `${topPosition}px`,
-              left: 0,
-              right: 0,
-              clipPath,
+              left,
+              right,
+              width,
               zIndex
             }}
           >
-            <span className={labelClass}>
-              {reservation.platform || 'Blocked'}
-            </span>
+            {showLabel && (
+              <span className="truncate">
+                {reservation.platform || 'Blocked'}
+              </span>
+            )}
           </div>
         </TooltipTrigger>
         <TooltipContent>
