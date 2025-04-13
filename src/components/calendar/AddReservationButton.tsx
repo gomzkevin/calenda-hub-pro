@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ReservationForm from '@/components/reservations/ReservationForm';
+import { Platform } from '@/types';
 
 interface AddReservationButtonProps {
   initialDate?: Date;
@@ -28,13 +28,11 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   
-  // Query properties
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties,
   });
 
-  // Create reservation mutation
   const createReservation = useMutation({
     mutationFn: createManualReservation,
     onSuccess: () => {
@@ -96,7 +94,7 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
                       propertyId: propertyId || '',
                       startDate: initialDate || null,
                       endDate: null,
-                      platform: 'Other' as const, // Changed from 'Manual' to 'Other'
+                      platform: 'Manual' as Platform,
                       source: 'Manual',
                       status: 'Reserved',
                       guestName: '',

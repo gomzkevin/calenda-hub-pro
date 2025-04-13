@@ -1,7 +1,6 @@
-
 export type UserRole = 'admin' | 'user';
 
-export type Platform = 'Airbnb' | 'Booking' | 'Vrbo' | 'Other';
+export type Platform = 'Airbnb' | 'Booking' | 'Vrbo' | 'Manual';
 
 export type ReservationSource = 'iCal' | 'Manual';
 
