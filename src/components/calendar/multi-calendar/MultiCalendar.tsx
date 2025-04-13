@@ -94,6 +94,7 @@ const MultiCalendar: React.FC = () => {
                     getReservationStyle={getReservationStyle}
                     getSourceReservationInfo={getSourceReservationInfo}
                     normalizeDate={normalizeDate}
+                    getReservationsForProperty={getReservationsForProperty}
                   />
                 ))}
               </div>
