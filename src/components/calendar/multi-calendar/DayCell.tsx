@@ -61,7 +61,7 @@ const DayCell: React.FC<DayCellProps> = ({
         </div>
       )}
       
-      {sortedDayReservations.map((res) => {
+      {sortedDayReservations.map((res, idx) => {
         const lane = propertyLanes.get(`${property.id}-${res.id}`) || 0;
         
         const laneHeight = 24;
@@ -78,7 +78,7 @@ const DayCell: React.FC<DayCellProps> = ({
         
         return (
           <ReservationTooltip
-            key={`res-${res.id}-${dayIndex}`}
+            key={`res-${res.id}-${idx}`}
             reservation={res}
             property={property}
             sourceInfo={sourceInfo}

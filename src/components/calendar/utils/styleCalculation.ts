@@ -1,3 +1,4 @@
+
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
@@ -14,6 +15,10 @@ export const calculateBarPositionAndStyle = (
   endDate: Date
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
   // Modified calculation with adjusted offsets for check-in and check-out
+  
+  // Determine if this is a check-in or check-out day
+  const isCheckInDay = !continuesFromPrevious;
+  const isCheckOutDay = !continuesToNext;
   
   // Start position: if it continues from previous, start at 0
   // Otherwise start at 60% of the cell (for check-in)
@@ -38,6 +43,8 @@ export const calculateBarPositionAndStyle = (
   } else if (continuesToNext) {
     borderRadiusStyle = 'rounded-l-full rounded-r-none';
   }
+  
+  console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
   
   return { barLeft, barWidth, borderRadiusStyle };
 };
