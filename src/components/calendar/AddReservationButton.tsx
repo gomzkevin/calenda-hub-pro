@@ -96,7 +96,7 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
                       propertyId: propertyId || '',
                       startDate: initialDate || null,
                       endDate: null,
-                      platform: 'Manual',
+                      platform: 'Manual' as const,
                       source: 'Manual',
                       status: 'Reserved',
                       guestName: '',

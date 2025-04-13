@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Reservation, ReservationStatus } from "@/types";
+import { Reservation, ReservationStatus, Platform } from "@/types";
 import { mapReservationFromDatabase, normalizeDate } from "./utils";
 
 /**
@@ -25,7 +25,7 @@ export const createManualReservation = async (data: {
     user_id: userId || null,
     start_date: normalizeDate(startDate).toISOString().split('T')[0],
     end_date: normalizeDate(endDate).toISOString().split('T')[0],
-    platform: 'Manual',
+    platform: 'Manual' as Platform,
     source: 'Manual',
     status: status || 'Reserved',
     guest_name: guestName,
