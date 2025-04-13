@@ -91,24 +91,36 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
     </div>
   );
 
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div 
-            className={`absolute flex items-center justify-center text-white text-xs font-medium cursor-pointer ${bgClass}`}
-            style={positionStyle}
-          >
-            <span className="truncate px-1">{displayLabel}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          {tooltipContent}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+  // Only show tooltip for check-in days (including single-day reservations)
+  if (isStartDay) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className={`absolute flex items-center justify-center text-white text-xs font-medium cursor-pointer ${bgClass}`}
+              style={positionStyle}
+            >
+              <span className="truncate px-1">{displayLabel}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  } else {
+    // For non-check-in days, just render the bar without a tooltip
+    return (
+      <div 
+        className={`absolute flex items-center justify-center text-white text-xs font-medium ${bgClass}`}
+        style={positionStyle}
+      >
+        <span className="truncate px-1">{displayLabel}</span>
+      </div>
+    );
+  }
 };
 
 export default ReservationTooltip;
-
