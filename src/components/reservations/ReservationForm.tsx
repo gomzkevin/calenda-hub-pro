@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { checkAvailability } from '@/services/reservation'; // Updated import path
+import { checkAvailability, getReservationsForMonth } from '@/services/reservation'; // Updated import path
 import { cn } from '@/lib/utils';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 
@@ -42,10 +42,52 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
   const nights = formData.startDate && formData.endDate 
     ? differenceInCalendarDays(formData.endDate, formData.startDate) 
     : 0;
+
+  // Fetch reservations for the current month to determine unavailable dates
+  useEffect(() => {
+    if (formData.propertyId) {
+      const fetchReservations = async () => {
+        try {
+          const month = currentMonth.getMonth() + 1;
+          const year = currentMonth.getFullYear();
+          const reservations = await getReservationsForMonth(month, year);
+          
+          // Filter reservations for the selected property
+          const propertyReservations = reservations.filter(
+            res => res.propertyId === formData.propertyId && 
+                  (res.id !== reservation?.id) // Exclude current reservation if editing
+          );
+          
+          // Create array of unavailable dates
+          const blockedDates: Date[] = [];
+          
+          propertyReservations.forEach(res => {
+            // Add all dates from start to end (exclusive of end date)
+            const start = new Date(res.startDate);
+            const end = new Date(res.endDate);
+            
+            let current = new Date(start);
+            while (current < end) {
+              blockedDates.push(new Date(current));
+              current.setDate(current.getDate() + 1);
+            }
+          });
+          
+          setUnavailableDates(blockedDates);
+        } catch (error) {
+          console.error('Error fetching reservations:', error);
+        }
+      };
+      
+      fetchReservations();
+    }
+  }, [formData.propertyId, currentMonth, reservation?.id]);
 
   useEffect(() => {
     if (formData.propertyId && formData.startDate && formData.endDate) {
@@ -110,6 +152,20 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     onSubmit(formData);
   };
 
+  // Function to handle month change in the calendar
+  const handleMonthChange = (month: Date) => {
+    setCurrentMonth(month);
+  };
+
+  // Function to check if a date should be disabled
+  const isDateDisabled = (date: Date): boolean => {
+    return unavailableDates.some(unavailableDate => 
+      date.getDate() === unavailableDate.getDate() &&
+      date.getMonth() === unavailableDate.getMonth() &&
+      date.getFullYear() === unavailableDate.getFullYear()
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,6 +227,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 mode="single"
                 selected={formData.startDate || undefined}
                 onSelect={(date) => date && setFormData({...formData, startDate: date})}
+                disabled={isDateDisabled}
+                onMonthChange={handleMonthChange}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
@@ -200,6 +258,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 mode="single"
                 selected={formData.endDate || undefined}
                 onSelect={(date) => date && setFormData({...formData, endDate: date})}
+                disabled={isDateDisabled}
+                onMonthChange={handleMonthChange}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
