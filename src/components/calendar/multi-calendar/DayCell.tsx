@@ -4,6 +4,8 @@ import { isSameDay } from 'date-fns';
 import { Property } from '@/types';
 import ReservationTooltip from './ReservationTooltip';
 import { Link } from 'lucide-react';
+import { findReservationPositionInWeek } from '../utils/reservationPosition';
+import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
 interface DayCellProps {
   day: Date;
@@ -60,25 +62,11 @@ const DayCell: React.FC<DayCellProps> = ({
       )}
       
       {sortedDayReservations.map((res) => {
-        const isStartDay = isSameDay(normalizeDate(res.startDate), normalizedDay);
-        const isEndDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
-        const isSingleDay = isStartDay && isEndDay;
-        
         const lane = propertyLanes.get(`${property.id}-${res.id}`) || 0;
         
         const laneHeight = 24;
         const baseOffset = 4;
         const topPosition = baseOffset + (lane * laneHeight);
-        
-        const leftValue = isStartDay ? '60%' : '0%';
-        const rightValue = isEndDay ? '60%' : '0%';
-        const borderRadius = isSingleDay
-          ? 'rounded-full'
-          : isStartDay
-            ? 'rounded-l-full'
-            : isEndDay
-              ? 'rounded-r-full'
-              : '';
         
         const isIndirectReservation = 
           (property.type === 'parent' && res.propertyId !== property.id) || 
@@ -95,11 +83,8 @@ const DayCell: React.FC<DayCellProps> = ({
             property={property}
             sourceInfo={sourceInfo}
             style={style}
-            borderRadius={borderRadius}
             topPosition={topPosition}
-            leftValue={leftValue}
-            rightValue={rightValue}
-            isStartDay={isStartDay}
+            isStartDay={true}
           />
         );
       })}

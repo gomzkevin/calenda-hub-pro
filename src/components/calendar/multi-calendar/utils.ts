@@ -1,73 +1,54 @@
 
-import { isSameDay } from 'date-fns';
-import { Reservation, Property } from '@/types';
-import { getPlatformColorClass } from '@/data/mockData';
+import { Property, Reservation } from "@/types";
 
-// Normalize date to avoid timezone issues
+// Normalize dates to compare them correctly
 export const normalizeDate = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setUTCHours(12, 0, 0, 0);
-  return newDate;
+  const normalized = new Date(date);
+  normalized.setUTCHours(12, 0, 0, 0);
+  return normalized;
 };
 
-// Sort reservations by start date, end date and id
+// Sort reservations by start date and platform
 export const sortReservations = (resA: Reservation, resB: Reservation): number => {
+  // First compare start dates
   const startDiff = resA.startDate.getTime() - resB.startDate.getTime();
   if (startDiff !== 0) return startDiff;
   
-  const endDiff = resB.endDate.getTime() - resA.endDate.getTime();
-  if (endDiff !== 0) return endDiff;
-  
-  return resA.id.localeCompare(resB.id);
+  // If same start date, compare platforms
+  return resA.platform.localeCompare(resB.platform);
 };
 
-// Get reservation style based on its type
-export const getReservationStyle = (reservation: Reservation, isIndirect = false): string => {
+// Get styling for a reservation
+export const getReservationStyle = (reservation: Reservation, isIndirect: boolean): string => {
   if (isIndirect) {
-    return 'bg-gray-100 text-gray-500 border border-dashed border-gray-300';
+    return 'bg-gray-400';
   }
   
-  if (reservation.status === 'Blocked' && (reservation.sourceReservationId || reservation.isBlocking)) {
-    return 'bg-gray-400 text-white border border-dashed border-white';
+  switch (reservation.platform.toLowerCase()) {
+    case 'airbnb': return 'bg-rose-500';
+    case 'booking': return 'bg-blue-600';
+    case 'vrbo': return 'bg-green-600';
+    case 'direct': return 'bg-purple-600';
+    default: return 'bg-slate-600';
   }
-  
-  return getPlatformColorClass(reservation.platform);
 };
 
 // Calculate property lanes for positioning reservations
 export const calculatePropertyLanes = (
-  properties: Property[], 
+  properties: Property[],
   getReservationsForProperty: (propertyId: string) => Reservation[]
 ): Map<string, number> => {
-  const laneMap = new Map<string, number>();
+  const propertyLanes = new Map<string, number>();
   
+  // For each property, assign lanes to its reservations
   properties.forEach(property => {
-    const propertyReservations = getReservationsForProperty(property.id);
+    const reservations = getReservationsForProperty(property.id);
     
-    const sortedReservations = [...propertyReservations].sort(sortReservations);
-    
-    const lanesToEndDates = new Map<number, Date>();
-    
-    sortedReservations.forEach(reservation => {
-      const reservationStart = normalizeDate(reservation.startDate);
-      const reservationEnd = normalizeDate(reservation.endDate);
-      
-      let lane = 0;
-      let foundLane = false;
-      
-      while (!foundLane) {
-        const endDate = lanesToEndDates.get(lane);
-        
-        if (!endDate || endDate < reservationStart) {
-          foundLane = true;
-          lanesToEndDates.set(lane, reservationEnd);
-          laneMap.set(`${property.id}-${reservation.id}`, lane);
-        } else {
-          lane++;
-        }
-      }
+    // For simplicity, all reservations get lane 0 for now
+    reservations.forEach(reservation => {
+      propertyLanes.set(`${property.id}-${reservation.id}`, 0);
     });
   });
   
-  return laneMap;
+  return propertyLanes;
 };

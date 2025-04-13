@@ -1,7 +1,9 @@
 
-import React from 'react';
-import { Property } from '@/types';
+import React, { useMemo } from 'react';
+import { Property, Reservation } from '@/types';
 import DayCell from './DayCell';
+import { findReservationPositionInWeek } from '../utils/reservationPosition';
+import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
 interface PropertyRowProps {
   property: Property;
@@ -31,6 +33,15 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   const typeIndicator = 
     property.type === 'parent' ? 'Alojamiento principal' : 
     property.type === 'child' ? 'Habitación' : '';
+
+  // Group days into weeks for reservation bar rendering
+  const weeks = useMemo(() => {
+    const result: Date[][] = [];
+    for (let i = 0; i < visibleDays.length; i += 7) {
+      result.push(visibleDays.slice(i, i + 7));
+    }
+    return result;
+  }, [visibleDays]);
 
   return (
     <React.Fragment>

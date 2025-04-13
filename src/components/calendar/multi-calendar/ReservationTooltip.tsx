@@ -1,24 +1,21 @@
 
 import React from 'react';
-import { format } from 'date-fns';
-import { Link } from 'lucide-react';
-import { Property } from '@/types';
+import { Reservation, Property } from '@/types';
 import { 
   Tooltip, 
   TooltipContent, 
   TooltipProvider, 
   TooltipTrigger 
 } from '@/components/ui/tooltip';
+import { format } from 'date-fns';
+import { Link } from 'lucide-react';
 
 interface ReservationTooltipProps {
-  reservation: any;
+  reservation: Reservation;
   property: Property;
-  sourceInfo: { property?: Property, reservation?: any };
+  sourceInfo: { property?: Property, reservation?: Reservation };
   style: string;
-  borderRadius: string;
   topPosition: number;
-  leftValue: string;
-  rightValue: string;
   isStartDay: boolean;
 }
 
@@ -27,50 +24,42 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   property,
   sourceInfo,
   style,
-  borderRadius,
   topPosition,
-  leftValue,
-  rightValue,
   isStartDay
 }) => {
+  // Show parent or child icon if there's a relationship
+  const showRelationshipIcon = property.type === 'parent' && reservation.propertyId !== property.id || 
+                              property.type === 'child' && reservation.propertyId !== property.id;
+  
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div 
-            className={`absolute h-5 ${style} ${borderRadius} flex items-center px-1 text-xs font-medium transition-all hover:brightness-90 hover:shadow-md overflow-hidden`}
+          <div
+            className={`absolute h-6 ${style} flex items-center px-1.5 rounded text-white text-xs z-10`}
             style={{
               top: `${topPosition}px`,
-              left: leftValue,
-              right: rightValue,
-              zIndex: 5
+              left: 0,
+              right: 0,
             }}
           >
-            {isStartDay && (
-              <span className="truncate">
-                {reservation.sourceReservationId ? (
-                  <Link className="h-3 w-3 inline mr-1" />
-                ) : null}
-                {reservation.platform}
-              </span>
-            )}
+            <span className="truncate mr-1">{reservation.platform}</span>
+            {showRelationshipIcon && <Link size={10} className="shrink-0" />}
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <div className="text-xs">
-            <p><strong>{property.name}</strong></p>
+          <div className="text-xs space-y-1">
             <p><strong>Platform:</strong> {reservation.platform}</p>
-            <p><strong>Check-in:</strong> {format(reservation.startDate, 'MMM d, yyyy')}</p>
-            <p><strong>Check-out:</strong> {format(reservation.endDate, 'MMM d, yyyy')}</p>
-            
-            {sourceInfo.property && (
-              <p className="text-muted-foreground mt-1">
-                <em>Bloqueado por reserva en {sourceInfo.property.name}</em>
-              </p>
+            <p><strong>Check-in:</strong> {format(new Date(reservation.startDate), 'MMM d, yyyy')}</p>
+            <p><strong>Check-out:</strong> {format(new Date(reservation.endDate), 'MMM d, yyyy')}</p>
+            {reservation.guestName && (
+              <p><strong>Guest:</strong> {reservation.guestName}</p>
             )}
-            
-            {reservation.notes && reservation.notes !== 'Blocked' && (
-              <p><strong>Notes:</strong> {reservation.notes}</p>
+            {showRelationshipIcon && sourceInfo.property && (
+              <p>
+                <strong>Related to:</strong> {sourceInfo.property.name} 
+                ({sourceInfo.property.type === 'parent' ? 'Main property' : 'Room'})
+              </p>
             )}
           </div>
         </TooltipContent>
