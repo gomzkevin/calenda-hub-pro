@@ -52,29 +52,23 @@ export const findReservationPositionInWeek = (
   
   // If we found a starting position but no ending, use the end of the week
   if (endPos === -1 && startPos !== -1) {
-    endPos = week.length - 1; // Last day of week
+    endPos = 6; // Last day of week
   }
   
   // Determine if the reservation continues from/to other weeks
   const firstDayOfWeek = normalizeDate(week[0]!);
-  const lastDayOfWeek = normalizeDate(week[week.length - 1]!);
+  const lastDayOfWeek = normalizeDate(week[6]!);
   
   // Check if check-in date is before the first day of the week or if it's on the first day
   const continuesFromPrevious = normalizedStartDate < firstDayOfWeek || 
                                (startPos === 0 && !isSameDay(firstDayOfWeek, normalizedStartDate));
   
-  // Key fix: Only consider a reservation as "continuing to next" if the end date is AFTER the last day
-  // This ensures that if a reservation ends exactly on the last day, it gets proper border radius
-  const continuesToNext = normalizedEndDate > lastDayOfWeek && !isSameDay(normalizedEndDate, lastDayOfWeek);
+  // Check if check-out date is after the last day of the week or if it's on the last day
+  const continuesToNext = normalizedEndDate > lastDayOfWeek || 
+                         (endPos === 6 && !isSameDay(lastDayOfWeek, normalizedEndDate));
   
-  // Enhanced debugging for the last week
-  console.log(`Week ${firstDayOfWeek.toDateString()} to ${lastDayOfWeek.toDateString()}, reservation ${normalizedStartDate.toDateString()} to ${normalizedEndDate.toDateString()}`);
+  console.log(`Week ${firstDayOfWeek} to ${lastDayOfWeek}, reservation ${normalizedStartDate} to ${normalizedEndDate}`);
   console.log(`startPos: ${startPos}, endPos: ${endPos}, continuesFromPrevious: ${continuesFromPrevious}, continuesToNext: ${continuesToNext}`);
-  
-  // Additional debug for the last week of the month
-  if (endPos === week.length - 1) {
-    console.log(`END-OF-WEEK: Last day=${lastDayOfWeek.toDateString()}, End date=${normalizedEndDate.toDateString()}, isSameDay=${isSameDay(lastDayOfWeek, normalizedEndDate)}, continuesToNext=${continuesToNext}`);
-  }
   
   return { startPos, endPos, continuesFromPrevious, continuesToNext };
 };

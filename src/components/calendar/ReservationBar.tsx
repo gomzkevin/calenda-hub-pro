@@ -59,13 +59,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   // Determine the label to display
   let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
   
-  // Enhanced debugging for last week reservations
-  const isLastRow = weekIndex >= 4;
-  const isLastDayOfWeek = endPos === week.length - 1;
-  if (isLastRow && isLastDayOfWeek) {
-    console.log(`CRITICAL-RENDER: Week=${weekIndex}, Reservation=${displayLabel}, endPos=${endPos}, continues=${continuesToNext}, style=${borderRadiusStyle}`);
-  }
-  
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
       <Tooltip>

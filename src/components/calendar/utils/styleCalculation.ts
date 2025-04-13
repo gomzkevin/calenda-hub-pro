@@ -34,56 +34,20 @@ export const calculateBarPositionAndStyle = (
   const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
   const barLeft = `${(adjustedStartPos / 7) * 100}%`;
   
-  // Define border radius style
+  // Define border radius style 
   let borderRadiusStyle = 'rounded-none';
-  
-  // Special case: Last day of week handling
-  const isLastDayOfWeek = endPos === 6 || endPos === week.length - 1;
-  
-  // Get the actual last day of the week
-  const lastDay = week.filter(Boolean).pop();
-  const normalizedLastDay = lastDay ? normalizeDate(lastDay) : null;
-  const normalizedEndDate = normalizeDate(endDate);
-  
-  // Check if the reservation ends on the exact last day of the week
-  const endsOnLastDay = normalizedLastDay && isSameDay(normalizedLastDay, normalizedEndDate);
-  
-  // Determine the correct border radius based on reservation position
-  if (startPos === endPos && !continuesFromPrevious && !continuesToNext) {
-    // Single day reservation (check-in and check-out on same day)
+  if (!continuesFromPrevious && !continuesToNext) {
+    // Single day reservation
     borderRadiusStyle = 'rounded-full';
-  } 
-  else if (!continuesFromPrevious && !continuesToNext) {
-    // Multi-day reservation that starts and ends within the same week (not continuing)
-    borderRadiusStyle = 'rounded-l-lg rounded-r-lg';
-  }
-  else if (!continuesFromPrevious && continuesToNext) {
-    // First day of multi-day reservation that continues to next week
+  } else if (!continuesFromPrevious) {
+    // First day of multi-day reservation
     borderRadiusStyle = 'rounded-l-lg rounded-r-none';
-  } 
-  else if (continuesFromPrevious && !continuesToNext) {
+  } else if (!continuesToNext) {
     // Last day of multi-day reservation
     borderRadiusStyle = 'rounded-r-lg rounded-l-none';
   }
-  else if (continuesFromPrevious && continuesToNext) {
-    // Middle days of multi-day reservation
-    borderRadiusStyle = 'rounded-none';
-  }
-  
-  // Special case handling for last day of week if exact match with end date
-  if (isLastDayOfWeek && endsOnLastDay && !continuesToNext) {
-    // Ensure the right border is rounded when reservation ends exactly on last day of week
-    if (continuesFromPrevious) {
-      borderRadiusStyle = 'rounded-r-lg rounded-l-none';
-    } else {
-      // Handle the case where a reservation both starts and ends on the last day
-      borderRadiusStyle = 'rounded-full';
-    }
-    console.log(`Last day special case: endPos=${endPos}, continuesToNext=${continuesToNext}, style=${borderRadiusStyle}`);
-  }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
-  console.log(`Border style: ${borderRadiusStyle}, continuesToNext: ${continuesToNext}, isLastDayOfWeek: ${isLastDayOfWeek}, endsOnLastDay: ${endsOnLastDay}`);
   
   return { barLeft, barWidth, borderRadiusStyle };
 };
