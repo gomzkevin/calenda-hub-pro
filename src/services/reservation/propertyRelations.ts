@@ -112,8 +112,9 @@ export const generateRelatedPropertyBlocks = async (
       createdAt: new Date()
     });
     
-    // REMOVED: The loop that created blocks for sibling properties
-    // This was causing siblings to be blocked when one child is reserved
+    // IMPORTANT: NO propagation to sibling properties
+    // This is intentionally commented out to show what we're NOT doing
+    // We don't want to block siblings when one child is reserved
   }
   
   return blocks;

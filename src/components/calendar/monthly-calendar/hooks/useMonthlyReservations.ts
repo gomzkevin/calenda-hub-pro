@@ -1,3 +1,4 @@
+
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
@@ -139,6 +140,10 @@ export const useMonthlyReservations = (
     const relatedBlocks = normalizedReservations.filter(
       res => res.propertyId !== propertyId && prioritizedRelationshipBlocks.has(res.id)
     );
+    
+    console.log('Direct reservations:', directReservations.length);
+    console.log('Propagated blocks:', blockedReservations.length);
+    console.log('Relationship blocks:', relatedBlocks.length);
     
     return {
       filteredReservations: directReservations,

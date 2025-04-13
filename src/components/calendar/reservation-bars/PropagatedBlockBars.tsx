@@ -24,7 +24,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`propagated-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 120}px`, height: '120px' }}>
+        <div key={`propagated-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
           <div className="col-span-7 relative h-full w-full">
             {week[0] && propagatedBlocks.filter(block => {
               return week.some(day => {
@@ -34,8 +34,8 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
                 return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
               });
             }).map((block) => {
-              const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
-              const lane = blockLanes[block.id] || 10;
+              // Always use lane 0 in our simplified approach
+              const lane = 0;
               
               return (
                 <PropagatedBlockBar
