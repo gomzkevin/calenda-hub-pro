@@ -111,16 +111,17 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
       </TooltipProvider>
     );
   } else {
-    // For non-check-in days, just render the bar without a tooltip
+    // For non-check-in days, just render the bar without a label
     return (
       <div 
         className={`absolute flex items-center justify-center text-white text-xs font-medium ${bgClass}`}
         style={positionStyle}
       >
-        <span className="truncate px-1">{displayLabel}</span>
+        <span className="truncate px-1"></span>
       </div>
     );
   }
 };
 
 export default ReservationTooltip;
+
