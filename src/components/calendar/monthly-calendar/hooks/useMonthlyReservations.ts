@@ -49,6 +49,8 @@ export const useMonthlyReservations = (
       };
     }
     
+    console.log('Total reservations fetched:', allReservations.length);
+    
     // Normalize dates
     const normalizedReservations = allReservations.map(res => ({
       ...res,
@@ -63,6 +65,8 @@ export const useMonthlyReservations = (
       // OR keep if it has a sourceReservationId (it's a legitimate propagated block)
       res.sourceReservationId !== undefined
     );
+    
+    console.log('After primary filtering:', filteredByBlockStatus.length);
     
     // Group by day to apply prioritization rules
     const dayMap = new Map<string, Reservation[]>();
@@ -93,7 +97,7 @@ export const useMonthlyReservations = (
     // Process each day
     dayMap.forEach((dayReservations, dateKey) => {
       // RULE 2: Apply prioritization
-      // Priority 1: Regular reservations (no sourceReservationId)
+      // Priority 1: Regular reservations (no sourceReservationId and not Blocked) for current property
       const regularReservations = dayReservations.filter(res => 
         res.propertyId === propertyId && 
         !res.sourceReservationId &&
@@ -109,8 +113,15 @@ export const useMonthlyReservations = (
       
       // Priority 2 & 3: Handle blocks
       const blockReservations = dayReservations.filter(res => 
-        res.sourceReservationId !== undefined && 
-        (res.notes === 'Blocked' || res.status === 'Blocked')
+        // Either it's a direct block with sourceReservationId
+        (res.sourceReservationId !== undefined && 
+        (res.notes === 'Blocked' || res.status === 'Blocked')) ||
+        // OR it's a reservation on a related property (causing an implicit block)
+        (res.propertyId !== propertyId && 
+         relatedPropertyIds.includes(res.propertyId) &&
+         !res.sourceReservationId &&
+         res.notes !== 'Blocked' &&
+         res.status !== 'Blocked')
       );
       
       if (blockReservations.length > 0) {
@@ -125,6 +136,10 @@ export const useMonthlyReservations = (
         });
       }
     });
+    
+    console.log('Prioritized reservations:', prioritizedReservations.size);
+    console.log('Prioritized blocks:', prioritizedBlocks.size);
+    console.log('Prioritized relationship blocks:', prioritizedRelationshipBlocks.size);
     
     // Create the final filtered sets
     const directReservations = normalizedReservations.filter(
@@ -150,7 +165,7 @@ export const useMonthlyReservations = (
       propagatedBlocks: blockedReservations,
       relationshipBlocks: relatedBlocks
     };
-  }, [allReservations, propertyId]);
+  }, [allReservations, propertyId, relatedPropertyIds]);
 
   return {
     filteredReservations,

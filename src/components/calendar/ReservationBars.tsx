@@ -28,6 +28,11 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   const laneHeight = 24; // Height for the reservation lane
   const baseOffset = 30; // Base offset from top
   
+  // Debug outputs
+  console.log('ReservationBars - filteredReservations:', filteredReservations?.length);
+  console.log('ReservationBars - relationshipBlocks:', relationshipBlocks?.length);
+  console.log('ReservationBars - propagatedBlocks:', propagatedBlocks?.length);
+  
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
       {/* Regular Reservation bars - HIGHEST PRIORITY */}

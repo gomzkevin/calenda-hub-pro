@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPropertyById } from '@/services/propertyService';
-import { getChildPropertyIds } from '@/services/reservation/propertyRelations';
+import { getChildPropertyIds, getParentPropertyId } from '@/services/reservation/propertyRelations';
 
 export const useRelatedProperties = (propertyId?: string) => {
   const [relatedPropertyIds, setRelatedPropertyIds] = useState<string[]>([]);
@@ -24,18 +24,27 @@ export const useRelatedProperties = (propertyId?: string) => {
         
         // If this is a parent property, get all its children
         if (property?.type === 'parent') {
+          console.log('This is a parent property, fetching children');
           const childIds = await getChildPropertyIds(propertyId);
+          console.log('Child IDs:', childIds);
           relatedIds = [...childIds];
         } 
         // If this is a child property, get its parent and siblings
         else if (property?.type === 'child' && property?.parentId) {
+          console.log('This is a child property, fetching parent');
           const parentId = property.parentId;
-          const childIds = await getChildPropertyIds(parentId);
+          relatedIds = [parentId];
           
-          // Add parent and all siblings except self
-          relatedIds = [parentId, ...childIds.filter(id => id !== propertyId)];
+          // Optional: Get siblings if needed
+          const childIds = await getChildPropertyIds(parentId);
+          const siblings = childIds.filter(id => id !== propertyId);
+          console.log('Parent ID:', parentId, 'Siblings:', siblings);
+          
+          // We don't add siblings here since we don't want to block siblings
+          // relatedIds = [...relatedIds, ...siblings];
         }
         
+        console.log('Final related property IDs:', relatedIds);
         setRelatedPropertyIds(relatedIds);
       } catch (error) {
         console.error('Error fetching related properties:', error);
