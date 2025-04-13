@@ -1,3 +1,4 @@
+
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
@@ -33,14 +34,17 @@ export const calculateBarPositionAndStyle = (
   const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
   const barLeft = `${(adjustedStartPos / 7) * 100}%`;
   
-  // Define border radius style based on if the reservation continues
-  let borderRadiusStyle = 'rounded-full';
-  if (continuesFromPrevious && continuesToNext) {
-    borderRadiusStyle = 'rounded-none';
-  } else if (continuesFromPrevious) {
-    borderRadiusStyle = 'rounded-r-full rounded-l-none';
-  } else if (continuesToNext) {
-    borderRadiusStyle = 'rounded-l-full rounded-r-none';
+  // Define border radius style 
+  let borderRadiusStyle = 'rounded-none';
+  if (!continuesFromPrevious && !continuesToNext) {
+    // Single day reservation
+    borderRadiusStyle = 'rounded-full';
+  } else if (!continuesFromPrevious) {
+    // First day of multi-day reservation
+    borderRadiusStyle = 'rounded-l-lg rounded-r-none';
+  } else if (!continuesToNext) {
+    // Last day of multi-day reservation
+    borderRadiusStyle = 'rounded-r-lg rounded-l-none';
   }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
