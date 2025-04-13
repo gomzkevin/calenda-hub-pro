@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MultiCalendarHeaderProps {
@@ -17,6 +17,8 @@ const MultiCalendarHeader: React.FC<MultiCalendarHeaderProps> = ({
   onPrev,
   onNext
 }) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   const getDateRangeDisplay = () => {
     if (visibleDays.length === 0) return '';
     
@@ -29,6 +31,35 @@ const MultiCalendarHeader: React.FC<MultiCalendarHeaderProps> = ({
     
     return `${format(firstDay, 'MMMM d')} - ${format(lastDay, 'MMMM d, yyyy')}`;
   };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      const calendar = document.querySelector('.multi-calendar-container');
+      if (calendar) {
+        calendar.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      }
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  };
+
+  // Listen for fullscreen change events
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   return (
     <div className="sticky top-0 z-30 bg-white border-b">
@@ -51,6 +82,15 @@ const MultiCalendarHeader: React.FC<MultiCalendarHeaderProps> = ({
             title="Next 15 Days"
           >
             <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>
       </div>

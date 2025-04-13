@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
@@ -117,13 +116,7 @@ const CalendarPage: React.FC = () => {
         
         <TabsContent value="multi" className="w-full h-[calc(100vh-220px)]">
           <Card className="w-full h-full flex flex-col">
-            <CardHeader>
-              <CardTitle>Multi-Property View</CardTitle>
-              <CardDescription>
-                Operational view showing all properties by day
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6 h-[calc(100%-85px)] flex-1 flex flex-col overflow-hidden">
+            <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
               <MultiCalendar />
             </CardContent>
           </Card>

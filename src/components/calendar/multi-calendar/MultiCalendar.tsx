@@ -55,7 +55,7 @@ const MultiCalendar: React.FC = () => {
   const isLoading = isLoadingReservations || isLoadingProperties;
 
   return (
-    <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden">
+    <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden multi-calendar-container">
       <MultiCalendarHeader 
         startDate={startDate}
         visibleDays={visibleDays}
