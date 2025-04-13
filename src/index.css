@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -83,25 +82,45 @@
   }
   
   .booking-airbnb {
-    @apply bg-red-500/70 text-white;
+    @apply bg-red-500 text-white;
   }
   
   .booking-booking {
-    @apply bg-blue-600/70 text-white;
+    @apply bg-blue-600 text-white;
   }
   
   .booking-vrbo {
-    @apply bg-green-600/70 text-white;
+    @apply bg-green-600 text-white;
   }
   
   .booking-manual {
-    @apply bg-purple-600/70 text-white;
+    @apply bg-purple-600 text-white;
   }
   
   .booking-other {
-    @apply bg-gray-600/70 text-white;
+    @apply bg-gray-600 text-white;
   }
   
+  .bg-platform-airbnb {
+    @apply bg-red-500;
+  }
+  
+  .bg-platform-booking {
+    @apply bg-blue-600;
+  }
+  
+  .bg-platform-vrbo {
+    @apply bg-green-600;
+  }
+  
+  .bg-platform-manual {
+    @apply bg-purple-600;
+  }
+  
+  .bg-platform-other {
+    @apply bg-gray-600;
+  }
+
   .calendar-header {
     @apply text-center py-2 font-medium text-gray-600 border-b;
   }
@@ -110,27 +129,6 @@
     @apply p-1 border h-24 overflow-hidden;
   }
   
-  .bg-platform-airbnb {
-    @apply bg-red-500/70;
-  }
-  
-  .bg-platform-booking {
-    @apply bg-blue-600/70;
-  }
-  
-  .bg-platform-vrbo {
-    @apply bg-green-600/70;
-  }
-  
-  .bg-platform-manual {
-    @apply bg-purple-600/70;
-  }
-  
-  .bg-platform-other {
-    @apply bg-gray-600/70;
-  }
-  
-  /* New classes for reservation bars */
   .reservation-bar {
     @apply rounded-full transition-all;
   }
@@ -139,9 +137,7 @@
     @apply brightness-90 shadow-md;
   }
   
-  /* Clase para reservas secundarias/bloqueadas */
   .reservation-secondary {
     @apply bg-gray-400 text-white border border-dashed border-white;
   }
 }
-
