@@ -25,9 +25,18 @@ export const calculateBarPositionAndStyle = (
   const cellEndOffset = continuesToNext ? 1 : 0.45;
   const adjustedEndPos = endPos + cellEndOffset;
   
+  // Add a small gap of 0.05 between lanes on the same day
+  const sameDay = week.some(day => 
+    day && isSameDay(normalizeDate(day), normalizeDate(startDate)) && 
+    isSameDay(normalizeDate(day), normalizeDate(endDate))
+  );
+  
+  // Adjust positions to create a small gap for same-day events
+  const gapAdjustment = sameDay ? 0.05 : 0;
+  
   // Calculate percentage values for positioning
-  const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
-  const barLeft = `${(adjustedStartPos / 7) * 100}%`;
+  const barWidth = `${((adjustedEndPos - adjustedStartPos - gapAdjustment) / 7) * 100}%`;
+  const barLeft = `${((adjustedStartPos + (sameDay ? gapAdjustment / 2 : 0)) / 7) * 100}%`;
   
   // Define border radius style based on if the reservation continues
   let borderRadiusStyle = 'rounded-full';
@@ -41,3 +50,4 @@ export const calculateBarPositionAndStyle = (
   
   return { barLeft, barWidth, borderRadiusStyle };
 };
+
