@@ -21,7 +21,6 @@ interface DayCellProps {
   getReservationStyle: (reservation: any, isIndirect: boolean) => string;
   getSourceReservationInfo: (reservation: any) => { property?: Property, reservation?: any };
   normalizeDate: (date: Date) => Date;
-  showTooltips?: boolean;
 }
 
 const DayCell: React.FC<DayCellProps> = ({
@@ -33,8 +32,7 @@ const DayCell: React.FC<DayCellProps> = ({
   propertyLanes,
   getReservationStyle,
   getSourceReservationInfo,
-  normalizeDate,
-  showTooltips = true
+  normalizeDate
 }) => {
   const isToday = isSameDay(day, new Date());
   const normalizedDay = normalizeDate(day);
@@ -63,8 +61,7 @@ const DayCell: React.FC<DayCellProps> = ({
         </div>
       )}
       
-      {/* Only show tooltips if explicitly requested (we'll use reservation bars instead) */}
-      {showTooltips && sortedDayReservations.map((res) => {
+      {sortedDayReservations.map((res) => {
         const lane = propertyLanes.get(`${property.id}-${res.id}`) || 0;
         
         const laneHeight = 24;

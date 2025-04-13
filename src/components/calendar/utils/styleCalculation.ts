@@ -40,3 +40,4 @@ export const calculateBarPositionAndStyle = (
   
   return { barLeft, barWidth, borderRadiusStyle };
 };
+

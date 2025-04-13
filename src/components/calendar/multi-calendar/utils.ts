@@ -40,43 +40,13 @@ export const calculatePropertyLanes = (
 ): Map<string, number> => {
   const propertyLanes = new Map<string, number>();
   
-  // Process each property individually to assign lanes to its reservations
+  // For each property, assign lanes to its reservations
   properties.forEach(property => {
     const reservations = getReservationsForProperty(property.id);
     
-    if (reservations.length === 0) return;
-    
-    // Sort reservations by start date
-    const sortedReservations = [...reservations].sort(sortReservations);
-    
-    // Create lanes
-    const lanes: Reservation[][] = [];
-    
-    // Assign each reservation to a lane
-    sortedReservations.forEach(reservation => {
-      // Find the first lane where the reservation fits
-      let laneIndex = 0;
-      let assigned = false;
-      
-      while (!assigned && laneIndex < lanes.length) {
-        const lane = lanes[laneIndex];
-        const lastReservationInLane = lane[lane.length - 1];
-        
-        // If the current reservation starts after the last one in the lane ends
-        if (reservation.startDate >= lastReservationInLane.endDate) {
-          lane.push(reservation);
-          propertyLanes.set(`${property.id}-${reservation.id}`, laneIndex);
-          assigned = true;
-        } else {
-          laneIndex++;
-        }
-      }
-      
-      // If not assigned to any existing lane, create a new one
-      if (!assigned) {
-        lanes.push([reservation]);
-        propertyLanes.set(`${property.id}-${reservation.id}`, lanes.length - 1);
-      }
+    // For simplicity, all reservations get lane 0 for now
+    reservations.forEach(reservation => {
+      propertyLanes.set(`${property.id}-${reservation.id}`, 0);
     });
   });
   
