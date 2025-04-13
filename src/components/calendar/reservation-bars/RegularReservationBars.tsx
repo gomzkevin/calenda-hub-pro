@@ -31,8 +31,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
                 return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
               });
             }).map((reservation) => {
-              // Always use lane 0 in our simplified approach
-              const lane = 0;
+              // Get lane assignment for this reservation in this week
+              const lane = weekReservationLanes[weekIndex]?.[reservation.id] || 0;
               
               return (
                 <ReservationBar

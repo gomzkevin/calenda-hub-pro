@@ -43,7 +43,18 @@ const DayCell: React.FC<DayCellProps> = ({
     reservations: dayReservations 
   } = getDayReservationStatus(property, day);
   
-  const sortedDayReservations = [...dayReservations].sort(sortReservations);
+  // Sort reservations to display check-outs first, then check-ins
+  const sortedDayReservations = [...dayReservations].sort((a, b) => {
+    // First check if one is a check-out and the other is a check-in
+    const aIsCheckout = isSameDay(normalizeDate(a.endDate), normalizedDay);
+    const bIsCheckout = isSameDay(normalizeDate(b.endDate), normalizedDay);
+    
+    if (aIsCheckout && !bIsCheckout) return -1; // a is checkout, b is not
+    if (!aIsCheckout && bIsCheckout) return 1;  // b is checkout, a is not
+    
+    // If both are the same type, use the standard sort
+    return sortReservations(a, b);
+  });
   
   let bgColorClass = isToday ? 'bg-blue-50' : '';
   
@@ -76,6 +87,12 @@ const DayCell: React.FC<DayCellProps> = ({
         
         const sourceInfo = getSourceReservationInfo(res);
         
+        // Check if this is a check-in day (reservation starts on this day)
+        const isCheckInDay = isSameDay(normalizeDate(res.startDate), normalizedDay);
+        
+        // Check if this is a check-out day (reservation ends on this day)
+        const isCheckOutDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
+        
         return (
           <ReservationTooltip
             key={`res-${res.id}-${idx}`}
@@ -84,7 +101,8 @@ const DayCell: React.FC<DayCellProps> = ({
             sourceInfo={sourceInfo}
             style={style}
             topPosition={topPosition}
-            isStartDay={true}
+            isStartDay={isCheckInDay}
+            isEndDay={isCheckOutDay}
           />
         );
       })}

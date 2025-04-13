@@ -1,4 +1,3 @@
-
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
@@ -21,13 +20,13 @@ export const calculateBarPositionAndStyle = (
   const isCheckOutDay = !continuesToNext;
   
   // Start position: if it continues from previous, start at 0
-  // Otherwise start at 60% of the cell (for check-in)
-  const cellStartOffset = continuesFromPrevious ? 0 : 0.60;
+  // Otherwise start at 52% of the cell (for check-in) - leaving space for checkout
+  const cellStartOffset = continuesFromPrevious ? 0 : 0.52;
   const adjustedStartPos = startPos + cellStartOffset;
   
   // End position: if it continues to next, end at full width
-  // Otherwise end at 30% of the cell (for check-out)
-  const cellEndOffset = continuesToNext ? 1 : 0.30;
+  // Otherwise end at 43% of the cell (for check-out) - leaving space for checkin
+  const cellEndOffset = continuesToNext ? 1 : 0.43;
   const adjustedEndPos = endPos + cellEndOffset;
   
   // Calculate percentage values for positioning

@@ -58,7 +58,24 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   
   // Display status if it's a blocked reservation
   const isBlocked = reservation.status === 'Blocked' || reservation.isBlocking === true;
-  const displayLabel = isBlocked ? 'Blocked' : reservation.platform;
+  
+  // Determine the label to display
+  let displayLabel;
+  if (isBlocked) {
+    displayLabel = 'Blocked';
+  } else if (!continuesFromPrevious && !continuesToNext) {
+    // One-day stay
+    displayLabel = `${reservation.platform} (1-day)`;
+  } else if (!continuesFromPrevious) {
+    // Check-in only
+    displayLabel = `${reservation.platform} (In)`;
+  } else if (!continuesToNext) {
+    // Check-out only
+    displayLabel = `${reservation.platform} (Out)`;
+  } else {
+    // Middle of stay
+    displayLabel = reservation.platform;
+  }
   
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
