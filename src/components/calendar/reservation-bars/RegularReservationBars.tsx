@@ -21,7 +21,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`reservations-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 120}px`, height: '120px' }}>
+        <div key={`reservations-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
           <div className="col-span-7 relative h-full w-full">
             {week[0] && filteredReservations.filter(reservation => {
               return week.some(day => {
@@ -31,8 +31,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
                 return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
               });
             }).map((reservation) => {
-              const weekLanes = weekReservationLanes[weekIndex] || {};
-              const lane = weekLanes[reservation.id] || 0;
+              // Always use lane 0 in our simplified approach
+              const lane = 0;
               
               return (
                 <ReservationBar

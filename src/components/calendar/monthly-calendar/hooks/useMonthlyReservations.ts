@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
@@ -39,7 +38,7 @@ export const useMonthlyReservations = (
     enabled: !!currentMonth
   });
 
-  // Filter reservations - main reservations, blocked and relationship blocks
+  // Filter and prioritize reservations according to new rules
   const { filteredReservations, propagatedBlocks, relationshipBlocks } = useMemo(() => {
     if (!allReservations || allReservations.length === 0) {
       return { 
@@ -56,27 +55,89 @@ export const useMonthlyReservations = (
       endDate: normalizeDate(new Date(res.endDate))
     }));
     
-    // Filter reservations for the selected property
+    // RULE 1: Apply primary filtering - filter out blocked reservations without sourceReservationId
+    const filteredByBlockStatus = normalizedReservations.filter(res => 
+      // Keep if it's not marked as "Blocked" in notes or status
+      (res.notes !== 'Blocked' && res.status !== 'Blocked') || 
+      // OR keep if it has a sourceReservationId (it's a legitimate propagated block)
+      res.sourceReservationId !== undefined
+    );
+    
+    // Group by day to apply prioritization rules
+    const dayMap = new Map<string, Reservation[]>();
+    
+    filteredByBlockStatus.forEach(res => {
+      // Calculate all days this reservation spans
+      let currentDate = new Date(res.startDate);
+      while (currentDate <= res.endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        
+        if (!dayMap.has(dateKey)) {
+          dayMap.set(dateKey, []);
+        }
+        
+        dayMap.get(dateKey)?.push(res);
+        
+        // Move to next day
+        currentDate = new Date(currentDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    });
+    
+    // Apply prioritization rules for each day
+    const prioritizedReservations = new Set<string>();
+    const prioritizedBlocks = new Set<string>();
+    const prioritizedRelationshipBlocks = new Set<string>();
+    
+    // Process each day
+    dayMap.forEach((dayReservations, dateKey) => {
+      // RULE 2: Apply prioritization
+      // Priority 1: Regular reservations (no sourceReservationId)
+      const regularReservations = dayReservations.filter(res => 
+        res.propertyId === propertyId && 
+        !res.sourceReservationId &&
+        res.notes !== 'Blocked' &&
+        res.status !== 'Blocked'
+      );
+      
+      if (regularReservations.length > 0) {
+        // Add all regular reservations to the displayed set
+        regularReservations.forEach(res => prioritizedReservations.add(res.id));
+        return; // Skip to next day - regular reservations take priority
+      }
+      
+      // Priority 2 & 3: Handle blocks
+      const blockReservations = dayReservations.filter(res => 
+        res.sourceReservationId !== undefined && 
+        (res.notes === 'Blocked' || res.status === 'Blocked')
+      );
+      
+      if (blockReservations.length > 0) {
+        blockReservations.forEach(res => {
+          // Check if it's a relationship block (different property)
+          if (res.propertyId !== propertyId) {
+            prioritizedRelationshipBlocks.add(res.id);
+          } else {
+            // It's a direct block on this property
+            prioritizedBlocks.add(res.id);
+          }
+        });
+      }
+    });
+    
+    // Create the final filtered sets
     const directReservations = normalizedReservations.filter(
-      res => res.propertyId === propertyId && 
-             res.notes !== 'Blocked' &&
-             res.status !== 'Blocked' &&
-             !res.isRelationshipBlock
+      res => res.propertyId === propertyId && prioritizedReservations.has(res.id)
     );
     
-    // Identify propagated blocks (blocks created due to sourceReservationId)
-    const blockedReservations = normalizedReservations.filter(res => 
-      res.propertyId === propertyId &&
-      res.sourceReservationId && 
-      (res.notes === 'Blocked' || res.status === 'Blocked')
+    // Propagated blocks are blocks directly on this property
+    const blockedReservations = normalizedReservations.filter(
+      res => res.propertyId === propertyId && prioritizedBlocks.has(res.id)
     );
     
-    // Identify relationship blocks (for parent-child properties)
-    const relatedBlocks = normalizedReservations.filter(res => 
-      // Include blocks from related properties that would affect this property
-      res.propertyId !== propertyId && 
-      relatedPropertyIds.includes(res.propertyId) &&
-      !res.sourceReservationId // Avoid duplicates with propagated blocks
+    // Relationship blocks are from related properties
+    const relatedBlocks = normalizedReservations.filter(
+      res => res.propertyId !== propertyId && prioritizedRelationshipBlocks.has(res.id)
     );
     
     return {
@@ -84,7 +145,7 @@ export const useMonthlyReservations = (
       propagatedBlocks: blockedReservations,
       relationshipBlocks: relatedBlocks
     };
-  }, [allReservations, propertyId, relatedPropertyIds]);
+  }, [allReservations, propertyId]);
 
   return {
     filteredReservations,

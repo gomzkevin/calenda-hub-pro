@@ -24,13 +24,13 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   weekRelationshipBlockLanes,
   weekPropagatedBlockLanes
 }) => {
-  // Constants for layout calculations
-  const laneHeight = 14; // Height for each reservation lane
-  const baseOffset = 40; // Adjusted base offset from top
+  // Simplified constants for the single-lane layout
+  const laneHeight = 24; // Height for the reservation lane
+  const baseOffset = 30; // Base offset from top
   
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-      {/* Regular Reservation bars */}
+      {/* Regular Reservation bars - HIGHEST PRIORITY */}
       <RegularReservationBars
         weeks={weeks}
         filteredReservations={filteredReservations}
@@ -39,23 +39,28 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
         baseOffset={baseOffset}
       />
       
+      {/* Only render block bars if there are no regular reservations for those days */}
       {/* Relationship Block Bars (parent-child blocks) */}
-      <RelationshipBlockBars
-        weeks={weeks}
-        relationshipBlocks={relationshipBlocks || []}
-        weekRelationshipBlockLanes={weekRelationshipBlockLanes}
-        laneHeight={laneHeight}
-        baseOffset={baseOffset}
-      />
+      {relationshipBlocks && relationshipBlocks.length > 0 && (
+        <RelationshipBlockBars
+          weeks={weeks}
+          relationshipBlocks={relationshipBlocks}
+          weekRelationshipBlockLanes={weekRelationshipBlockLanes}
+          laneHeight={laneHeight}
+          baseOffset={baseOffset}
+        />
+      )}
       
       {/* Regular Propagated Block Bars */}
-      <PropagatedBlockBars
-        weeks={weeks}
-        propagatedBlocks={propagatedBlocks || []}
-        weekPropagatedBlockLanes={weekPropagatedBlockLanes}
-        laneHeight={laneHeight}
-        baseOffset={baseOffset}
-      />
+      {propagatedBlocks && propagatedBlocks.length > 0 && (
+        <PropagatedBlockBars
+          weeks={weeks}
+          propagatedBlocks={propagatedBlocks}
+          weekPropagatedBlockLanes={weekPropagatedBlockLanes}
+          laneHeight={laneHeight}
+          baseOffset={baseOffset}
+        />
+      )}
     </div>
   );
 };

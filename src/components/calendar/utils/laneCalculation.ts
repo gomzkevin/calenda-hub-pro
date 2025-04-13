@@ -4,7 +4,8 @@ import { Reservation } from "@/types";
 import { isSameDay, differenceInDays } from "date-fns";
 
 /**
- * Calculate reservation lanes for each week
+ * Simplified lane calculation - always uses a single lane (0)
+ * This replaces the previous complex lane calculation logic
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -24,84 +25,9 @@ export const calculateReservationLanes = (
       });
     });
     
-    // Sort reservations by start date to ensure consistent lane assignment
-    const sortedReservations = [...weekReservations].sort(
-      (a, b) => a.startDate.getTime() - b.startDate.getTime()
-    );
-    
-    // Enhanced lane assignment strategy to prioritize consecutive reservations in same lane
-    sortedReservations.forEach((reservation, index) => {
-      const resId = reservation.id;
-      
-      // Check if this reservation follows the previous one (consecutive or close)
-      if (index > 0) {
-        const prevReservation = sortedReservations[index-1];
-        const prevResId = prevReservation.id;
-        
-        // If this reservation starts on the same day the previous one ends or within 3 days
-        const daysBetween = differenceInDays(reservation.startDate, prevReservation.endDate);
-        if (isSameDay(prevReservation.endDate, reservation.startDate) || 
-            (daysBetween >= 0 && daysBetween <= 3)) {
-          
-          // Try to assign the same lane as the previous reservation
-          const prevLane = weekLanes[prevResId];
-          
-          // Check if this lane is available for the current reservation
-          let canUseSameLane = true;
-          
-          // Check for conflicts with other reservations in this lane
-          for (const existingResId in weekLanes) {
-            if (existingResId === prevResId) continue;
-            if (weekLanes[existingResId] !== prevLane) continue;
-            
-            const existingRes = weekReservations.find(r => r.id === existingResId);
-            if (!existingRes) continue;
-            
-            // Check for date overlap
-            if (reservation.startDate <= existingRes.endDate && 
-                reservation.endDate >= existingRes.startDate) {
-              canUseSameLane = false;
-              break;
-            }
-          }
-          
-          if (canUseSameLane) {
-            weekLanes[resId] = prevLane;
-            return;
-          }
-        }
-      }
-      
-      // If we couldn't reuse the previous lane, find the first available lane
-      let lane = 0;
-      let laneFound = false;
-      
-      while (!laneFound) {
-        laneFound = true;
-        
-        // Check if any existing reservation in this lane overlaps with current reservation
-        for (const existingResId in weekLanes) {
-          const existingLane = weekLanes[existingResId];
-          if (existingLane !== lane) continue;
-          
-          const existingRes = weekReservations.find(r => r.id === existingResId);
-          if (!existingRes) continue;
-          
-          // Check for date overlap
-          if (reservation.startDate <= existingRes.endDate && 
-              reservation.endDate >= existingRes.startDate) {
-            laneFound = false;
-            break;
-          }
-        }
-        
-        if (!laneFound) {
-          lane++;
-        }
-      }
-      
-      // Assign this lane to the reservation
-      weekLanes[resId] = lane;
+    // In our simplified approach, all reservations get lane 0
+    weekReservations.forEach(reservation => {
+      weekLanes[reservation.id] = 0;
     });
     
     lanes[weekIndex] = weekLanes;
@@ -111,12 +37,12 @@ export const calculateReservationLanes = (
 };
 
 /**
- * Calculate block lanes (propagated or relationship blocks)
+ * Simplified block lanes - always uses a single lane (0)
+ * This replaces the previous complex block lane calculation
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
-  blocks: Reservation[] | undefined,
-  baseLane: number = 10
+  blocks: Reservation[] | undefined
 ): Record<number, Record<string, number>> => {
   const lanes: Record<number, Record<string, number>> = {};
   
@@ -135,14 +61,9 @@ export const calculateBlockLanes = (
       });
     });
     
-    // Sort blocks by start date
-    const sortedBlocks = [...weekBlocks].sort(
-      (a, b) => a.startDate.getTime() - b.startDate.getTime()
-    );
-    
-    // Assign lanes
-    sortedBlocks.forEach((block, index) => {
-      weekLanes[block.id] = baseLane + index;
+    // All blocks get lane 0 in our simplified approach
+    weekBlocks.forEach(block => {
+      weekLanes[block.id] = 0;
     });
     
     lanes[weekIndex] = weekLanes;
@@ -150,3 +71,4 @@ export const calculateBlockLanes = (
   
   return lanes;
 };
+
