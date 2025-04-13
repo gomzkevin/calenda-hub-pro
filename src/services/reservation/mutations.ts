@@ -19,21 +19,30 @@ export const createManualReservation = async (data: {
 }): Promise<Reservation> => {
   const { propertyId, startDate, endDate, guestName, guestCount, contactInfo, status, notes, userId } = data;
   
+  // Create payload and only include contactInfo if the column exists
+  const payload = {
+    property_id: propertyId,
+    user_id: userId || null,
+    start_date: normalizeDate(startDate).toISOString().split('T')[0],
+    end_date: normalizeDate(endDate).toISOString().split('T')[0],
+    platform: 'Manual',
+    source: 'Manual',
+    status: status || 'Reserved',
+    guest_name: guestName,
+    guest_count: guestCount || null,
+    notes: notes || null
+  };
+  
+  // If contactInfo is provided, store it in the notes field as a fallback
+  if (contactInfo) {
+    payload.notes = payload.notes 
+      ? `${payload.notes}\nContacto: ${contactInfo}` 
+      : `Contacto: ${contactInfo}`;
+  }
+  
   const { data: result, error } = await supabase
     .from("reservations")
-    .insert({
-      property_id: propertyId,
-      user_id: userId || null,
-      start_date: normalizeDate(startDate).toISOString().split('T')[0],
-      end_date: normalizeDate(endDate).toISOString().split('T')[0],
-      platform: 'Manual',
-      source: 'Manual',
-      status: status || 'Reserved',
-      guest_name: guestName,
-      guest_count: guestCount || null,
-      contact_info: contactInfo || null,
-      notes: notes || null
-    })
+    .insert(payload)
     .select()
     .single();
   
@@ -115,9 +124,27 @@ export const updateManualReservation = async (
   if (data.endDate) updates.end_date = normalizeDate(data.endDate).toISOString().split('T')[0];
   if (data.guestName !== undefined) updates.guest_name = data.guestName;
   if (data.guestCount !== undefined) updates.guest_count = data.guestCount;
-  if (data.contactInfo !== undefined) updates.contact_info = data.contactInfo;
   if (data.status) updates.status = data.status;
-  if (data.notes !== undefined) updates.notes = data.notes;
+  
+  // Handle contactInfo by adding it to notes
+  if (data.contactInfo !== undefined) {
+    if (data.notes !== undefined) {
+      updates.notes = `${data.notes}\nContacto: ${data.contactInfo}`;
+    } else {
+      // If we're updating contactInfo but not notes, we need to fetch current notes
+      const { data: currentReservation } = await supabase
+        .from("reservations")
+        .select("notes")
+        .eq("id", id)
+        .single();
+      
+      updates.notes = currentReservation && currentReservation.notes
+        ? `${currentReservation.notes}\nContacto: ${data.contactInfo}`
+        : `Contacto: ${data.contactInfo}`;
+    }
+  } else if (data.notes !== undefined) {
+    updates.notes = data.notes;
+  }
   
   const { data: result, error } = await supabase
     .from("reservations")

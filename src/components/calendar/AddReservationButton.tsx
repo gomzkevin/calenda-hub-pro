@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
-import { createManualReservation } from '@/services/reservation'; // Updated import path
+import { createManualReservation } from '@/services/reservation'; 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
@@ -94,12 +94,8 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
                   ? {
                       id: '',
                       propertyId: propertyId || '',
-                      startDate: initialDate || new Date(),
-                      endDate: new Date(
-                        initialDate
-                          ? initialDate.getTime() + 86400000
-                          : Date.now() + 86400000
-                      ),
+                      startDate: null,
+                      endDate: null,
                       platform: 'Manual',
                       source: 'Manual',
                       createdAt: new Date(),

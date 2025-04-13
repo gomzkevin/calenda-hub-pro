@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { checkAvailability, getReservationsForMonth } from '@/services/reservation'; // Updated import path
+import { checkAvailability, getReservationsForMonth } from '@/services/reservation/queries'; 
 import { cn } from '@/lib/utils';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 
@@ -300,7 +300,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             type="number"
             min="1"
             value={formData.guestCount}
-            onChange={(e) => setFormData({...formData, guestCount: parseInt(e.target.value)})}
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
+              setFormData({...formData, guestCount: isNaN(value) ? 1 : value});
+            }}
           />
         </div>
         
