@@ -27,7 +27,7 @@ export const propagateReservationBlocks = async (
   // Get property information without nested selects
   const { data: property, error: propertyError } = await supabase
     .from("properties")
-    .select("id, type")
+    .select("id, type, parent_id")
     .eq("id", reservation.propertyId)
     .single();
   
@@ -36,10 +36,11 @@ export const propagateReservationBlocks = async (
     return [];
   }
   
-  // Get child properties in a separate query to avoid type recursion
-  let children: { id: string }[] = [];
+  const propagatedReservations: Reservation[] = [];
   
+  // If this is a parent property, block all child properties
   if (property && property.type === 'parent') {
+    // Get child properties in a separate query
     const { data: childProperties, error: childrenError } = await supabase
       .from("properties")
       .select("id")
@@ -47,30 +48,42 @@ export const propagateReservationBlocks = async (
       
     if (childrenError) {
       console.error(`Error fetching child properties for parent ${property.id}:`, childrenError);
-    } else if (childProperties) {
-      children = childProperties;
-    }
-  }
-  
-  const propagatedReservations: Reservation[] = [];
-  
-  // If this is a parent property, block all child properties
-  if (property && property.type === 'parent' && children.length > 0) {
-    for (const child of children) {
-      try {
-        const blockedChildReservation = await createBlockingReservation({
-          propertyId: child.id,
-          startDate: reservation.startDate,
-          endDate: reservation.endDate,
-          isBlocking: true,
-          sourceReservationId: reservation.id,
-          notes: `Blocked by parent reservation ${reservation.id}`
-        });
-        
-        propagatedReservations.push(blockedChildReservation);
-      } catch (err) {
-        console.error(`Error blocking child property ${child.id}:`, err);
+    } else if (childProperties && childProperties.length > 0) {
+      for (const child of childProperties) {
+        try {
+          const blockedChildReservation = await createBlockingReservation({
+            propertyId: child.id,
+            startDate: reservation.startDate,
+            endDate: reservation.endDate,
+            isBlocking: true,
+            sourceReservationId: reservation.id,
+            notes: `Blocked by parent reservation ${reservation.id}`
+          });
+          
+          propagatedReservations.push(blockedChildReservation);
+        } catch (err) {
+          console.error(`Error blocking child property ${child.id}:`, err);
+        }
       }
+    }
+  } 
+  // If this is a child property, only block the parent
+  else if (property && property.type === 'child' && property.parent_id) {
+    try {
+      const blockedParentReservation = await createBlockingReservation({
+        propertyId: property.parent_id,
+        startDate: reservation.startDate,
+        endDate: reservation.endDate,
+        isBlocking: true,
+        sourceReservationId: reservation.id,
+        notes: `Blocked by child property reservation ${reservation.id}`
+      });
+      
+      propagatedReservations.push(blockedParentReservation);
+      
+      // REMOVED: The code that would block sibling properties
+    } catch (err) {
+      console.error(`Error blocking parent property ${property.parent_id}:`, err);
     }
   }
   
