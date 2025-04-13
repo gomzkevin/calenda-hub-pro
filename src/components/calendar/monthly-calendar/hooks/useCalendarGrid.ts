@@ -11,7 +11,8 @@ import { generateMonthDays } from '../../utils/dateUtils';
 export const useCalendarGrid = (
   currentMonth: Date,
   filteredReservations: Reservation[],
-  blockedReservations: Reservation[]
+  propagatedBlocks: Reservation[],
+  relationshipBlocks: Reservation[]
 ) => {
   // Generate the days for the current month
   const weeks = useMemo(() => generateMonthDays(currentMonth), [currentMonth]);
@@ -21,10 +22,15 @@ export const useCalendarGrid = (
     return calculateReservationLanes(weeks, filteredReservations);
   }, [weeks, filteredReservations]);
   
-  // Calculate block lanes for each week
-  const weekBlockedLanes = useMemo(() => {
-    return calculateBlockLanes(weeks, blockedReservations, 10);
-  }, [weeks, blockedReservations]);
+  // Calculate propagated block lanes for each week
+  const weekPropagatedBlockLanes = useMemo(() => {
+    return calculateBlockLanes(weeks, propagatedBlocks, 10);
+  }, [weeks, propagatedBlocks]);
+  
+  // Calculate relationship block lanes for each week
+  const weekRelationshipBlockLanes = useMemo(() => {
+    return calculateBlockLanes(weeks, relationshipBlocks, 5);
+  }, [weeks, relationshipBlocks]);
   
   // Calculate cell height based on maximum lanes
   const calculateCellHeight = () => {
@@ -32,12 +38,14 @@ export const useCalendarGrid = (
     
     weeks.forEach((_, weekIndex) => {
       const weekLanes = weekReservationLanes[weekIndex] || {};
-      const blockLanes = weekBlockedLanes[weekIndex] || {};
+      const blockLanes = weekPropagatedBlockLanes[weekIndex] || {};
+      const relationshipLanes = weekRelationshipBlockLanes[weekIndex] || {};
       
       const maxRegularLane = Object.values(weekLanes).reduce((max, lane) => Math.max(max, lane), 0);
       const maxBlockLane = Object.values(blockLanes).reduce((max, lane) => Math.max(max, lane), 0);
+      const maxRelationshipLane = Object.values(relationshipLanes).reduce((max, lane) => Math.max(max, lane), 0);
       
-      maxLanes[weekIndex] = Math.max(maxRegularLane, maxBlockLane - 10);
+      maxLanes[weekIndex] = Math.max(maxRegularLane, Math.max(maxBlockLane - 10, maxRelationshipLane - 5));
     });
     
     const maxLaneAcrossWeeks = Object.values(maxLanes).reduce((max, lane) => Math.max(max, lane), 0);
@@ -48,7 +56,8 @@ export const useCalendarGrid = (
   
   const cellHeight = useMemo(() => calculateCellHeight(), [
     weekReservationLanes, 
-    weekBlockedLanes
+    weekPropagatedBlockLanes, 
+    weekRelationshipBlockLanes
   ]);
   
   // Navigation handlers
@@ -64,7 +73,8 @@ export const useCalendarGrid = (
     weeks,
     cellHeight,
     weekReservationLanes,
-    weekBlockedLanes,
+    weekPropagatedBlockLanes,
+    weekRelationshipBlockLanes,
     nextMonth,
     prevMonth
   };

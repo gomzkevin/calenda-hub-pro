@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Reservation } from '@/types';
 import CalendarHeader from '../CalendarHeader';
 import CalendarDayHeader from '../CalendarDayHeader';
 import CalendarGrid from '../CalendarGrid';
@@ -22,7 +23,8 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
   // Get reservations
   const { 
     filteredReservations, 
-    blockedReservations, 
+    propagatedBlocks, 
+    relationshipBlocks,
     isLoading 
   } = useMonthlyReservations(currentMonth, propertyId, relatedPropertyIds);
   
@@ -31,10 +33,11 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
     weeks,
     cellHeight,
     weekReservationLanes,
-    weekBlockedLanes,
+    weekPropagatedBlockLanes,
+    weekRelationshipBlockLanes,
     nextMonth,
     prevMonth
-  } = useCalendarGrid(currentMonth, filteredReservations, blockedReservations);
+  } = useCalendarGrid(currentMonth, filteredReservations, propagatedBlocks, relationshipBlocks);
   
   // Navigation handlers
   const handleNextMonth = () => {
@@ -67,18 +70,18 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
             <CalendarGrid
               weeks={weeks}
               currentMonth={currentMonth}
-              relationshipBlocks={[]} // Pasamos array vacío ya que no tenemos más estos bloques
+              relationshipBlocks={relationshipBlocks}
               cellHeight={cellHeight}
             />
             
             <ReservationBars
               weeks={weeks}
               filteredReservations={filteredReservations}
-              blockedReservations={blockedReservations}
+              relationshipBlocks={relationshipBlocks}
+              propagatedBlocks={propagatedBlocks}
               weekReservationLanes={weekReservationLanes}
-              weekBlockedLanes={weekBlockedLanes}
-              laneHeight={14}
-              baseOffset={40}
+              weekRelationshipBlockLanes={weekRelationshipBlockLanes}
+              weekPropagatedBlockLanes={weekPropagatedBlockLanes}
             />
           </div>
         </div>
