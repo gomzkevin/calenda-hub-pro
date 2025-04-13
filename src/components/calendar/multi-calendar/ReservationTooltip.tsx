@@ -43,6 +43,7 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
       ...positionStyle,
       left: '0',
       width: '43%',
+      borderRadius: '0 9999px 9999px 0' // Rounded on right side
     };
   } else if (isStartDay && !isEndDay) {
     // Check-in only - position at the right edge, full width
@@ -50,6 +51,7 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
       ...positionStyle,
       left: '57%',
       width: '43%',
+      borderRadius: '9999px 0 0 9999px' // Rounded on left side
     };
   } else if (isStartDay && isEndDay) {
     // Both check-in and check-out (1-day stay)
@@ -109,3 +111,4 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
 };
 
 export default ReservationTooltip;
+
