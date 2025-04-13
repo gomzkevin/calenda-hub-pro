@@ -26,7 +26,7 @@ export const mapReservationFromDatabase = (dbRes: any): Reservation => {
     status: dbRes.status as ReservationStatus || undefined,
     guestName: dbRes.guest_name || undefined,
     guestCount: dbRes.guest_count || undefined,
-    contactInfo: dbRes.contact_info || undefined,
+    contactInfo: undefined, // This field doesn't exist in the database, we store it in notes
     icalUrl: dbRes.ical_url || undefined,
     notes: dbRes.notes || undefined,
     externalId: dbRes.external_id || undefined,

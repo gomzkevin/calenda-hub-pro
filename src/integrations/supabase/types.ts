@@ -177,6 +177,8 @@ export type Database = {
           created_at: string
           end_date: string
           external_id: string | null
+          guest_count: number | null
+          guest_name: string | null
           ical_url: string | null
           id: string
           is_blocking: boolean | null
@@ -186,6 +188,7 @@ export type Database = {
           source: string
           source_reservation_id: string | null
           start_date: string
+          status: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -193,6 +196,8 @@ export type Database = {
           created_at?: string
           end_date: string
           external_id?: string | null
+          guest_count?: number | null
+          guest_name?: string | null
           ical_url?: string | null
           id?: string
           is_blocking?: boolean | null
@@ -202,6 +207,7 @@ export type Database = {
           source: string
           source_reservation_id?: string | null
           start_date: string
+          status?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -209,6 +215,8 @@ export type Database = {
           created_at?: string
           end_date?: string
           external_id?: string | null
+          guest_count?: number | null
+          guest_name?: string | null
           ical_url?: string | null
           id?: string
           is_blocking?: boolean | null
@@ -218,6 +226,7 @@ export type Database = {
           source?: string
           source_reservation_id?: string | null
           start_date?: string
+          status?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

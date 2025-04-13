@@ -19,7 +19,7 @@ export const createManualReservation = async (data: {
 }): Promise<Reservation> => {
   const { propertyId, startDate, endDate, guestName, guestCount, contactInfo, status, notes, userId } = data;
   
-  // Create payload and only include contactInfo if the column exists
+  // Create payload with all fields that exist in the database
   const payload = {
     property_id: propertyId,
     user_id: userId || null,
