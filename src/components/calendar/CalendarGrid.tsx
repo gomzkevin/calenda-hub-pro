@@ -6,7 +6,7 @@ import CalendarCell from './CalendarCell';
 interface CalendarGridProps {
   weeks: (Date | null)[][];
   currentMonth: Date;
-  relationshipBlocks: Reservation[];
+  relationshipBlocks: Reservation[] | undefined;
   cellHeight: number;
 }
 
@@ -25,7 +25,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
               key={`day-${weekIndex}-${dayIndex}`}
               day={day}
               currentMonth={currentMonth}
-              relationshipBlocks={relationshipBlocks}
+              relationshipBlocks={relationshipBlocks || []}
               cellHeight={cellHeight}
             />
           ))}

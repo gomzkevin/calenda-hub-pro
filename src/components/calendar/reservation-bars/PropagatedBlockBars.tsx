@@ -18,6 +18,9 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   laneHeight,
   baseOffset
 }) => {
+  // Early return if no blocks
+  if (!propagatedBlocks || propagatedBlocks.length === 0) return null;
+  
   return (
     <>
       {weeks.map((week, weekIndex) => (

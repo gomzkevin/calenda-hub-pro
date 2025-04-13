@@ -18,6 +18,9 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
   laneHeight,
   baseOffset
 }) => {
+  // Early return if no blocks
+  if (!relationshipBlocks || relationshipBlocks.length === 0) return null;
+  
   return (
     <>
       {weeks.map((week, weekIndex) => (

@@ -8,8 +8,8 @@ import PropagatedBlockBars from './reservation-bars/PropagatedBlockBars';
 interface ReservationBarsProps {
   weeks: (Date | null)[][];
   filteredReservations: Reservation[];
-  relationshipBlocks: Reservation[];
-  propagatedBlocks: Reservation[];
+  relationshipBlocks: Reservation[] | undefined;
+  propagatedBlocks: Reservation[] | undefined;
   weekReservationLanes: Record<number, Record<string, number>>;
   weekRelationshipBlockLanes: Record<number, Record<string, number>>;
   weekPropagatedBlockLanes: Record<number, Record<string, number>>;
@@ -42,7 +42,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
       {/* Relationship Block Bars (parent-child blocks) */}
       <RelationshipBlockBars
         weeks={weeks}
-        relationshipBlocks={relationshipBlocks}
+        relationshipBlocks={relationshipBlocks || []}
         weekRelationshipBlockLanes={weekRelationshipBlockLanes}
         laneHeight={laneHeight}
         baseOffset={baseOffset}
@@ -51,7 +51,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
       {/* Regular Propagated Block Bars */}
       <PropagatedBlockBars
         weeks={weeks}
-        propagatedBlocks={propagatedBlocks}
+        propagatedBlocks={propagatedBlocks || []}
         weekPropagatedBlockLanes={weekPropagatedBlockLanes}
         laneHeight={laneHeight}
         baseOffset={baseOffset}

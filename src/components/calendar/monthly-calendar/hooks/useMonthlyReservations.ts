@@ -42,7 +42,11 @@ export const useMonthlyReservations = (
   // Filter reservations - main reservations, blocked and relationship blocks
   const { filteredReservations, propagatedBlocks, relationshipBlocks } = useMemo(() => {
     if (!allReservations || allReservations.length === 0) {
-      return { filteredReservations: [], propagatedBlocks: [], relationshipBlocks: [] };
+      return { 
+        filteredReservations: [], 
+        propagatedBlocks: [], 
+        relationshipBlocks: [] 
+      };
     }
     
     // Normalize dates

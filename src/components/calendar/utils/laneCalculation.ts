@@ -115,12 +115,13 @@ export const calculateReservationLanes = (
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
-  blocks: Reservation[],
+  blocks: Reservation[] | undefined,
   baseLane: number = 10
 ): Record<number, Record<string, number>> => {
   const lanes: Record<number, Record<string, number>> = {};
   
-  if (blocks.length === 0) return lanes;
+  // Early return if blocks is undefined or empty
+  if (!blocks || blocks.length === 0) return lanes;
   
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};

@@ -11,15 +11,15 @@ import { generateMonthDays } from '../../utils/dateUtils';
 export const useCalendarGrid = (
   currentMonth: Date,
   filteredReservations: Reservation[],
-  propagatedBlocks: Reservation[],
-  relationshipBlocks: Reservation[]
+  propagatedBlocks: Reservation[] | undefined,
+  relationshipBlocks: Reservation[] | undefined
 ) => {
   // Generate the days for the current month
   const weeks = useMemo(() => generateMonthDays(currentMonth), [currentMonth]);
   
   // Calculate reservation lanes for each week
   const weekReservationLanes = useMemo(() => {
-    return calculateReservationLanes(weeks, filteredReservations);
+    return calculateReservationLanes(weeks, filteredReservations || []);
   }, [weeks, filteredReservations]);
   
   // Calculate propagated block lanes for each week
