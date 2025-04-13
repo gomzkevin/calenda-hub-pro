@@ -40,7 +40,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   if (startPos === -1) return null;
   
   // Get bar position, width and style
-  const { barLeft, barWidth, borderRadiusStyle, clipPath, zIndex } = calculateBarPositionAndStyle(
+  const { barLeft, barWidth, borderRadiusStyle } = calculateBarPositionAndStyle(
     startPos,
     endPos,
     continuesFromPrevious,
@@ -60,12 +60,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   const isBlocked = reservation.status === 'Blocked' || reservation.isBlocking === true;
   const displayLabel = isBlocked ? 'Blocked' : reservation.platform;
   
-  const isCheckInDay = !continuesFromPrevious;
-  const isCheckOutDay = !continuesToNext;
-  
-  // For check-in/check-out days, adjust label position
-  const labelClasses = `truncate ${isCheckInDay && !isCheckOutDay ? 'pl-8' : ''} ${isCheckOutDay && !isCheckInDay ? 'pr-8' : ''}`;
-  
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
       <Tooltip>
@@ -77,11 +71,10 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
               left: barLeft,
               width: barWidth,
               minWidth: '30px',
-              zIndex: zIndex,
-              clipPath: clipPath
+              zIndex: 20
             }}
           >
-            <span className={labelClasses}>{displayLabel}</span>
+            <span className="truncate">{displayLabel}</span>
             {reservation.isBlocking && <span className="ml-1 text-xs">(Block)</span>}
           </div>
         </TooltipTrigger>
