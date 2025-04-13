@@ -64,8 +64,8 @@ export const findReservationPositionInWeek = (
                                (startPos === 0 && !isSameDay(firstDayOfWeek, normalizedStartDate));
   
   // Check if check-out date is after the last day of the week or if it's on the last day
-  const continuesToNext = normalizedEndDate > lastDayOfWeek || 
-                         (endPos === 6 && !isSameDay(lastDayOfWeek, normalizedEndDate));
+  // Fix for last week: ensure we correctly check if reservation continues past the visible calendar
+  const continuesToNext = normalizedEndDate > lastDayOfWeek && !isSameDay(normalizedEndDate, lastDayOfWeek);
   
   console.log(`Week ${firstDayOfWeek} to ${lastDayOfWeek}, reservation ${normalizedStartDate} to ${normalizedEndDate}`);
   console.log(`startPos: ${startPos}, endPos: ${endPos}, continuesFromPrevious: ${continuesFromPrevious}, continuesToNext: ${continuesToNext}`);

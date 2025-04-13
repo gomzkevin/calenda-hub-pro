@@ -36,6 +36,12 @@ export const calculateBarPositionAndStyle = (
   
   // Define border radius style - ensure last day of month gets proper rounding
   let borderRadiusStyle = 'rounded-none';
+  
+  // Check if the reservation ends on the last day of the week/month
+  const isLastDayOfWeek = endPos === 6;
+  const isLastDayCheckOut = isLastDayOfWeek && !continuesToNext;
+  
+  // Special handling for single day reservations
   if (!continuesFromPrevious && !continuesToNext) {
     // Single day reservation
     borderRadiusStyle = 'rounded-full';
@@ -45,6 +51,11 @@ export const calculateBarPositionAndStyle = (
   } else if (!continuesToNext) {
     // Last day of multi-day reservation (including last day of month)
     borderRadiusStyle = 'rounded-r-lg rounded-l-none';
+  }
+  
+  // Add debugging for last day handling
+  if (isLastDayCheckOut) {
+    console.log(`Last day checkout detected: endPos=${endPos}, continuesToNext=${continuesToNext}, style=${borderRadiusStyle}`);
   }
   
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
