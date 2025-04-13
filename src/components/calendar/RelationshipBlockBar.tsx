@@ -58,16 +58,16 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 pointer-events-auto cursor-pointer`}
+            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 pointer-events-auto cursor-pointer overflow-hidden`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
               width: barWidth,
-              minWidth: '40px'
+              minWidth: '30px'
             }}
           >
-            <Lock size={12} />
-            <span>Bloqueado</span>
+            <Lock size={12} className="shrink-0" />
+            <span className="truncate">Bloqueado</span>
           </div>
         </TooltipTrigger>
         <TooltipContent>

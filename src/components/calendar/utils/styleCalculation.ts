@@ -14,14 +14,20 @@ export const calculateBarPositionAndStyle = (
   startDate: Date, 
   endDate: Date
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
-  // Calculate the bar width in cell units
-  const barStartPos = startPos;
-  const barEndPos = endPos + 1; // Include the full cell for the end day
+  // Modified calculation to start at 45% of first cell and end at 45% of last cell
+  // This creates spacing between checkout and checkin on the same day
+  
+  // Start position: if it continues from previous, start at 0, otherwise start at 45% of the cell
+  const cellStartOffset = continuesFromPrevious ? 0 : 0.45;
+  const adjustedStartPos = startPos + cellStartOffset;
+  
+  // End position: if it continues to next, end at full width, otherwise end at 45% of the cell
+  const cellEndOffset = continuesToNext ? 1 : 0.45;
+  const adjustedEndPos = endPos + cellEndOffset;
   
   // Calculate percentage values for positioning
-  // Ensure the calculations match the grid cell widths exactly
-  const barWidth = `${((barEndPos - barStartPos) / 7) * 100}%`;
-  const barLeft = `${(barStartPos / 7) * 100}%`;
+  const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
+  const barLeft = `${(adjustedStartPos / 7) * 100}%`;
   
   // Define border radius style based on if the reservation continues
   let borderRadiusStyle = 'rounded-full';

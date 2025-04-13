@@ -65,16 +65,16 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer`}
+            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer overflow-hidden`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
               width: barWidth,
-              minWidth: '40px',
+              minWidth: '30px',
               zIndex: 20
             }}
           >
-            {displayLabel}
+            <span className="truncate">{displayLabel}</span>
             {reservation.isBlocking && <span className="ml-1 text-xs">(Block)</span>}
           </div>
         </TooltipTrigger>
