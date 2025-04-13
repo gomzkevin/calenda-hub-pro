@@ -38,20 +38,18 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   };
   
   if (isEndDay && !isStartDay) {
-    // Check-out only - position in first half of cell
+    // Check-out only - position at the left edge, full width
     positionStyle = {
       ...positionStyle,
-      left: '5%',
-      width: '38%',
-      borderRadius: '0 9999px 9999px 0' // Rounded on right side
+      left: '0',
+      width: '43%',
     };
   } else if (isStartDay && !isEndDay) {
-    // Check-in only - position in second half of cell
+    // Check-in only - position at the right edge, full width
     positionStyle = {
       ...positionStyle,
       left: '57%',
-      width: '38%',
-      borderRadius: '9999px 0 0 9999px' // Rounded on left side
+      width: '43%',
     };
   } else if (isStartDay && isEndDay) {
     // Both check-in and check-out (1-day stay)
@@ -75,9 +73,6 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   const isBlocked = reservation.status === 'Blocked';
   const displayLabel = 
     isBlocked ? 'Blocked' : 
-    isEndDay && !isStartDay ? 'Out' :
-    isStartDay && !isEndDay ? 'In' :
-    isStartDay && isEndDay ? '1-day' :
     reservation.platform;
 
   // Create tooltip content
