@@ -23,11 +23,16 @@ const ReservationDetails: React.FC<ReservationDetailsProps> = ({ reservation, pr
         return 'bg-green-100 text-green-800';
       case 'Booking':
         return 'bg-blue-100 text-blue-800';
-      case 'Manual':
+      case 'Other':
         return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Get displayed platform name
+  const getDisplayPlatform = (platform: string): string => {
+    return platform === 'Other' ? 'Manual' : platform;
   };
 
   // Get status color class
@@ -51,7 +56,7 @@ const ReservationDetails: React.FC<ReservationDetailsProps> = ({ reservation, pr
         <h3 className="text-lg font-medium">Detalles de la Reserva</h3>
         <div className="flex flex-wrap gap-2">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(reservation.platform)}`}>
-            {reservation.platform}
+            {getDisplayPlatform(reservation.platform)}
           </span>
           {reservation.status && (
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColorClass(reservation.status)}`}>

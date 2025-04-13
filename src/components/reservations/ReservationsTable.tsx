@@ -49,11 +49,16 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
         return 'bg-green-100 text-green-800';
       case 'Booking':
         return 'bg-blue-100 text-blue-800';
-      case 'Manual':
+      case 'Other':
         return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Get displayed platform name
+  const getDisplayPlatform = (platform: string): string => {
+    return platform === 'Other' ? 'Manual' : platform;
   };
 
   // Get status color class
@@ -135,7 +140,7 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(reservation.platform)}`}>
-                      {reservation.platform}
+                      {getDisplayPlatform(reservation.platform)}
                     </span>
                   </TableCell>
                   <TableCell>

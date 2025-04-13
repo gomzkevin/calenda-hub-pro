@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,7 +99,7 @@
   }
   
   .booking-other {
-    @apply bg-gray-600 text-white;
+    @apply bg-purple-600 text-white;
   }
   
   .bg-platform-airbnb {
@@ -118,7 +119,7 @@
   }
   
   .bg-platform-other {
-    @apply bg-gray-600;
+    @apply bg-purple-600;
   }
 
   .calendar-header {

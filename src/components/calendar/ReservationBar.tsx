@@ -57,7 +57,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   const isShortReservation = (endPos - startPos) < 1;
   
   // Determine the label to display
-  let displayLabel = reservation.platform;
+  let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
   
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
@@ -79,7 +79,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
         </TooltipTrigger>
         <TooltipContent>
           <div className="text-xs">
-            <p><strong>Platform:</strong> {reservation.platform}</p>
+            <p><strong>Platform:</strong> {reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
             <p><strong>Check-in:</strong> {format(reservation.startDate, 'MMM d, yyyy')}</p>
             <p><strong>Check-out:</strong> {format(reservation.endDate, 'MMM d, yyyy')}</p>
             {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
@@ -94,4 +94,3 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
 };
 
 export default ReservationBar;
-

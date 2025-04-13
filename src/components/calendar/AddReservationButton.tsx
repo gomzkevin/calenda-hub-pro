@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
@@ -94,7 +95,7 @@ const AddReservationButton: React.FC<AddReservationButtonProps> = ({
                       propertyId: propertyId || '',
                       startDate: initialDate || null,
                       endDate: null,
-                      platform: 'Manual' as Platform,
+                      platform: 'Other' as Platform,
                       source: 'Manual',
                       status: 'Reserved',
                       guestName: '',

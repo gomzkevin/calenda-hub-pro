@@ -75,12 +75,12 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   const isBlocked = reservation.status === 'Blocked';
   const displayLabel = 
     isBlocked ? 'Blocked' : 
-    reservation.platform;
+    reservation.platform === 'Other' ? 'Manual' : reservation.platform;
 
   // Create tooltip content
   let tooltipContent = (
     <div className="text-xs space-y-1">
-      <p><strong>Platform:</strong> {reservation.platform}</p>
+      <p><strong>Platform:</strong> {reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
       <p><strong>Check-in:</strong> {format(reservation.startDate, 'MMM d, yyyy')}</p>
       <p><strong>Check-out:</strong> {format(reservation.endDate, 'MMM d, yyyy')}</p>
       {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
@@ -124,4 +124,3 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
 };
 
 export default ReservationTooltip;
-
