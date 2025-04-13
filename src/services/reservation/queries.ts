@@ -91,11 +91,19 @@ export const checkAvailability = async (
   const start = normalizeDate(startDate).toISOString().split('T')[0];
   const end = normalizeDate(endDate).toISOString().split('T')[0];
   
+  // Correct the query to properly check for overlapping reservations
+  // This approach checks if there are any reservations where:
+  // 1. Start date of existing reservation is before our end date AND
+  // 2. End date of existing reservation is after our start date
+  // This is the standard way to detect overlapping date ranges
+  // We exclude the current reservation if this is an update operation
+  
   let query = supabase
     .from("reservations")
     .select("id")
     .eq("property_id", propertyId)
-    .or(`start_date.lt.${end},end_date.gt.${start}`);
+    .lt("start_date", end)  // start_date < our end date
+    .gt("end_date", start); // end_date > our start date
   
   if (excludeReservationId) {
     query = query.neq("id", excludeReservationId);
