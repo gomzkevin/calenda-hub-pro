@@ -2,32 +2,27 @@
 import React from 'react';
 import { Reservation } from '@/types';
 import RegularReservationBars from './reservation-bars/RegularReservationBars';
-import RelationshipBlockBars from './reservation-bars/RelationshipBlockBars';
-import PropagatedBlockBars from './reservation-bars/PropagatedBlockBars';
+import BlockedReservationBars from './reservation-bars/PropagatedBlockBars';
 
 interface ReservationBarsProps {
   weeks: (Date | null)[][];
   filteredReservations: Reservation[];
-  relationshipBlocks: Reservation[];
-  propagatedBlocks: Reservation[];
+  blockedReservations: Reservation[];
   weekReservationLanes: Record<number, Record<string, number>>;
-  weekRelationshipBlockLanes: Record<number, Record<string, number>>;
-  weekPropagatedBlockLanes: Record<number, Record<string, number>>;
+  weekBlockedLanes: Record<number, Record<string, number>>;
+  laneHeight?: number;
+  baseOffset?: number;
 }
 
 const ReservationBars: React.FC<ReservationBarsProps> = ({
   weeks,
   filteredReservations,
-  relationshipBlocks,
-  propagatedBlocks,
+  blockedReservations,
   weekReservationLanes,
-  weekRelationshipBlockLanes,
-  weekPropagatedBlockLanes
+  weekBlockedLanes,
+  laneHeight = 14,
+  baseOffset = 40
 }) => {
-  // Constants for layout calculations
-  const laneHeight = 14; // Height for each reservation lane
-  const baseOffset = 40; // Adjusted base offset from top
-  
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
       {/* Regular Reservation bars */}
@@ -39,20 +34,11 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
         baseOffset={baseOffset}
       />
       
-      {/* Relationship Block Bars (parent-child blocks) */}
-      <RelationshipBlockBars
+      {/* Blocked Reservation Bars */}
+      <BlockedReservationBars
         weeks={weeks}
-        relationshipBlocks={relationshipBlocks}
-        weekRelationshipBlockLanes={weekRelationshipBlockLanes}
-        laneHeight={laneHeight}
-        baseOffset={baseOffset}
-      />
-      
-      {/* Regular Propagated Block Bars */}
-      <PropagatedBlockBars
-        weeks={weeks}
-        propagatedBlocks={propagatedBlocks}
-        weekPropagatedBlockLanes={weekPropagatedBlockLanes}
+        propagatedBlocks={blockedReservations}
+        weekPropagatedBlockLanes={weekBlockedLanes}
         laneHeight={laneHeight}
         baseOffset={baseOffset}
       />

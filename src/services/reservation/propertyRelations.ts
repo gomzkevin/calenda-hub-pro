@@ -67,6 +67,7 @@ export const getParentPropertyId = async (childId: string): Promise<string | nul
 
 /**
  * Generate block reservations for related properties based on a source reservation
+ * Modified to avoid creating blocks for sibling properties when a child is reserved
  */
 export const generateRelatedPropertyBlocks = async (
   sourceReservation: Reservation
@@ -85,10 +86,10 @@ export const generateRelatedPropertyBlocks = async (
         propertyId: childId,
         startDate: sourceReservation.startDate,
         endDate: sourceReservation.endDate,
-        source: 'Manual', // Changed from 'System' to valid ReservationSource
-        platform: 'Manual', // Changed from 'System' to valid Platform
+        source: 'Manual', 
+        platform: 'Manual', 
         status: 'Blocked',
-        notes: 'Blocked',
+        notes: 'Blocked by parent reservation',
         sourceReservationId: sourceReservation.id,
         createdAt: new Date()
       });
@@ -98,40 +99,22 @@ export const generateRelatedPropertyBlocks = async (
   // If the source reservation is on a child property
   const parentId = childToParent.get(sourceReservation.propertyId);
   if (parentId) {
-    // Create a block for the parent property
+    // Create a block for the parent property ONLY
     blocks.push({
       id: crypto.randomUUID(),
       propertyId: parentId,
       startDate: sourceReservation.startDate,
       endDate: sourceReservation.endDate,
-      source: 'Manual', // Changed from 'System' to valid ReservationSource
-      platform: 'Manual', // Changed from 'System' to valid Platform
+      source: 'Manual',
+      platform: 'Manual',
       status: 'Blocked',
-      notes: 'Blocked',
+      notes: 'Blocked by child reservation',
       sourceReservationId: sourceReservation.id,
       createdAt: new Date()
     });
     
-    // Create blocks for sibling properties
-    const siblingIds = parentToChildren.get(parentId) || [];
-    
-    for (const siblingId of siblingIds) {
-      // Skip the source property itself
-      if (siblingId === sourceReservation.propertyId) continue;
-      
-      blocks.push({
-        id: crypto.randomUUID(),
-        propertyId: siblingId,
-        startDate: sourceReservation.startDate,
-        endDate: sourceReservation.endDate,
-        source: 'Manual', // Changed from 'System' to valid ReservationSource
-        platform: 'Manual', // Changed from 'System' to valid Platform
-        status: 'Blocked',
-        notes: 'Blocked',
-        sourceReservationId: sourceReservation.id,
-        createdAt: new Date()
-      });
-    }
+    // REMOVED: Code that created blocks for sibling properties
+    // We no longer create blocks for sibling properties when a child is reserved
   }
   
   return blocks;

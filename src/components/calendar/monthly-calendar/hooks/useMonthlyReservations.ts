@@ -39,10 +39,10 @@ export const useMonthlyReservations = (
     enabled: !!currentMonth
   });
 
-  // Filter reservations - main reservations, blocked and relationship blocks
-  const { filteredReservations, propagatedBlocks, relationshipBlocks } = useMemo(() => {
+  // Filter reservations - main reservations vs blocks
+  const { filteredReservations, blockedReservations } = useMemo(() => {
     if (!allReservations || allReservations.length === 0) {
-      return { filteredReservations: [], propagatedBlocks: [], relationshipBlocks: [] };
+      return { filteredReservations: [], blockedReservations: [] };
     }
     
     // Normalize dates
@@ -55,37 +55,25 @@ export const useMonthlyReservations = (
     // Filter reservations for the selected property
     const directReservations = normalizedReservations.filter(
       res => res.propertyId === propertyId && 
-             res.notes !== 'Blocked' &&
-             res.status !== 'Blocked' &&
-             !res.isRelationshipBlock
+             !res.sourceReservationId && 
+             res.status !== 'Blocked'
     );
     
-    // Identify propagated blocks (blocks created due to sourceReservationId)
-    const blockedReservations = normalizedReservations.filter(res => 
+    // Identify blocks from related properties
+    const blocks = normalizedReservations.filter(res => 
       res.propertyId === propertyId &&
-      res.sourceReservationId && 
-      (res.notes === 'Blocked' || res.status === 'Blocked')
-    );
-    
-    // Identify relationship blocks (for parent-child properties)
-    const relatedBlocks = normalizedReservations.filter(res => 
-      // Include blocks from related properties that would affect this property
-      res.propertyId !== propertyId && 
-      relatedPropertyIds.includes(res.propertyId) &&
-      !res.sourceReservationId // Avoid duplicates with propagated blocks
+      res.sourceReservationId
     );
     
     return {
       filteredReservations: directReservations,
-      propagatedBlocks: blockedReservations,
-      relationshipBlocks: relatedBlocks
+      blockedReservations: blocks
     };
-  }, [allReservations, propertyId, relatedPropertyIds]);
+  }, [allReservations, propertyId]);
 
   return {
     filteredReservations,
-    propagatedBlocks, 
-    relationshipBlocks,
+    blockedReservations,
     isLoading
   };
 };
