@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
 import { Reservation } from '@/types';
-import { addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
 
 interface MonthInfo {
   month: number;
@@ -15,6 +15,8 @@ export const useReservations = (startDate: Date, endDate: Date) => {
   const startYear = startDate.getFullYear();
   const endMonth = endDate.getMonth() + 1;
   const endYear = endDate.getFullYear();
+  
+  console.log(`Fetching reservations from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
   
   const monthsToFetch: MonthInfo[] = [
     { month: startMonth, year: startYear },
@@ -35,6 +37,8 @@ export const useReservations = (startDate: Date, endDate: Date) => {
       return results.flat();
     }
   });
+  
+  console.log(`Fetched ${reservations.length} reservations across ${monthsToFetch.length} months`);
   
   // Filter reservations
   const filteredReservations = (reservations || []).filter(res => {

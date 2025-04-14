@@ -13,7 +13,7 @@ export const findReservationPositionInWeek = (
   let startPos = -1;
   let endPos = -1;
   
-  // Filter out null values from the week
+  // Get valid days in the week (non-null)
   const validDays = week.filter(day => day !== null) as Date[];
   if (validDays.length === 0) {
     return { startPos: -1, endPos: -1, continuesFromPrevious: false, continuesToNext: false };
@@ -33,45 +33,74 @@ export const findReservationPositionInWeek = (
   console.log(`Reservation: ${normalizedStartDate.toLocaleDateString()} to ${normalizedEndDate.toLocaleDateString()}`);
   console.log(`Week: ${normalizedFirstDay.toLocaleDateString()} to ${normalizedLastDay.toLocaleDateString()}`);
   
+  // Critical check: determine if this reservation overlaps with this week at all
+  const weekOverlap = !(normalizedEndDate < normalizedFirstDay || normalizedStartDate > normalizedLastDay);
+  
+  if (!weekOverlap) {
+    console.log("No overlap with this week - skipping");
+    return { startPos: -1, endPos: -1, continuesFromPrevious: false, continuesToNext: false };
+  }
+  
   // Determine if reservation continues from previous week
   const continuesFromPrevious = isBefore(normalizedStartDate, normalizedFirstDay);
   
   // Determine if reservation continues to next week
   const continuesToNext = isAfter(normalizedEndDate, normalizedLastDay);
   
-  // Find the position of the start date in this week
+  // Find starting position
   for (let i = 0; i < week.length; i++) {
     const day = week[i];
     if (!day) continue;
     
     const normalizedDay = normalizeDate(new Date(day));
     
-    // If this day is the start date or later than start date (and we haven't found startPos yet)
-    if (isSameDay(normalizedDay, normalizedStartDate) || 
-        (startPos === -1 && isAfter(normalizedDay, normalizedStartDate))) {
+    // If this day is on or after the reservation start date and we haven't found a position yet
+    if ((isSameDay(normalizedDay, normalizedStartDate) || isAfter(normalizedDay, normalizedStartDate)) && startPos === -1) {
       startPos = i;
     }
     
-    // If this day is the end date or the day before (since checkout is typically morning)
-    if (isSameDay(normalizedDay, normalizedEndDate)) {
+    // If this day is on or before the reservation end date, update the end position
+    if (isSameDay(normalizedDay, normalizedEndDate) || isBefore(normalizedDay, normalizedEndDate)) {
       endPos = i;
-      break;
     }
     
-    // If we're at the last day and still haven't found endPos, but we know the reservation continues
-    if (i === week.length - 1 && normalizedEndDate > normalizedDay && startPos !== -1) {
-      endPos = i;
+    // If we've found both positions and we're past the end date, we can break early
+    if (startPos !== -1 && endPos !== -1 && isAfter(normalizedDay, normalizedEndDate)) {
+      break;
     }
   }
   
-  // If the reservation starts before this week but is in this week
-  if (startPos === -1 && continuesFromPrevious) {
+  // Handle edge cases
+  
+  // If reservation starts before this week but is in this week
+  if (startPos === -1 && continuesFromPrevious && weekOverlap) {
     startPos = 0;
   }
   
-  // If we found a starting position but no ending, it continues to next week
-  if (endPos === -1 && startPos !== -1) {
-    endPos = 6; // Last day of week
+  // If reservation ends after this week but is in this week
+  if (endPos === -1 && continuesToNext && weekOverlap) {
+    endPos = week.length - 1;
+    for (let i = week.length - 1; i >= 0; i--) {
+      if (week[i] !== null) {
+        endPos = i;
+        break;
+      }
+    }
+  }
+  
+  // Handle single day reservations
+  if (isSameDay(normalizedStartDate, normalizedEndDate)) {
+    // Find the exact day in the week
+    for (let i = 0; i < week.length; i++) {
+      const day = week[i];
+      if (!day) continue;
+      
+      if (isSameDay(normalizeDate(new Date(day)), normalizedStartDate)) {
+        startPos = i;
+        endPos = i;
+        break;
+      }
+    }
   }
   
   console.log(`Final positions: startPos=${startPos}, endPos=${endPos}, continuesFromPrevious=${continuesFromPrevious}, continuesToNext=${continuesToNext}`);

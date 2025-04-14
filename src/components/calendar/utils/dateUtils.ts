@@ -3,6 +3,11 @@ import { eachDayOfInterval, eachWeekOfInterval, endOfMonth, format, startOfMonth
 
 // Helper to normalize date to local noon to avoid timezone issues
 export const normalizeDate = (date: Date): Date => {
+  if (!date) {
+    console.error("Attempting to normalize undefined date");
+    return new Date();
+  }
+  
   // Create a new date object to avoid mutating the original
   const newDate = new Date(date);
   
