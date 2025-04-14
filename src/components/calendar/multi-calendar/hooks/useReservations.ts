@@ -38,7 +38,8 @@ export const useReservations = (startDate: Date, endDate: Date) => {
   
   // Filter reservations
   const filteredReservations = (reservations || []).filter(res => {
-    if (res.notes !== 'Blocked') return true;
+    // Aplicar las mismas reglas de filtrado que en useMonthlyReservations
+    if (res.notes !== 'Blocked' && res.status !== 'Blocked') return true;
     if (res.sourceReservationId || res.isBlocking) return true;
     return false;
   });

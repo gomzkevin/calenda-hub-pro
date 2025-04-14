@@ -17,15 +17,15 @@ const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ propertyId })
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
   // Get related properties
-  const { relatedPropertyIds } = useRelatedProperties(propertyId);
+  const { relatedPropertyIds, property } = useRelatedProperties(propertyId);
   
-  // Get reservations
+  // Get reservations - ahora pasando el objeto property completo
   const { 
     filteredReservations, 
     propagatedBlocks, 
     relationshipBlocks,
     isLoading 
-  } = useMonthlyReservations(currentMonth, propertyId, relatedPropertyIds);
+  } = useMonthlyReservations(currentMonth, propertyId, relatedPropertyIds, property);
   
   // Setup calendar grid
   const {

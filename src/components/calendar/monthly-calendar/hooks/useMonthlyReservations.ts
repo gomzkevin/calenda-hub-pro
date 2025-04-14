@@ -2,13 +2,14 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
-import { Reservation } from '@/types';
+import { Reservation, Property } from '@/types';
 import { normalizeDate } from '../../utils/dateUtils';
 
 export const useMonthlyReservations = (
   currentMonth: Date,
   propertyId?: string,
-  relatedPropertyIds: string[] = []
+  relatedPropertyIds: string[] = [],
+  property?: Property | null
 ) => {
   // Use React Query to fetch all reservations for the current month
   const { data: allReservations = [], isLoading } = useQuery({
@@ -39,7 +40,7 @@ export const useMonthlyReservations = (
     enabled: !!currentMonth
   });
 
-  // Filter and prioritize reservations according to new rules
+  // Filter and prioritize reservations according to property relationship rules
   const { filteredReservations, propagatedBlocks, relationshipBlocks } = useMemo(() => {
     if (!allReservations || allReservations.length === 0) {
       return { 
@@ -111,18 +112,62 @@ export const useMonthlyReservations = (
         return; // Skip to next day - regular reservations take priority
       }
       
-      // Priority 2 & 3: Handle blocks
-      const blockReservations = dayReservations.filter(res => 
-        // Either it's a direct block with sourceReservationId
-        (res.sourceReservationId !== undefined && 
-        (res.notes === 'Blocked' || res.status === 'Blocked')) ||
-        // OR it's a reservation on a related property (causing an implicit block)
-        (res.propertyId !== propertyId && 
-         relatedPropertyIds.includes(res.propertyId) &&
-         !res.sourceReservationId &&
-         res.notes !== 'Blocked' &&
-         res.status !== 'Blocked')
-      );
+      // Priority 2 & 3: Handle blocks based on property type
+      let blockReservations: Reservation[] = [];
+      
+      // MODIFICACIÓN PRINCIPAL: Distinguir entre tipos de propiedades para la propagación de bloqueos
+      if (property?.type === 'parent') {
+        // Si esta es una propiedad PADRE, los bloqueos vienen de:
+        // 1. Reservas directas (con sourceReservationId)
+        // 2. Reservas en propiedades HIJO (relatedPropertyIds)
+        blockReservations = dayReservations.filter(res => 
+          // Either it's a direct block with sourceReservationId on this property
+          (res.propertyId === propertyId && 
+           res.sourceReservationId !== undefined && 
+           (res.notes === 'Blocked' || res.status === 'Blocked')) ||
+          // OR it's a reservation on a CHILD property (causing implicit block on parent)
+          (res.propertyId !== propertyId && 
+           relatedPropertyIds.includes(res.propertyId) &&
+           !res.sourceReservationId &&
+           res.notes !== 'Blocked' &&
+           res.status !== 'Blocked')
+        );
+        console.log('Parent property - blockReservations:', blockReservations.length);
+      } 
+      else if (property?.type === 'child') {
+        // Si esta es una propiedad HIJO, los bloqueos vienen de:
+        // 1. Reservas directas (con sourceReservationId)
+        // 2. Reservas en la propiedad PADRE solamente
+        blockReservations = dayReservations.filter(res => 
+          // Either it's a direct block with sourceReservationId on this property
+          (res.propertyId === propertyId && 
+           res.sourceReservationId !== undefined && 
+           (res.notes === 'Blocked' || res.status === 'Blocked')) ||
+          // OR it's a reservation on the PARENT property
+          (res.propertyId !== propertyId && 
+           property?.parentId === res.propertyId && // Solo si es el padre, NO hermanos
+           !res.sourceReservationId &&
+           res.notes !== 'Blocked' &&
+           res.status !== 'Blocked')
+        );
+        console.log('Child property - blockReservations:', blockReservations.length);
+      }
+      else {
+        // Fallback para cuando no sabemos el tipo de propiedad (o no existe)
+        blockReservations = dayReservations.filter(res => 
+          // Either it's a direct block with sourceReservationId
+          (res.propertyId === propertyId && 
+           res.sourceReservationId !== undefined && 
+           (res.notes === 'Blocked' || res.status === 'Blocked')) ||
+          // OR it's a reservation on a related property
+          (res.propertyId !== propertyId && 
+           relatedPropertyIds.includes(res.propertyId) &&
+           !res.sourceReservationId &&
+           res.notes !== 'Blocked' &&
+           res.status !== 'Blocked')
+        );
+        console.log('Unknown property type - blockReservations:', blockReservations.length);
+      }
       
       if (blockReservations.length > 0) {
         blockReservations.forEach(res => {
@@ -165,7 +210,7 @@ export const useMonthlyReservations = (
       propagatedBlocks: blockedReservations,
       relationshipBlocks: relatedBlocks
     };
-  }, [allReservations, propertyId, relatedPropertyIds]);
+  }, [allReservations, propertyId, relatedPropertyIds, property]);
 
   return {
     filteredReservations,
