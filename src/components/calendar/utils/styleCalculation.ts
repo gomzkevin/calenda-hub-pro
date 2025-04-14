@@ -18,6 +18,12 @@ export const calculateBarPositionAndStyle = (
   console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
   console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
   
+  // Make sure startPos and endPos are valid - fallback to safe values
+  if (startPos < 0) startPos = 0;
+  if (endPos < 0) endPos = 0;
+  if (endPos >= week.length) endPos = week.length - 1;
+  if (startPos > endPos) startPos = endPos;
+  
   // Determine if this is a check-in or check-out day
   const isCheckInDay = !continuesFromPrevious;
   const isCheckOutDay = !continuesToNext;

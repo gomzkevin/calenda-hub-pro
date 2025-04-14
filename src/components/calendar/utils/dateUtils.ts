@@ -25,7 +25,7 @@ export const generateMonthDays = (currentMonth: Date): (Date | null)[][] => {
   // Get day of week for the first day (0 = Sunday, 1 = Monday, etc.)
   const startDay = monthStart.getDay();
   
-  // Create a 7x5 or 7x6 grid (depending on the month)
+  // Create a grid (5 or 6 weeks depending on the month)
   const daysInGrid = [];
   const totalDaysInGrid = Math.ceil((monthDays.length + startDay) / 7) * 7;
   
@@ -34,8 +34,12 @@ export const generateMonthDays = (currentMonth: Date): (Date | null)[][] => {
     daysInGrid.push(null);
   }
   
-  // Add the days of the month
-  daysInGrid.push(...monthDays);
+  // Add the days of the month (normalize each date)
+  for (const day of monthDays) {
+    const normalizedDay = new Date(day);
+    normalizedDay.setHours(12, 0, 0, 0);
+    daysInGrid.push(normalizedDay);
+  }
   
   // Add empty cells for days after the end of the month
   const remainingCells = totalDaysInGrid - daysInGrid.length;
@@ -43,7 +47,7 @@ export const generateMonthDays = (currentMonth: Date): (Date | null)[][] => {
     daysInGrid.push(null);
   }
   
-  // Group days into weeks
+  // Group days into weeks (crucial for correct rendering of reservations)
   const weeks = [];
   for (let i = 0; i < daysInGrid.length; i += 7) {
     weeks.push(daysInGrid.slice(i, i + 7));

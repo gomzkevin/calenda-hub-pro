@@ -47,31 +47,42 @@ export const findReservationPositionInWeek = (
     const normalizedDay = normalizeDate(new Date(day));
     
     // If this day is the start date or later than start date (and we haven't found startPos yet)
-    if (isSameDay(normalizedDay, normalizedStartDate) || 
-        (startPos === -1 && isAfter(normalizedDay, normalizedStartDate))) {
+    if ((isSameDay(normalizedDay, normalizedStartDate) || 
+        isAfter(normalizedDay, normalizedStartDate)) && startPos === -1) {
       startPos = i;
     }
     
-    // If this day is the end date or the day before (since checkout is typically morning)
+    // If this day is the end date
     if (isSameDay(normalizedDay, normalizedEndDate)) {
       endPos = i;
-      break;
-    }
-    
-    // If we're at the last day and still haven't found endPos, but we know the reservation continues
-    if (i === week.length - 1 && normalizedEndDate > normalizedDay && startPos !== -1) {
-      endPos = i;
+      break; // Found end position, no need to continue
     }
   }
   
-  // If the reservation starts before this week but is in this week
+  // If the reservation starts before this week but is visible in this week
   if (startPos === -1 && continuesFromPrevious) {
     startPos = 0;
   }
   
-  // If we found a starting position but no ending, it continues to next week
-  if (endPos === -1 && startPos !== -1) {
-    endPos = 6; // Last day of week
+  // If the reservation ends after this week but is visible in this week
+  if (startPos !== -1 && endPos === -1 && continuesToNext) {
+    endPos = week.length - 1;
+  }
+  
+  // Special case for reservations that end exactly at the last day of the week
+  if (startPos !== -1 && endPos === -1 && !continuesToNext) {
+    // Find the latest day in the week that's before or equal to the end date
+    for (let i = week.length - 1; i >= 0; i--) {
+      const day = week[i];
+      if (!day) continue;
+      
+      const normalizedDay = normalizeDate(new Date(day));
+      if (isSameDay(normalizedDay, normalizedEndDate) || 
+          isBefore(normalizedDay, normalizedEndDate)) {
+        endPos = i;
+        break;
+      }
+    }
   }
   
   console.log(`Final positions: startPos=${startPos}, endPos=${endPos}, continuesFromPrevious=${continuesFromPrevious}, continuesToNext=${continuesToNext}`);

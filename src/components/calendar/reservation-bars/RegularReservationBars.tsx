@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Reservation } from '@/types';
 import ReservationBar from '../ReservationBar';
@@ -20,35 +19,48 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
 }) => {
   return (
     <>
-      {weeks.map((week, weekIndex) => (
-        <div key={`reservations-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
-          <div className="col-span-7 relative h-full w-full">
-            {week[0] && filteredReservations.filter(reservation => {
-              return week.some(day => {
-                if (!day) return false;
-                const normalizedDay = new Date(day);
-                normalizedDay.setUTCHours(12, 0, 0, 0);
-                return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
-              });
-            }).map((reservation) => {
-              // Get lane assignment for this reservation in this week
-              const lane = weekReservationLanes[weekIndex]?.[reservation.id] || 0;
-              
-              return (
-                <ReservationBar
-                  key={`res-${weekIndex}-${reservation.id}`}
-                  reservation={reservation}
-                  week={week}
-                  weekIndex={weekIndex}
-                  lane={lane}
-                  laneHeight={laneHeight}
-                  baseOffset={baseOffset}
-                />
-              );
-            })}
+      {weeks.map((week, weekIndex) => {
+        // Skip empty weeks
+        if (!week[0]) return null;
+        
+        // Get reservations that are visible in this week
+        const weekReservations = filteredReservations.filter(reservation => {
+          // Only keep reservations that overlap with this week
+          return week.some(day => {
+            if (!day) return false;
+            const normalizedDay = new Date(day);
+            normalizedDay.setUTCHours(12, 0, 0, 0);
+            return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+          });
+        });
+        
+        return (
+          <div 
+            key={`reservations-week-${weekIndex}`} 
+            className="grid grid-cols-7 w-full absolute" 
+            style={{ top: `${weekIndex * 100}px`, height: '100px' }}
+          >
+            <div className="col-span-7 relative h-full w-full">
+              {weekReservations.map((reservation) => {
+                // Get lane assignment for this reservation in this week
+                const lane = weekReservationLanes[weekIndex]?.[reservation.id] || 0;
+                
+                return (
+                  <ReservationBar
+                    key={`res-${weekIndex}-${reservation.id}`}
+                    reservation={reservation}
+                    week={week}
+                    weekIndex={weekIndex}
+                    lane={lane}
+                    laneHeight={laneHeight}
+                    baseOffset={baseOffset}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 };
