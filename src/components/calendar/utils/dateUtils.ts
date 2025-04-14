@@ -1,12 +1,18 @@
 
 import { eachDayOfInterval, eachWeekOfInterval, endOfMonth, format, startOfMonth } from "date-fns";
 
-// Helper to normalize date to noon UTC to avoid timezone issues
+// Helper to normalize date to local noon to avoid timezone issues
 export const normalizeDate = (date: Date): Date => {
+  // Create a new date object to avoid mutating the original
   const newDate = new Date(date);
-  // Previously this was setting to noon UTC which could cause date shifts
-  // Now we preserve the date exactly as provided but reset the time part
+  
+  // Set to local noon to ensure consistent date across timezones
+  // This prevents the date from shifting due to UTC conversion
   newDate.setHours(12, 0, 0, 0);
+  
+  // Log the input and output dates for debugging
+  console.log(`Normalizing date: ${date.toISOString()} -> ${newDate.toISOString()}`);
+  
   return newDate;
 };
 

@@ -1,3 +1,4 @@
+
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
@@ -13,40 +14,49 @@ export const calculateBarPositionAndStyle = (
   startDate: Date, 
   endDate: Date
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
-  // Modified calculation with adjusted offsets for check-in and check-out
+  // Debug current values
+  console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
+  console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
   
   // Determine if this is a check-in or check-out day
   const isCheckInDay = !continuesFromPrevious;
   const isCheckOutDay = !continuesToNext;
   
-  // Start position: if it continues from previous, start at 0
-  // Otherwise start at 52% of the cell (for check-in) - leaving space for checkout
+  // Calculate cell width percentages with room for check-in/out visual separation
   const cellStartOffset = continuesFromPrevious ? 0 : 0.52;
-  const adjustedStartPos = startPos + cellStartOffset;
-  
-  // End position: if it continues to next, end at full width
-  // Otherwise end at 48% of the cell (for check-out) - leaving space for checkin
   const cellEndOffset = continuesToNext ? 1 : 0.48;
+  
+  // Apply offsets
+  const adjustedStartPos = startPos + cellStartOffset;
   const adjustedEndPos = endPos + cellEndOffset;
   
   // Calculate percentage values for positioning
   const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
   const barLeft = `${(adjustedStartPos / 7) * 100}%`;
   
+  console.log(`Adjusted positions: start=${adjustedStartPos}, end=${adjustedEndPos}`);
+  console.log(`Bar styling: width=${barWidth}, left=${barLeft}`);
+  
   // Define border radius style 
   let borderRadiusStyle = 'rounded-none';
   
-  // Special handling for single day reservation
-  if (isSameDay(normalizeDate(startDate), normalizeDate(endDate))) {
+  // Normalize dates for comparison
+  const normalizedStartDate = normalizeDate(new Date(startDate));
+  const normalizedEndDate = normalizeDate(new Date(endDate));
+  
+  // Special handling for single day reservation (same day check-in and check-out)
+  if (isSameDay(normalizedStartDate, normalizedEndDate)) {
     borderRadiusStyle = 'rounded-full';
+    console.log('Single day reservation - using rounded-full');
   } 
   // Special handling for reservation that spans one night (two days)
   else if (
     !continuesFromPrevious && 
     !continuesToNext && 
-    endPos - startPos === 1
+    (endPos - startPos === 1 || (startPos === endPos && !isSameDay(normalizedStartDate, normalizedEndDate)))
   ) {
     borderRadiusStyle = 'rounded-lg';
+    console.log('Two-day reservation - using rounded-lg');
   }
   // Multiple day reservation
   else {
@@ -65,11 +75,9 @@ export const calculateBarPositionAndStyle = (
     } else if (borderRadiusStyle === 'rounded-none') {
       borderRadiusStyle = '';
     }
+    
+    console.log(`Multiple day reservation - using ${borderRadiusStyle}`);
   }
-  
-  // Add debug logs
-  console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
-  console.log(`Border style: ${borderRadiusStyle}, continuesToNext: ${continuesToNext}, isLastDayOfWeek: ${endPos === 6}`);
   
   return { barLeft, barWidth, borderRadiusStyle };
 };

@@ -33,6 +33,10 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   const startDate = new Date(reservation.startDate);
   const endDate = new Date(reservation.endDate);
   
+  console.log(`==== Processing reservation ${reservation.id} ====`);
+  console.log(`Reservation dates: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+  console.log(`Week dates: ${week[0]?.toLocaleDateString() || 'null'} to ${week[6]?.toLocaleDateString() || 'null'}`);
+  
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
     week,
@@ -41,7 +45,10 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   );
   
   // If not in this week, don't render
-  if (startPos === -1) return null;
+  if (startPos === -1) {
+    console.log(`Reservation not in week ${weekIndex} - skipping render`);
+    return null;
+  }
   
   // Get bar position, width and style
   const { barLeft, barWidth, borderRadiusStyle } = calculateBarPositionAndStyle(
@@ -64,8 +71,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
   
   // Debug output
-  console.log(`Reservation ${reservation.id} - ${format(startDate, 'MMM d')} to ${format(endDate, 'MMM d')}`);
-  console.log(`Week ${weekIndex}, Lane ${lane}, Position: ${barLeft}, Width: ${barWidth}`);
+  console.log(`Final render: Week ${weekIndex}, Lane ${lane}, Position: ${barLeft}, Width: ${barWidth}, Style: ${borderRadiusStyle}`);
   
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
