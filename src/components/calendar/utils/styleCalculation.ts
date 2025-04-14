@@ -23,8 +23,9 @@ export const calculateBarPositionAndStyle = (
   const isCheckOutDay = !continuesToNext;
   
   // Calculate cell width percentages with room for check-in/out visual separation
-  const cellStartOffset = continuesFromPrevious ? 0 : 0.52;
-  const cellEndOffset = continuesToNext ? 1 : 0.48;
+  // Use more precise values for the first and last cells to avoid display issues
+  const cellStartOffset = continuesFromPrevious ? 0 : 0.5;
+  const cellEndOffset = continuesToNext ? 1 : 0.5;
   
   // Apply offsets
   const adjustedStartPos = startPos + cellStartOffset;

@@ -10,9 +10,6 @@ export const normalizeDate = (date: Date): Date => {
   // This prevents the date from shifting due to UTC conversion
   newDate.setHours(12, 0, 0, 0);
   
-  // Log the input and output dates for debugging
-  console.log(`Normalizing date: ${date.toISOString()} -> ${newDate.toISOString()}`);
-  
   return newDate;
 };
 

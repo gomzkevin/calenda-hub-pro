@@ -2,6 +2,7 @@
 import React from 'react';
 import { Reservation } from '@/types';
 import PropagatedBlockBar from '../PropagatedBlockBar';
+import { normalizeDate } from '../utils/dateUtils';
 
 interface PropagatedBlockBarsProps {
   weeks: (Date | null)[][];
@@ -29,13 +30,12 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
             {week[0] && propagatedBlocks.filter(block => {
               return week.some(day => {
                 if (!day) return false;
-                const normalizedDay = new Date(day);
-                normalizedDay.setUTCHours(12, 0, 0, 0);
+                const normalizedDay = normalizeDate(day);
                 return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
               });
             }).map((block) => {
-              // Always use lane 0 in our simplified approach
-              const lane = 0;
+              // Get lane assignment for this block in this week
+              const lane = weekPropagatedBlockLanes[weekIndex]?.[block.id] || 0;
               
               return (
                 <PropagatedBlockBar
