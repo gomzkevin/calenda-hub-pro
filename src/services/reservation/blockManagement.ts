@@ -81,8 +81,9 @@ export const propagateReservationBlocks = async (
       
       propagatedReservations.push(blockedParentReservation);
       
-      // NO propagation to sibling properties
-      // This is intentionally removed - we don't want to block siblings when one child is reserved
+      // NO propagation to sibling properties - explicitly commented to show we're 
+      // intentionally not propagating to siblings when a child is reserved
+      console.log("Child property reserved - only blocking parent, NOT blocking siblings");
     } catch (err) {
       console.error(`Error blocking parent property ${property.parent_id}:`, err);
     }

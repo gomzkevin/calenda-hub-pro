@@ -113,8 +113,9 @@ export const generateRelatedPropertyBlocks = async (
     });
     
     // IMPORTANT: NO propagation to sibling properties
-    // This is intentionally commented out to show what we're NOT doing
-    // We don't want to block siblings when one child is reserved
+    // Esto es intencional y está comentado para enfatizar que NO queremos
+    // bloquear las propiedades hermanas cuando una propiedad hijo es reservada
+    console.log("Child property reserved - only blocking parent, NOT blocking siblings");
   }
   
   return blocks;

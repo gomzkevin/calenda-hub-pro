@@ -29,19 +29,14 @@ export const useRelatedProperties = (propertyId?: string) => {
           console.log('Child IDs:', childIds);
           relatedIds = [...childIds];
         } 
-        // If this is a child property, get its parent and siblings
+        // If this is a child property, get its parent only (NOT siblings)
         else if (property?.type === 'child' && property?.parentId) {
-          console.log('This is a child property, fetching parent');
+          console.log('This is a child property, fetching parent only');
           const parentId = property.parentId;
           relatedIds = [parentId];
           
-          // Optional: Get siblings if needed
-          const childIds = await getChildPropertyIds(parentId);
-          const siblings = childIds.filter(id => id !== propertyId);
-          console.log('Parent ID:', parentId, 'Siblings:', siblings);
-          
-          // We don't add siblings here since we don't want to block siblings
-          // relatedIds = [...relatedIds, ...siblings];
+          // We intentionally do NOT get siblings here
+          console.log('Parent ID:', parentId, 'NOT fetching siblings');
         }
         
         console.log('Final related property IDs:', relatedIds);
