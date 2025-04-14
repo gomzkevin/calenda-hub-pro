@@ -2,7 +2,6 @@
 import React from 'react';
 import { Reservation } from '@/types';
 import RelationshipBlockBar from '../RelationshipBlockBar';
-import { normalizeDate } from '../utils/dateUtils';
 
 interface RelationshipBlockBarsProps {
   weeks: (Date | null)[][];
@@ -30,12 +29,13 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
             {week[0] && relationshipBlocks.filter(block => {
               return week.some(day => {
                 if (!day) return false;
-                const normalizedDay = normalizeDate(day);
+                const normalizedDay = new Date(day);
+                normalizedDay.setUTCHours(12, 0, 0, 0);
                 return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
               });
             }).map((block) => {
-              // Get lane assignment for this block in this week
-              const lane = weekRelationshipBlockLanes[weekIndex]?.[block.id] || 0;
+              // Always use lane 0 in our simplified approach
+              const lane = 0;
               
               return (
                 <RelationshipBlockBar

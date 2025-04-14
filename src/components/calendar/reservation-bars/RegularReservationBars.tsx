@@ -2,7 +2,6 @@
 import React from 'react';
 import { Reservation } from '@/types';
 import ReservationBar from '../ReservationBar';
-import { normalizeDate } from '../utils/dateUtils';
 
 interface RegularReservationBarsProps {
   weeks: (Date | null)[][];
@@ -27,7 +26,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
             {week[0] && filteredReservations.filter(reservation => {
               return week.some(day => {
                 if (!day) return false;
-                const normalizedDay = normalizeDate(day);
+                const normalizedDay = new Date(day);
+                normalizedDay.setUTCHours(12, 0, 0, 0);
                 return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
               });
             }).map((reservation) => {

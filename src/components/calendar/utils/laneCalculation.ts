@@ -4,8 +4,8 @@ import { Reservation } from "@/types";
 import { isSameDay, differenceInDays } from "date-fns";
 
 /**
- * Calculate reservation lanes for proper vertical positioning
- * This function processes each week separately to ensure correct lane assignment
+ * Simplified lane calculation - always uses a single lane (0)
+ * This replaces the previous complex lane calculation logic
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -13,17 +13,11 @@ export const calculateReservationLanes = (
 ): Record<number, Record<string, number>> => {
   const lanes: Record<number, Record<string, number>> = {};
   
-  // Process each week independently
   weeks.forEach((week, weekIndex) => {
-    // Skip weeks with no days
-    if (!week[0]) {
-      lanes[weekIndex] = {};
-      return;
-    }
+    const weekLanes: Record<string, number> = {};
     
-    // Find reservations that belong to this week
-    const weekReservations = reservations.filter(reservation => {
-      // Check if any day in this week falls within the reservation period
+    // Filter reservations that overlap with this week
+    let weekReservations = reservations.filter(reservation => {
       return week.some(day => {
         if (!day) return false;
         const normalizedDay = normalizeDate(day);
@@ -31,33 +25,9 @@ export const calculateReservationLanes = (
       });
     });
     
-    // Sort reservations by start date and then duration (for consistent lane assignment)
-    weekReservations.sort((a, b) => {
-      // First sort by start date
-      if (a.startDate < b.startDate) return -1;
-      if (a.startDate > b.startDate) return 1;
-      
-      // If same start date, sort by duration (longer first)
-      const aDuration = differenceInDays(a.endDate, a.startDate);
-      const bDuration = differenceInDays(b.endDate, b.startDate);
-      
-      return bDuration - aDuration;
-    });
-    
-    // Assign lanes for this week
-    const weekLanes: Record<string, number> = {};
-    const occupiedLanes: boolean[] = [];
-    
+    // In our simplified approach, all reservations get lane 0
     weekReservations.forEach(reservation => {
-      // Find the first available lane
-      let laneIndex = 0;
-      while (occupiedLanes[laneIndex]) {
-        laneIndex++;
-      }
-      
-      // Assign lane and mark as occupied for future reservations
-      weekLanes[reservation.id] = laneIndex;
-      occupiedLanes[laneIndex] = true;
+      weekLanes[reservation.id] = 0;
     });
     
     lanes[weekIndex] = weekLanes;
@@ -67,8 +37,8 @@ export const calculateReservationLanes = (
 };
 
 /**
- * Calculate block lanes for proper vertical positioning
- * Similar logic to reservation lanes
+ * Simplified block lanes - always uses a single lane (0)
+ * This replaces the previous complex block lane calculation
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
@@ -79,17 +49,11 @@ export const calculateBlockLanes = (
   // Early return if blocks is undefined or empty
   if (!blocks || blocks.length === 0) return lanes;
   
-  // Process each week independently
   weeks.forEach((week, weekIndex) => {
-    // Skip weeks with no days
-    if (!week[0]) {
-      lanes[weekIndex] = {};
-      return;
-    }
+    const weekLanes: Record<string, number> = {};
     
-    // Find blocks that belong to this week
+    // Filter blocks that overlap with this week
     const weekBlocks = blocks.filter(block => {
-      // Check if any day in this week falls within the block period
       return week.some(day => {
         if (!day) return false;
         const normalizedDay = normalizeDate(day);
@@ -97,33 +61,9 @@ export const calculateBlockLanes = (
       });
     });
     
-    // Sort blocks by start date and then duration (for consistent lane assignment)
-    weekBlocks.sort((a, b) => {
-      // First sort by start date
-      if (a.startDate < b.startDate) return -1;
-      if (a.startDate > b.startDate) return 1;
-      
-      // If same start date, sort by duration (longer first)
-      const aDuration = differenceInDays(a.endDate, a.startDate);
-      const bDuration = differenceInDays(b.endDate, b.startDate);
-      
-      return bDuration - aDuration;
-    });
-    
-    // Assign lanes for this week
-    const weekLanes: Record<string, number> = {};
-    const occupiedLanes: boolean[] = [];
-    
+    // All blocks get lane 0 in our simplified approach
     weekBlocks.forEach(block => {
-      // Find the first available lane
-      let laneIndex = 0;
-      while (occupiedLanes[laneIndex]) {
-        laneIndex++;
-      }
-      
-      // Assign lane and mark as occupied for future blocks
-      weekLanes[block.id] = laneIndex;
-      occupiedLanes[laneIndex] = true;
+      weekLanes[block.id] = 0;
     });
     
     lanes[weekIndex] = weekLanes;
