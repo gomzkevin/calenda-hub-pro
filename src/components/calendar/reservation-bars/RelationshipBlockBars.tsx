@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Reservation } from '@/types';
 import RelationshipBlockBar from '../RelationshipBlockBar';
@@ -22,48 +23,35 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
   
   return (
     <>
-      {weeks.map((week, weekIndex) => {
-        // Skip empty weeks
-        if (!week[0]) return null;
-        
-        // Get blocks that are visible in this week
-        const weekBlocks = relationshipBlocks.filter(block => {
-          // Only keep blocks that overlap with this week
-          return week.some(day => {
-            if (!day) return false;
-            const normalizedDay = new Date(day);
-            normalizedDay.setUTCHours(12, 0, 0, 0);
-            return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
-          });
-        });
-        
-        return (
-          <div 
-            key={`relationship-week-${weekIndex}`} 
-            className="grid grid-cols-7 w-full absolute" 
-            style={{ top: `${weekIndex * 100}px`, height: '100px' }}
-          >
-            <div className="col-span-7 relative h-full w-full">
-              {weekBlocks.map((block) => {
-                // Always use lane 0 in our simplified approach
-                const lane = 0;
-                
-                return (
-                  <RelationshipBlockBar
-                    key={`rel-${weekIndex}-${block.id}`}
-                    block={block}
-                    week={week}
-                    weekIndex={weekIndex}
-                    lane={lane}
-                    laneHeight={laneHeight}
-                    baseOffset={baseOffset}
-                  />
-                );
-              })}
-            </div>
+      {weeks.map((week, weekIndex) => (
+        <div key={`relationship-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
+          <div className="col-span-7 relative h-full w-full">
+            {week[0] && relationshipBlocks.filter(block => {
+              return week.some(day => {
+                if (!day) return false;
+                const normalizedDay = new Date(day);
+                normalizedDay.setUTCHours(12, 0, 0, 0);
+                return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
+              });
+            }).map((block) => {
+              // Always use lane 0 in our simplified approach
+              const lane = 0;
+              
+              return (
+                <RelationshipBlockBar
+                  key={`rel-${weekIndex}-${block.id}`}
+                  block={block}
+                  week={week}
+                  weekIndex={weekIndex}
+                  lane={lane}
+                  laneHeight={laneHeight}
+                  baseOffset={baseOffset}
+                />
+              );
+            })}
           </div>
-        );
-      })}
+        </div>
+      ))}
     </>
   );
 };

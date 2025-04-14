@@ -4,8 +4,8 @@ import { Reservation } from "@/types";
 import { isSameDay, differenceInDays } from "date-fns";
 
 /**
- * Mejorada: cálculo de lanes para reservas por semana
- * Verifica específicamente qué reservas están visibles en cada semana
+ * Simplified lane calculation - always uses a single lane (0)
+ * This replaces the previous complex lane calculation logic
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -16,37 +16,16 @@ export const calculateReservationLanes = (
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
     
-    // Solo considera días válidos (no nulos) en la semana
-    const validDays = week.filter(day => day !== null) as Date[];
-    if (validDays.length === 0) {
-      lanes[weekIndex] = weekLanes;
-      return;
-    }
-    
-    // Obtener primer y último día de la semana para comparaciones
-    const firstDayOfWeek = normalizeDate(new Date(validDays[0]));
-    const lastDayOfWeek = normalizeDate(new Date(validDays[validDays.length - 1]));
-    
-    // Filtrar reservas que se superponen con esta semana específica
+    // Filter reservations that overlap with this week
     let weekReservations = reservations.filter(reservation => {
-      const normalizedStartDate = normalizeDate(new Date(reservation.startDate));
-      const normalizedEndDate = normalizeDate(new Date(reservation.endDate));
-      
-      // Una reserva está en esta semana si:
-      // 1. Su fecha de inicio está dentro de la semana, o
-      // 2. Su fecha de fin está dentro de la semana, o
-      // 3. Su período de inicio-fin engloba completamente la semana
-      return (
-        // Inicio dentro de la semana
-        (normalizedStartDate >= firstDayOfWeek && normalizedStartDate <= lastDayOfWeek) || 
-        // Fin dentro de la semana
-        (normalizedEndDate >= firstDayOfWeek && normalizedEndDate <= lastDayOfWeek) ||
-        // Abarca la semana completa
-        (normalizedStartDate < firstDayOfWeek && normalizedEndDate > lastDayOfWeek)
-      );
+      return week.some(day => {
+        if (!day) return false;
+        const normalizedDay = normalizeDate(day);
+        return normalizedDay <= reservation.endDate && normalizedDay >= reservation.startDate;
+      });
     });
     
-    // En nuestro enfoque simplificado, todas las reservas obtienen lane 0
+    // In our simplified approach, all reservations get lane 0
     weekReservations.forEach(reservation => {
       weekLanes[reservation.id] = 0;
     });
@@ -58,8 +37,8 @@ export const calculateReservationLanes = (
 };
 
 /**
- * Mejorada: cálculo de lanes para bloques por semana
- * Sigue la misma lógica mejorada que calculateReservationLanes
+ * Simplified block lanes - always uses a single lane (0)
+ * This replaces the previous complex block lane calculation
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
@@ -67,39 +46,22 @@ export const calculateBlockLanes = (
 ): Record<number, Record<string, number>> => {
   const lanes: Record<number, Record<string, number>> = {};
   
-  // Retorno temprano si blocks es undefined o vacío
+  // Early return if blocks is undefined or empty
   if (!blocks || blocks.length === 0) return lanes;
   
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
     
-    // Solo considera días válidos (no nulos) en la semana
-    const validDays = week.filter(day => day !== null) as Date[];
-    if (validDays.length === 0) {
-      lanes[weekIndex] = weekLanes;
-      return;
-    }
-    
-    // Obtener primer y último día de la semana para comparaciones
-    const firstDayOfWeek = normalizeDate(new Date(validDays[0]));
-    const lastDayOfWeek = normalizeDate(new Date(validDays[validDays.length - 1]));
-    
-    // Filtrar bloques que se superponen con esta semana específica
+    // Filter blocks that overlap with this week
     const weekBlocks = blocks.filter(block => {
-      const normalizedStartDate = normalizeDate(new Date(block.startDate));
-      const normalizedEndDate = normalizeDate(new Date(block.endDate));
-      
-      return (
-        // Inicio dentro de la semana
-        (normalizedStartDate >= firstDayOfWeek && normalizedStartDate <= lastDayOfWeek) || 
-        // Fin dentro de la semana
-        (normalizedEndDate >= firstDayOfWeek && normalizedEndDate <= lastDayOfWeek) ||
-        // Abarca la semana completa
-        (normalizedStartDate < firstDayOfWeek && normalizedEndDate > lastDayOfWeek)
-      );
+      return week.some(day => {
+        if (!day) return false;
+        const normalizedDay = normalizeDate(day);
+        return normalizedDay <= block.endDate && normalizedDay >= block.startDate;
+      });
     });
     
-    // Todos los bloques obtienen lane 0 en nuestro enfoque simplificado
+    // All blocks get lane 0 in our simplified approach
     weekBlocks.forEach(block => {
       weekLanes[block.id] = 0;
     });

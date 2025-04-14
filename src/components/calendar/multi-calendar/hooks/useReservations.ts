@@ -20,16 +20,8 @@ export const useReservations = (startDate: Date, endDate: Date) => {
     { month: startMonth, year: startYear },
   ];
   
-  // Si el rango de fechas cruza límites de mes, añadimos el mes final
   if (startMonth !== endMonth || startYear !== endYear) {
     monthsToFetch.push({ month: endMonth, year: endYear });
-  }
-  
-  // Posible caso de 3 meses (raro pero posible con rangos largos)
-  if (startMonth !== endMonth && endMonth !== ((startMonth % 12) + 1)) {
-    const middleMonth = ((startMonth % 12) + 1);
-    const middleYear = middleMonth === 1 ? startYear + 1 : startYear;
-    monthsToFetch.push({ month: middleMonth, year: middleYear });
   }
   
   // Fetch reservations for the visible date range
