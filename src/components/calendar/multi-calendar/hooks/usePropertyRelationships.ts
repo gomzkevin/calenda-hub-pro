@@ -7,6 +7,7 @@ export const usePropertyRelationships = (properties: Property[]) => {
   const propertyRelationships = useMemo(() => {
     const relationships = new Map<string, string[]>();
     const childToParent = new Map<string, string>();
+    const siblingGroups = new Map<string, string[]>();
     
     properties.forEach(property => {
       if (property.type === 'parent') {
@@ -17,10 +18,15 @@ export const usePropertyRelationships = (properties: Property[]) => {
         relationships.set(property.parentId, children);
         
         childToParent.set(property.id, property.parentId);
+        
+        // Track sibling groups by parent id
+        const siblings = siblingGroups.get(property.parentId) || [];
+        siblings.push(property.id);
+        siblingGroups.set(property.parentId, siblings);
       }
     });
     
-    return { parentToChildren: relationships, childToParent };
+    return { parentToChildren: relationships, childToParent, siblingGroups };
   }, [properties]);
 
   return propertyRelationships;
