@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
 import { Reservation } from '@/types';
-import { addDays, format } from 'date-fns';
+import { addDays, format, subDays, getMonth, getYear } from 'date-fns';
 
 interface MonthInfo {
   month: number;
@@ -10,23 +10,36 @@ interface MonthInfo {
 }
 
 export const useReservations = (startDate: Date, endDate: Date) => {
-  // Determine which months to fetch
-  const startMonth = startDate.getMonth() + 1;
-  const startYear = startDate.getFullYear();
-  const endMonth = endDate.getMonth() + 1;
-  const endYear = endDate.getFullYear();
+  // Determine which months to fetch - including padding for better reservation visibility
+  const paddedStartDate = subDays(startDate, 7); // Fetch 1 week before
+  const paddedEndDate = addDays(endDate, 7);     // Fetch 1 week after
   
-  console.log(`Fetching reservations from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+  const startMonth = paddedStartDate.getMonth() + 1;
+  const startYear = paddedStartDate.getFullYear();
+  const endMonth = paddedEndDate.getMonth() + 1;
+  const endYear = paddedEndDate.getFullYear();
   
-  const monthsToFetch: MonthInfo[] = [
-    { month: startMonth, year: startYear },
-  ];
+  console.log(`Fetching reservations from ${format(paddedStartDate, 'yyyy-MM-dd')} to ${format(paddedEndDate, 'yyyy-MM-dd')}`);
   
-  if (startMonth !== endMonth || startYear !== endYear) {
-    monthsToFetch.push({ month: endMonth, year: endYear });
+  // Generate array of all months to fetch
+  const monthsToFetch: MonthInfo[] = [];
+  
+  let currentDate = new Date(startYear, startMonth - 1, 1);
+  const finalDate = new Date(endYear, endMonth - 1, 1);
+  
+  while (currentDate <= finalDate) {
+    monthsToFetch.push({
+      month: getMonth(currentDate) + 1,
+      year: getYear(currentDate)
+    });
+    
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1);
   }
   
-  // Fetch reservations for the visible date range
+  console.log(`Months to fetch: ${monthsToFetch.map(m => `${m.year}-${m.month}`).join(', ')}`);
+  
+  // Fetch reservations for all months in range
   const { data: reservations = [], isLoading } = useQuery({
     queryKey: ['reservations', 'multi', monthsToFetch],
     queryFn: async () => {

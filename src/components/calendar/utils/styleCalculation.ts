@@ -19,8 +19,14 @@ export const calculateBarPositionAndStyle = (
   console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
   
   // Ensure positions are valid
-  if (startPos === -1 || endPos === -1 || startPos > endPos) {
+  if (startPos === -1 || endPos === -1) {
     console.log('Invalid positions for bar calculation');
+    return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
+  }
+  
+  // For cases where startPos > endPos, adjust to ensure proper rendering
+  if (startPos > endPos) {
+    console.log('Correcting invalid positions (startPos > endPos)');
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
   

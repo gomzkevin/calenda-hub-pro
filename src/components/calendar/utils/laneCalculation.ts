@@ -14,16 +14,26 @@ export const calculateReservationLanes = (
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
     
+    // Get valid week start and end days
+    const validDays = week.filter(day => day !== null) as Date[];
+    if (validDays.length === 0) {
+      lanes[weekIndex] = {};
+      return;
+    }
+    
+    const firstDayOfWeek = validDays[0];
+    const lastDayOfWeek = validDays[validDays.length - 1];
+    
+    const normalizedFirstDay = normalizeDate(new Date(firstDayOfWeek));
+    const normalizedLastDay = normalizeDate(new Date(lastDayOfWeek));
+    
     // Filter reservations that overlap with this week
     let weekReservations = reservations.filter(reservation => {
-      const startDate = new Date(reservation.startDate);
-      const endDate = new Date(reservation.endDate);
+      const normalizedStartDate = normalizeDate(new Date(reservation.startDate));
+      const normalizedEndDate = normalizeDate(new Date(reservation.endDate));
       
-      return week.some(day => {
-        if (!day) return false;
-        const normalizedDay = normalizeDate(day);
-        return normalizedDay <= endDate && normalizedDay >= startDate;
-      });
+      // Check if reservation intersects with week
+      return normalizedStartDate <= normalizedLastDay && normalizedEndDate >= normalizedFirstDay;
     });
     
     // Sort reservations by start date to optimize lane assignment
@@ -57,16 +67,26 @@ export const calculateBlockLanes = (
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
     
+    // Get valid week start and end days
+    const validDays = week.filter(day => day !== null) as Date[];
+    if (validDays.length === 0) {
+      lanes[weekIndex] = {};
+      return;
+    }
+    
+    const firstDayOfWeek = validDays[0];
+    const lastDayOfWeek = validDays[validDays.length - 1];
+    
+    const normalizedFirstDay = normalizeDate(new Date(firstDayOfWeek));
+    const normalizedLastDay = normalizeDate(new Date(lastDayOfWeek));
+    
     // Filter blocks that overlap with this week
     const weekBlocks = blocks.filter(block => {
-      const startDate = new Date(block.startDate);
-      const endDate = new Date(block.endDate);
+      const normalizedStartDate = normalizeDate(new Date(block.startDate));
+      const normalizedEndDate = normalizeDate(new Date(block.endDate));
       
-      return week.some(day => {
-        if (!day) return false;
-        const normalizedDay = normalizeDate(day);
-        return normalizedDay <= endDate && normalizedDay >= startDate;
-      });
+      // Check if block intersects with week
+      return normalizedStartDate <= normalizedLastDay && normalizedEndDate >= normalizedFirstDay;
     });
     
     // All blocks get lane 0 in our simplified approach
