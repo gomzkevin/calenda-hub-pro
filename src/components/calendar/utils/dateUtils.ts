@@ -4,7 +4,9 @@ import { eachDayOfInterval, eachWeekOfInterval, endOfMonth, format, startOfMonth
 // Helper to normalize date to noon UTC to avoid timezone issues
 export const normalizeDate = (date: Date): Date => {
   const newDate = new Date(date);
-  newDate.setUTCHours(12, 0, 0, 0);
+  // Previously this was setting to noon UTC which could cause date shifts
+  // Now we preserve the date exactly as provided but reset the time part
+  newDate.setHours(12, 0, 0, 0);
   return newDate;
 };
 

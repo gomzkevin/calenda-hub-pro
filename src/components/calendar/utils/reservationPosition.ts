@@ -24,13 +24,13 @@ export const findReservationPositionInWeek = (
     
     const normalizedDay = normalizeDate(day);
     
-    // Check if this day is the start date or after it
-    if (startPos === -1) {
-      if (isSameDay(normalizedDay, normalizedStartDate)) {
-        startPos = i;
-      } else if (normalizedDay > normalizedStartDate) {
-        startPos = i;
-      }
+    // Check if this day is the start date
+    if (isSameDay(normalizedDay, normalizedStartDate)) {
+      startPos = i;
+    } 
+    // If we haven't found a start position yet and this day is after the start date
+    else if (startPos === -1 && normalizedDay > normalizedStartDate) {
+      startPos = i;
     }
     
     // Check if this day is the end date
@@ -59,13 +59,11 @@ export const findReservationPositionInWeek = (
   const firstDayOfWeek = normalizeDate(week[0]!);
   const lastDayOfWeek = normalizeDate(week[6]!);
   
-  // Check if check-in date is before the first day of the week or if it's on the first day
-  const continuesFromPrevious = normalizedStartDate < firstDayOfWeek || 
-                               (startPos === 0 && !isSameDay(firstDayOfWeek, normalizedStartDate));
+  // Check if check-in date is before the first day of the week
+  const continuesFromPrevious = normalizedStartDate < firstDayOfWeek;
   
-  // Check if check-out date is after the last day of the week or if it's on the last day
-  const continuesToNext = normalizedEndDate > lastDayOfWeek || 
-                         (endPos === 6 && !isSameDay(lastDayOfWeek, normalizedEndDate));
+  // Check if check-out date is after the last day of the week
+  const continuesToNext = normalizedEndDate > lastDayOfWeek;
   
   console.log(`Week ${firstDayOfWeek} to ${lastDayOfWeek}, reservation ${normalizedStartDate} to ${normalizedEndDate}`);
   console.log(`startPos: ${startPos}, endPos: ${endPos}, continuesFromPrevious: ${continuesFromPrevious}, continuesToNext: ${continuesToNext}`);

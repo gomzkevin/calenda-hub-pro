@@ -1,4 +1,3 @@
-
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
@@ -26,8 +25,8 @@ export const calculateBarPositionAndStyle = (
   const adjustedStartPos = startPos + cellStartOffset;
   
   // End position: if it continues to next, end at full width
-  // Otherwise end at 43% of the cell (for check-out) - leaving space for checkin
-  const cellEndOffset = continuesToNext ? 1 : 0.43;
+  // Otherwise end at 48% of the cell (for check-out) - leaving space for checkin
+  const cellEndOffset = continuesToNext ? 1 : 0.48;
   const adjustedEndPos = endPos + cellEndOffset;
   
   // Calculate percentage values for positioning
@@ -36,18 +35,41 @@ export const calculateBarPositionAndStyle = (
   
   // Define border radius style 
   let borderRadiusStyle = 'rounded-none';
-  if (!continuesFromPrevious && !continuesToNext) {
-    // Single day reservation
+  
+  // Special handling for single day reservation
+  if (isSameDay(normalizeDate(startDate), normalizeDate(endDate))) {
     borderRadiusStyle = 'rounded-full';
-  } else if (!continuesFromPrevious) {
-    // First day of multi-day reservation
-    borderRadiusStyle = 'rounded-l-lg rounded-r-none';
-  } else if (!continuesToNext) {
-    // Last day of multi-day reservation
-    borderRadiusStyle = 'rounded-r-lg rounded-l-none';
+  } 
+  // Special handling for reservation that spans one night (two days)
+  else if (
+    !continuesFromPrevious && 
+    !continuesToNext && 
+    endPos - startPos === 1
+  ) {
+    borderRadiusStyle = 'rounded-lg';
+  }
+  // Multiple day reservation
+  else {
+    if (!continuesFromPrevious) {
+      borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+    }
+    
+    if (!continuesToNext) {
+      borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+    }
+    
+    // Clean up the style if needed
+    borderRadiusStyle = borderRadiusStyle.trim();
+    if (borderRadiusStyle === 'rounded-none rounded-l-lg rounded-r-lg') {
+      borderRadiusStyle = 'rounded-lg';
+    } else if (borderRadiusStyle === 'rounded-none') {
+      borderRadiusStyle = '';
+    }
   }
   
+  // Add debug logs
   console.log(`Reservation from ${startDate} to ${endDate}: startPos=${startPos}, endPos=${endPos}, adjusted: ${adjustedStartPos}-${adjustedEndPos}`);
+  console.log(`Border style: ${borderRadiusStyle}, continuesToNext: ${continuesToNext}, isLastDayOfWeek: ${endPos === 6}`);
   
   return { barLeft, barWidth, borderRadiusStyle };
 };

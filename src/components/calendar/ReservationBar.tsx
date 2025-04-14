@@ -29,11 +29,15 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   laneHeight,
   baseOffset
 }) => {
+  // Ensure dates are properly parsed
+  const startDate = new Date(reservation.startDate);
+  const endDate = new Date(reservation.endDate);
+  
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
     week,
-    reservation.startDate,
-    reservation.endDate
+    startDate,
+    endDate
   );
   
   // If not in this week, don't render
@@ -46,8 +50,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     continuesFromPrevious,
     continuesToNext,
     week,
-    reservation.startDate,
-    reservation.endDate
+    startDate,
+    endDate
   );
   
   // Calculate vertical position relative to the week
@@ -58,6 +62,10 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   
   // Determine the label to display
   let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
+  
+  // Debug output
+  console.log(`Reservation ${reservation.id} - ${format(startDate, 'MMM d')} to ${format(endDate, 'MMM d')}`);
+  console.log(`Week ${weekIndex}, Lane ${lane}, Position: ${barLeft}, Width: ${barWidth}`);
   
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
@@ -80,8 +88,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
         <TooltipContent>
           <div className="text-xs">
             <p><strong>Platform:</strong> {reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
-            <p><strong>Check-in:</strong> {format(reservation.startDate, 'MMM d, yyyy')}</p>
-            <p><strong>Check-out:</strong> {format(reservation.endDate, 'MMM d, yyyy')}</p>
+            <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
+            <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
             {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
             {reservation.isBlocking && <p><strong>Blocking:</strong> Yes</p>}
             {reservation.guestName && <p><strong>Guest:</strong> {reservation.guestName}</p>}
