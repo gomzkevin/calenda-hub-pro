@@ -1,4 +1,3 @@
-
 import { Property, Reservation } from "@/types";
 
 // Normalize dates to compare them correctly
@@ -28,8 +27,8 @@ export const getReservationStyle = (reservation: Reservation, isIndirect: boolea
     case 'airbnb': return 'bg-rose-500';
     case 'booking': return 'bg-blue-600';
     case 'vrbo': return 'bg-green-600';
-    case 'direct': return 'bg-purple-600';
-    default: return 'bg-slate-600';
+    case 'other': return 'bg-purple-600';
+    default: return 'bg-purple-600';
   }
 };
 
