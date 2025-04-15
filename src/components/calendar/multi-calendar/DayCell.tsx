@@ -1,9 +1,8 @@
 
 import React from 'react';
-import { isSameDay } from 'date-fns';
+import { isSameDay, addDays, subDays } from 'date-fns';
 import { Property } from '@/types';
 import ReservationTooltip from './ReservationTooltip';
-import { Link } from 'lucide-react';
 import { findReservationPositionInWeek } from '../utils/reservationPosition';
 import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
@@ -42,6 +41,12 @@ const DayCell: React.FC<DayCellProps> = ({
     isIndirect, 
     reservations: dayReservations 
   } = getDayReservationStatus(property, day);
+
+  // Get the reservation status for adjacent days to check continuity
+  const prevDay = subDays(day, 1);
+  const nextDay = addDays(day, 1);
+  const prevDayStatus = getDayReservationStatus(property, prevDay);
+  const nextDayStatus = getDayReservationStatus(property, nextDay);
   
   // Sort reservations to display check-outs first, then check-ins
   const sortedDayReservations = [...dayReservations].sort((a, b) => {
@@ -93,6 +98,21 @@ const DayCell: React.FC<DayCellProps> = ({
         // Check if this is a check-out day (reservation ends on this day)
         const isCheckOutDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
         
+        // For parent properties, we need to check for continuous occupancy across child reservations
+        let forceDisplayAsMiddle = false;
+        
+        if (property.type === 'parent' && isIndirectReservation) {
+          // If this is a checkout day but the next day has a reservation too, don't show as checkout
+          if (isCheckOutDay && nextDayStatus.hasReservation) {
+            forceDisplayAsMiddle = true;
+          }
+          
+          // If this is a checkin day but the previous day has a reservation too, don't show as checkin
+          if (isCheckInDay && prevDayStatus.hasReservation) {
+            forceDisplayAsMiddle = true;
+          }
+        }
+        
         return (
           <ReservationTooltip
             key={`res-${res.id}-${idx}`}
@@ -101,8 +121,9 @@ const DayCell: React.FC<DayCellProps> = ({
             sourceInfo={sourceInfo}
             style={style}
             topPosition={topPosition}
-            isStartDay={isCheckInDay}
-            isEndDay={isCheckOutDay}
+            isStartDay={isCheckInDay && !forceDisplayAsMiddle}
+            isEndDay={isCheckOutDay && !forceDisplayAsMiddle}
+            forceMiddleDisplay={forceDisplayAsMiddle}
           />
         );
       })}
