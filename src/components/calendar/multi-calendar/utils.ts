@@ -1,3 +1,4 @@
+
 import { Property, Reservation } from "@/types";
 
 // Normalize dates to compare them correctly
@@ -19,10 +20,13 @@ export const sortReservations = (resA: Reservation, resB: Reservation): number =
 
 // Get styling for a reservation
 export const getReservationStyle = (reservation: Reservation, isIndirect: boolean): string => {
-  if (isIndirect) {
+  // If this is a propagated block (either from parent-child relationship or sourceReservationId),
+  // always use the gray color regardless of the original reservation's platform
+  if (isIndirect || reservation.status === 'Blocked' || reservation.notes === 'Blocked') {
     return 'bg-gray-400';
   }
   
+  // For direct reservations, use platform-specific colors
   switch (reservation.platform.toLowerCase()) {
     case 'airbnb': return 'bg-rose-500';
     case 'booking': return 'bg-blue-600';
