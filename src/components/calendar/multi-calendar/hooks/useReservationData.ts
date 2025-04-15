@@ -71,15 +71,23 @@ export const useReservationData = (
     }
     
     // For parent properties, check child reservations 
-    // (but avoid sibling blocks between children)
     if (property.type === 'parent') {
       const childrenIds = propertyRelationships.parentToChildren.get(property.id) || [];
+      const childReservationsForDay: Reservation[] = [];
       
       for (const childId of childrenIds) {
+        // Get all child property reservations that overlap with this day
         const childReservations = reservations.filter(res => {
-          // Only include direct reservations for this child, not blocks
           if (res.propertyId !== childId) return false;
-          if (res.status === 'Blocked' && res.sourceReservationId) return false;
+          
+          // Skip blocks propagated from other properties
+          if (res.status === 'Blocked' && res.sourceReservationId) {
+            // Get source reservation to check if it's from a sibling
+            const sourceRes = reservations.find(r => r.id === res.sourceReservationId);
+            if (sourceRes && propertyRelationships.childToParent.get(sourceRes.propertyId) === propertyRelationships.childToParent.get(childId)) {
+              return false; // Skip sibling blocks
+            }
+          }
           
           const normalizedStart = normalizeDate(res.startDate);
           const normalizedEnd = normalizeDate(res.endDate);
@@ -87,12 +95,16 @@ export const useReservationData = (
         });
         
         if (childReservations.length > 0) {
-          return { 
-            hasReservation: true, 
-            isIndirect: true,
-            reservations: childReservations
-          };
+          childReservationsForDay.push(...childReservations);
         }
+      }
+      
+      if (childReservationsForDay.length > 0) {
+        return { 
+          hasReservation: true, 
+          isIndirect: true,
+          reservations: childReservationsForDay
+        };
       }
     }
     
@@ -123,7 +135,7 @@ export const useReservationData = (
       isIndirect: false,
       reservations: []
     };
-  }, [getReservationsForProperty, propertyRelationships.parentToChildren, reservations]);
+  }, [getReservationsForProperty, propertyRelationships.parentToChildren, propertyRelationships.childToParent, reservations]);
 
   return {
     getReservationsForProperty,
