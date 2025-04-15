@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -13,13 +12,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-// Schema para validación de inicio de sesión
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
 });
 
-// Schema para validación de registro
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
   email: z.string().email({ message: 'Email inválido' }),
@@ -45,7 +42,6 @@ const AuthPage = () => {
   const from = (location.state as any)?.from || '/';
   
   useEffect(() => {
-    // Si el usuario ya está autenticado, redirigir a la página principal
     if (user && !isLoading) {
       navigate(from, { replace: true });
     }
@@ -125,10 +121,8 @@ const AuthPage = () => {
         description: "Se ha enviado un email de confirmación a tu dirección de correo.",
       });
       
-      // Cambiar a la pestaña de inicio de sesión
       setTab('login');
       
-      // Prellenar el formulario de inicio de sesión
       loginForm.setValue('email', values.email);
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -151,23 +145,48 @@ const AuthPage = () => {
   }
   
   return (
-    <div className="flex min-h-screen flex-col justify-center items-center p-4 bg-gray-50">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">CalendaHub Pro</h1>
-          <p className="text-gray-500 mt-2">Gestiona tus propiedades y reservas fácilmente</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-alanto-forest-pale to-alanto-cream">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-6">
+          <div className="flex flex-col items-center space-y-4">
+            <img
+              src="/placeholder.svg"
+              alt="Alanto"
+              className="h-16 w-auto"
+            />
+            <h1 className="text-4xl font-semibold text-alanto-forest">
+              Alanto
+            </h1>
+            <p className="text-alanto-forest-light text-lg max-w-sm">
+              Gestión inteligente para propiedades vacacionales
+            </p>
+          </div>
         </div>
-        
-        <Tabs value={tab} onValueChange={(value) => setTab(value as 'login' | 'signup')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-            <TabsTrigger value="signup">Registrarse</TabsTrigger>
+
+        <Tabs 
+          value={tab} 
+          onValueChange={(value) => setTab(value as 'login' | 'signup')} 
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger 
+              value="login"
+              className="data-[state=active]:bg-alanto-forest data-[state=active]:text-white"
+            >
+              Iniciar Sesión
+            </TabsTrigger>
+            <TabsTrigger 
+              value="signup"
+              className="data-[state=active]:bg-alanto-forest data-[state=active]:text-white"
+            >
+              Registrarse
+            </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="login">
-            <Card>
+            <Card className="border-alanto-gray-medium bg-white/95 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Inicia sesión</CardTitle>
+                <CardTitle className="text-alanto-forest">Inicia sesión</CardTitle>
                 <CardDescription>
                   Ingresa tus credenciales para acceder a tu cuenta
                 </CardDescription>
@@ -180,13 +199,13 @@ const AuthPage = () => {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-alanto-forest">Email</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <Mail className="absolute left-3 top-3 h-4 w-4 text-alanto-forest-light" />
                               <Input 
                                 placeholder="tu@email.com" 
-                                className="pl-10" 
+                                className="pl-10 border-alanto-gray-medium focus-visible:ring-alanto-forest" 
                                 {...field} 
                               />
                             </div>
@@ -195,27 +214,27 @@ const AuthPage = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={loginForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Contraseña</FormLabel>
+                          <FormLabel className="text-alanto-forest">Contraseña</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <Key className="absolute left-3 top-3 h-4 w-4 text-alanto-forest-light" />
                               <Input 
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••" 
-                                className="pl-10 pr-10" 
+                                className="pl-10 pr-10 border-alanto-gray-medium focus-visible:ring-alanto-forest" 
                                 {...field} 
                               />
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-0 top-0 h-10 w-10"
+                                className="absolute right-0 top-0 h-10 w-10 hover:text-alanto-forest"
                                 onClick={() => setShowPassword(!showPassword)}
                               >
                                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -226,19 +245,19 @@ const AuthPage = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full bg-alanto-forest hover:bg-alanto-forest-dark text-white" 
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? (
-                        <div className="flex items-center">
+                        <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
                           <span>Iniciando sesión...</span>
                         </div>
                       ) : (
-                        <div className="flex items-center">
+                        <div className="flex items-center justify-center">
                           <LogIn className="mr-2 h-4 w-4" />
                           <span>Iniciar Sesión</span>
                         </div>
@@ -248,11 +267,11 @@ const AuthPage = () => {
                 </Form>
               </CardContent>
               <CardFooter className="flex justify-center">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-alanto-forest">
                   ¿No tienes una cuenta?{" "}
                   <button 
                     type="button"
-                    className="text-blue-500 hover:underline"
+                    className="text-alanto-amber hover:text-alanto-amber-dark font-semibold"
                     onClick={() => setTab('signup')}
                   >
                     Regístrate
@@ -261,13 +280,13 @@ const AuthPage = () => {
               </CardFooter>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="signup">
-            <Card>
+            <Card className="border-alanto-gray-medium bg-white/95 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Crear una cuenta</CardTitle>
+                <CardTitle className="text-alanto-forest">Crear una cuenta</CardTitle>
                 <CardDescription>
-                  Regístrate para comenzar a usar CalendaHub Pro
+                  Regístrate para comenzar a usar Alanto
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -278,10 +297,10 @@ const AuthPage = () => {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nombre</FormLabel>
+                          <FormLabel className="text-alanto-forest">Nombre</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <User className="absolute left-3 top-3 h-4 w-4 text-alanto-forest-light" />
                               <Input 
                                 placeholder="Tu nombre" 
                                 className="pl-10" 
@@ -293,16 +312,16 @@ const AuthPage = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={signupForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-alanto-forest">Email</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <Mail className="absolute left-3 top-3 h-4 w-4 text-alanto-forest-light" />
                               <Input 
                                 placeholder="tu@email.com" 
                                 className="pl-10" 
@@ -314,16 +333,16 @@ const AuthPage = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={signupForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Contraseña</FormLabel>
+                          <FormLabel className="text-alanto-forest">Contraseña</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <Key className="absolute left-3 top-3 h-4 w-4 text-alanto-forest-light" />
                               <Input 
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Contraseña" 
@@ -345,16 +364,16 @@ const AuthPage = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={signupForm.control}
                       name="confirmPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Confirmar Contraseña</FormLabel>
+                          <FormLabel className="text-alanto-forest">Confirmar Contraseña</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <Key className="absolute left-3 top-3 h-4 w-4 text-alanto-forest-light" />
                               <Input 
                                 type={showConfirmPassword ? "text" : "password"}
                                 placeholder="Confirmar contraseña" 
@@ -376,7 +395,7 @@ const AuthPage = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <Button 
                       type="submit" 
                       className="w-full" 
@@ -395,11 +414,11 @@ const AuthPage = () => {
                 </Form>
               </CardContent>
               <CardFooter className="flex justify-center">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-alanto-forest">
                   ¿Ya tienes una cuenta?{" "}
                   <button 
                     type="button"
-                    className="text-blue-500 hover:underline"
+                    className="text-alanto-amber hover:text-alanto-amber-dark font-semibold"
                     onClick={() => setTab('login')}
                   >
                     Inicia sesión
