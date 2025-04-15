@@ -67,6 +67,21 @@ const DayCell: React.FC<DayCellProps> = ({
     bgColorClass = isIndirect ? 'bg-gray-100' : bgColorClass;
   }
   
+  // For parent properties, check if we have both check-in and check-out reservations on the same day
+  // across different child properties
+  let hasSameDayChangeOver = false;
+  if (property.type === 'parent') {
+    const checkInReservations = sortedDayReservations.filter(res => 
+      isSameDay(normalizeDate(res.startDate), normalizedDay) && !isSameDay(normalizeDate(res.endDate), normalizedDay)
+    );
+    
+    const checkOutReservations = sortedDayReservations.filter(res => 
+      isSameDay(normalizeDate(res.endDate), normalizedDay) && !isSameDay(normalizeDate(res.startDate), normalizedDay)
+    );
+    
+    hasSameDayChangeOver = checkInReservations.length > 0 && checkOutReservations.length > 0;
+  }
+  
   return (
     <div
       className={`border relative min-h-[4rem] h-16 ${bgColorClass}`}
@@ -109,6 +124,11 @@ const DayCell: React.FC<DayCellProps> = ({
           
           // If this is a checkin day but the previous day has a reservation too, don't show as checkin
           if (isCheckInDay && prevDayStatus.hasReservation) {
+            forceDisplayAsMiddle = true;
+          }
+          
+          // If we have both check-in and check-out on the same day in different child properties
+          if (hasSameDayChangeOver) {
             forceDisplayAsMiddle = true;
           }
         }
