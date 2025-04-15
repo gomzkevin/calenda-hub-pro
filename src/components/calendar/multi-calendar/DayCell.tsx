@@ -58,18 +58,15 @@ const DayCell: React.FC<DayCellProps> = ({
   
   let bgColorClass = isToday ? 'bg-blue-50' : '';
   
-  // When there's an indirect reservation but no direct tooltip reservations to display
-  // (common for parent properties showing indicators for child reservations)
-  if (hasReservation && isIndirect && sortedDayReservations.length === 0) {
-    bgColorClass = 'bg-gray-100';
+  if (hasReservation && sortedDayReservations.length === 0) {
+    bgColorClass = isIndirect ? 'bg-gray-100' : bgColorClass;
   }
   
   return (
     <div
       className={`border relative min-h-[4rem] h-16 ${bgColorClass}`}
     >
-      {/* Indicator for indirect reservations without specific tooltips */}
-      {hasReservation && isIndirect && (
+      {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-3 h-3 rounded-full bg-gray-300"></div>
         </div>
