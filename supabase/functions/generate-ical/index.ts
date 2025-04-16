@@ -50,6 +50,7 @@ serve(async (req) => {
     }
 
     if (propertyData.ical_token !== token) {
+      console.error("Invalid token provided:", token, "Expected:", propertyData.ical_token);
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

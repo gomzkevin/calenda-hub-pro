@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Building2, BedDouble, Bath, Users, Home, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +24,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
           ? 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1'
           : 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1';
           
-        const url = `${baseUrl}/generate-ical?property_id=${property.id}&token=${property.icalToken || ''}`;
+        const url = `${baseUrl}/generate-ical?property_id=${property.id}&token=${property.icalToken || ''}.ics`;
         
         await navigator.clipboard.writeText(url);
         setCopying(true);
