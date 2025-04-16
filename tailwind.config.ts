@@ -70,15 +70,15 @@ export default {
           'other': '#9E9E9E'
         },
         alanto: {
-          forest: '#2d4c1c',
+          'forest': '#2d4c1c',
           'forest-dark': '#1e3313',
           'forest-light': '#3a6425',
           'forest-pale': '#e8f0e4',
-          amber: '#eaa934',
+          'amber': '#eaa934',
           'amber-dark': '#d99620',
           'amber-light': '#f2bc5e',
           'amber-pale': '#fdf2e0',
-          cream: '#fbf6ed',
+          'cream': '#fbf6ed',
           'gray-light': '#f2f2f2',
           'gray-medium': '#d0d0d0',
           'gray-dark': '#333333',
