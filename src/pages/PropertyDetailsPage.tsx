@@ -14,12 +14,10 @@ const PropertyDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   
+  // Get property data
   const { data: property, isLoading: isPropertyLoading, error: propertyError } = useQuery({
     queryKey: ['property', id],
-    queryFn: () => {
-      if (!id) throw new Error('Property ID is required');
-      return getPropertyById(id);
-    },
+    queryFn: () => getPropertyById(id || ''),
     enabled: !!id
   });
   
@@ -32,7 +30,6 @@ const PropertyDetailsPage: React.FC = () => {
   }
   
   if (propertyError || !property) {
-    console.error('Error loading property:', propertyError);
     return (
       <div className="flex flex-col items-center justify-center h-full p-6">
         <h1 className="text-2xl font-bold mb-4">Propiedad no encontrada</h1>
@@ -68,9 +65,14 @@ const PropertyDetailsPage: React.FC = () => {
           onCancel={() => setIsEditing(false)} 
         />
       ) : (
-        <div className="space-y-6">
-          <PropertyDetails property={property} />
-          <PropertyICalLinks propertyId={property.id} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <PropertyDetails property={property} />
+          </div>
+          
+          <div>
+            <PropertyICalLinks propertyId={property.id} />
+          </div>
         </div>
       )}
     </div>
