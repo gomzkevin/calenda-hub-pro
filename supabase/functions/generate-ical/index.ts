@@ -31,15 +31,21 @@ serve(async (req) => {
     const path = url.pathname;
     let token = null;
     
-    // Support both formats: /TOKEN.ics and /v1/export?t=TOKEN
+    // Support multiple formats for better compatibility with various platforms
     if (path.endsWith('.ics')) {
       // Format: /TOKEN.ics
       const segments = path.split('/');
       const filename = segments[segments.length - 1];
       token = filename.replace('.ics', '');
-    } else if (path.includes('/export') && url.searchParams.has('t')) {
-      // Format: /v1/export?t=TOKEN (Booking.com style)
+    } else if (path.includes('/calendar/export') && url.searchParams.has('t')) {
+      // New format: /calendar/export?t=TOKEN (similar to Booking.com)
       token = url.searchParams.get('t');
+    } else if (path.includes('/export') && url.searchParams.has('t')) {
+      // Format: /export?t=TOKEN (Booking.com style)
+      token = url.searchParams.get('t');
+    } else if (url.searchParams.has('token')) {
+      // Alternative format: ?token=TOKEN
+      token = url.searchParams.get('token');
     }
 
     if (!token) {
@@ -89,7 +95,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/calendar',
-        'Content-Disposition': `attachment; filename="${token}.ics"`,
+        'Content-Disposition': `attachment; filename="calendar-${token.substring(0, 8)}.ics"`,
       },
     });
 
@@ -105,7 +111,7 @@ serve(async (req) => {
 function generateICalContent(property: Property, reservations: Reservation[]): string {
   const now = new Date().toISOString().replace(/[-:.]/g, '').replace(/\.\d+Z$/, 'Z');
   
-  // Create iCal content that works with multiple platforms
+  // Create iCal content that matches common platform formats
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
