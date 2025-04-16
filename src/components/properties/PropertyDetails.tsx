@@ -16,6 +16,7 @@ import PropertyICalLinks from './PropertyICalLinks';
 import PropertyMap from './PropertyMap';
 import PropertyGallery from './PropertyGallery';
 import PropertyICalExport from '@/components/properties/PropertyICalExport';
+import { Property } from '@/types';
 
 interface PropertyDetailsProps {
   property?: Property;
@@ -137,19 +138,12 @@ const PropertyDetails = ({ property }: PropertyDetailsProps) => {
             <div>
               <p className="text-sm font-medium leading-none">Precio por noche</p>
               <p className="text-muted-foreground">
-                {fetchedProperty.night_price} €
+                {fetchedProperty.notes ? `${fetchedProperty.notes} €` : 'No disponible'}
               </p>
             </div>
           </div>
           <Separator />
-          <div>
-            <p className="text-sm font-medium leading-none">Amenidades</p>
-            <div className="flex flex-wrap gap-2">
-              {fetchedProperty.amenities?.map((amenity, index) => (
-                <Badge key={index}>{amenity}</Badge>
-              ))}
-            </div>
-          </div>
+          {/* Removing amenities section as it doesn't exist in the Property type */}
         </CardContent>
       </Card>
 
