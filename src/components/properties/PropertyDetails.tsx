@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Link, Calendar } from 'lucide-react';
+import { Building2, BedDouble, Bath, Users, Home, Link, Calendar, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
@@ -16,6 +15,8 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
       const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical?propertyId=${property.id}&token=${property.ical_token}`;
       navigator.clipboard.writeText(icalUrl);
       toast.success('URL del calendario copiada al portapapeles');
+    } else {
+      toast.error('No se ha generado un token de calendario para esta propiedad');
     }
   };
 
@@ -93,7 +94,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
                 className="gap-2"
                 onClick={copyICalUrl}
               >
-                <Link className="w-4 h-4" />
+                <Copy className="w-4 h-4" />
                 Copiar URL del Calendario iCal
               </Button>
               <p className="text-sm text-muted-foreground mt-2">
