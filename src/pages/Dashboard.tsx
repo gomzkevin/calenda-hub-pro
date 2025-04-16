@@ -1,12 +1,13 @@
-import React, { useContext } from 'react';
+
+import React from 'react';
 import { useReservationGroups } from '@/hooks/useReservationGroups';
-import { AuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DoorClosed, DoorOpen, Clock, Home, Calendar } from 'lucide-react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 const Dashboard: React.FC = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const reservationGroups = useReservationGroups();
   const { propertyOccupancy } = useDashboardStats();
   

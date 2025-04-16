@@ -7,7 +7,7 @@ import { format, isToday, isTomorrow, isAfter, isBefore, addDays } from 'date-fn
 export const useReservationGroups = () => {
   const { data: reservations = [] } = useQuery({
     queryKey: ['reservations'],
-    queryFn: getReservations
+    queryFn: () => getReservations()
   });
 
   const now = new Date();
