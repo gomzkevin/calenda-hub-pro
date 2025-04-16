@@ -2,11 +2,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { getReservations } from '@/services/reservation';
 import { getProperties } from '@/services/propertyService';
-import { getDaysInMonth, isSameMonth, isSameYear, differenceInDays, addDays } from 'date-fns';
+import { getDaysInMonth, isSameMonth, isSameYear, differenceInDays, addDays, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 
 export const useDashboardStats = () => {
   const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
   const daysInMonth = getDaysInMonth(today);
+  
+  // First day of current month
+  const monthStart = startOfMonth(today);
+  // Last day of current month
+  const monthEnd = endOfMonth(today);
   
   const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
@@ -19,7 +26,7 @@ export const useDashboardStats = () => {
   });
   
   const propertyOccupancy = properties.map(property => {
-    // Filter reservations for this property in the current month
+    // Filter reservations for this property that overlap with the current month
     const propertyReservations = reservations.filter(res => {
       const startDate = new Date(res.startDate);
       const endDate = new Date(res.endDate);
@@ -28,32 +35,35 @@ export const useDashboardStats = () => {
       return res.propertyId === property.id &&
              ((isSameMonth(startDate, today) && isSameYear(startDate, today)) ||
               (isSameMonth(endDate, today) && isSameYear(endDate, today)) ||
-              (startDate < today && endDate > new Date(today.getFullYear(), today.getMonth() + 1, 0)));
+              (startDate < monthStart && endDate > monthEnd));
     });
     
-    // Calculate total days booked this month, accounting for partial month reservations
-    let daysBooked = 0;
+    // Calculate occupied nights for the current month only
+    let occupiedNights = 0;
     
-    propertyReservations.forEach(res => {
-      const startDate = new Date(res.startDate);
-      const endDate = new Date(res.endDate);
+    // For each day in the month, check if it's within any reservation
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(currentYear, currentMonth, day);
       
-      // Calculate the start date to count from (either reservation start or beginning of month)
-      const countFromDate = startDate < new Date(today.getFullYear(), today.getMonth(), 1) 
-        ? new Date(today.getFullYear(), today.getMonth(), 1) 
-        : startDate;
+      // Check if this date is within any of the property's reservations
+      const isOccupied = propertyReservations.some(res => {
+        const startDate = new Date(res.startDate);
+        const endDate = new Date(res.endDate);
+        
+        // A night is occupied if the day falls between check-in and check-out dates (inclusive of check-in, exclusive of check-out)
+        return isWithinInterval(currentDate, { 
+          start: startDate, 
+          end: new Date(endDate.getTime() - 1) // Subtract 1ms to make it exclusive of checkout day
+        });
+      });
       
-      // Calculate the end date to count to (either reservation end or end of month)
-      const countToDate = endDate > new Date(today.getFullYear(), today.getMonth() + 1, 0) 
-        ? new Date(today.getFullYear(), today.getMonth() + 1, 0) 
-        : endDate;
-      
-      // Add 1 to include the end date in the count (checkout day)
-      daysBooked += differenceInDays(addDays(countToDate, 1), countFromDate);
-    });
+      if (isOccupied) {
+        occupiedNights++;
+      }
+    }
     
-    // Calculate occupancy rate based on days in month
-    const occupancyRate = (daysBooked / daysInMonth) * 100;
+    // Calculate occupancy rate based on nights occupied in the month
+    const occupancyRate = (occupiedNights / daysInMonth) * 100;
     
     return {
       ...property,
