@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Building2, BedDouble, Bath, Users, Home, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +18,9 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
     try {
       if (property.id) {
         // Generate the iCal URL with the property's ID and token
+        // The endpoint is now PUBLIC, so we don't need authorization headers
         const baseUrl = window.location.origin.includes('localhost') 
-          ? 'http://localhost:54321/functions/v1'
+          ? 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1'
           : 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1';
           
         const url = `${baseUrl}/generate-ical?property_id=${property.id}&token=${property.icalToken || ''}`;
