@@ -40,10 +40,13 @@ export const useReservationGroups = () => {
       groups.upcoming.push(reservation);
     }
 
-    // Nueva lógica para reservas activas: solo reservas regulares (no propagadas)
-    if (!reservation.isRelationshipBlock && !reservation.sourceReservationId &&
-        ((isToday(startDate) && now.getHours() >= 12) || // Si empezó hoy después del mediodía
-         (isBefore(startDate, now) && isAfter(endDate, now)))) { // O si está en curso
+    // Corregida la lógica para reservas activas:
+    // 1. No incluir bloqueos propagados ni reservas con sourceReservationId
+    // 2. Solo incluir reservas que estén activas hoy (después de la fecha de inicio y antes de la fecha de fin)
+    if (!reservation.isRelationshipBlock && 
+        !reservation.sourceReservationId &&
+        isBefore(startDate, now) && 
+        isAfter(endDate, now)) {
       groups.active.push(reservation);
     }
   });

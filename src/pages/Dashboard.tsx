@@ -44,10 +44,7 @@ const Dashboard: React.FC = () => {
       title: 'En curso',
       value: reservationGroups.active.length,
       icon: <Home className="w-5 h-5" />,
-      color: 'bg-alanto-amber-dark',
-      details: reservationGroups.active.map(res => ({
-        propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
-      }))
+      color: 'bg-alanto-amber-dark'
     },
     {
       title: 'Empiezan mañana',
