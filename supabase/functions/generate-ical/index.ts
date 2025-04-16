@@ -33,8 +33,26 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const propertyId = url.searchParams.get('propertyId');
-    const token = url.searchParams.get('token');
+    const path = url.pathname;
+    
+    // Extract property ID and token from path segments when URL ends with .ics
+    let propertyId, token;
+    
+    if (path.endsWith('.ics')) {
+      // Path format: /[property-id]-[token].ics
+      const filenamePart = path.split('/').pop() || '';
+      const parts = filenamePart.replace('.ics', '').split('-');
+      
+      if (parts.length >= 2) {
+        propertyId = parts[0];
+        // Get the rest of the parts and join them back as the token (in case token has hyphens)
+        token = parts.slice(1).join('-');
+      }
+    } else {
+      // Fall back to query parameters for backward compatibility
+      propertyId = url.searchParams.get('propertyId');
+      token = url.searchParams.get('token');
+    }
 
     if (!propertyId || !token) {
       return new Response(
