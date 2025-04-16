@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useReservationGroups } from '@/hooks/useReservationGroups';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,7 +49,6 @@ const Dashboard: React.FC = () => {
     }
   ];
   
-  // Get user's name from metadata or email or fallback to 'Usuario'
   const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuario';
   
   return (
@@ -61,7 +59,6 @@ const Dashboard: React.FC = () => {
         </h1>
       </div>
       
-      {/* Reservation Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className="border-none shadow-md bg-white">
@@ -82,16 +79,15 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
       
-      {/* Property Performance Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4 text-alanto-forest">
           Desempeño de alojamientos
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {propertyOccupancy.map((property) => (
-            <Card key={property.id}>
+            <Card key={property.id} className="border-none shadow-md bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">
+                <CardTitle className="text-base text-alanto-forest">
                   {property.name}
                   <span className="text-sm text-muted-foreground ml-2">
                     ({property.type || 'standalone'})
@@ -100,13 +96,19 @@ const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full">
+                  <div className="flex-1 h-2 bg-alanto-forest-pale rounded-full">
                     <div
-                      className="h-full bg-blue-500 rounded-full"
-                      style={{ width: `${Math.min(property.occupancyRate, 100)}%` }}
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(property.occupancyRate, 100)}%`,
+                        backgroundColor: property.occupancyRate >= 75 ? '#2d4c1c' : // Verde Bosque
+                                      property.occupancyRate >= 50 ? '#eaa934' : // Ámbar Dorado
+                                      property.occupancyRate >= 25 ? '#f2bc5e' : // Ámbar Claro
+                                      '#d0d0d0' // Gris Medio
+                      }}
                     />
                   </div>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium text-alanto-forest">
                     {property.occupancyRate.toFixed(1)}%
                   </span>
                 </div>
