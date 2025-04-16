@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,15 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { deleteProperty, getProperty } from '@/services/propertyService';
-import { toast } from '@/hooks/use-toast';
+import { getPropertyById } from '@/services/propertyService';
+import { toast } from 'sonner';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Property } from '@/types';
 import { useParams } from 'react-router-dom';
-import { PropertyICalLinks } from './PropertyICalLinks';
+import PropertyICalLinks from './PropertyICalLinks';
 import PropertyMap from './PropertyMap';
 import PropertyGallery from './PropertyGallery';
-import { PropertyICalExport } from '@/components/properties/PropertyICalExport';
+import PropertyICalExport from '@/components/properties/PropertyICalExport';
 
 interface PropertyDetailsProps {
   property?: Property;
@@ -27,7 +27,7 @@ const PropertyDetails = ({ property }: PropertyDetailsProps) => {
 
   const { data: fetchedProperty, isLoading, isError, error } = useQuery({
     queryKey: ['property', propertyId],
-    queryFn: () => getProperty(propertyId as string),
+    queryFn: () => getPropertyById(propertyId as string),
     enabled: !!propertyId,
   });
 
@@ -54,17 +54,20 @@ const PropertyDetails = ({ property }: PropertyDetailsProps) => {
 
   const handleDelete = async () => {
     try {
-      await deleteProperty(fetchedProperty.id);
-      toast({
-        title: "Propiedad eliminada.",
-        description: "La propiedad ha sido eliminada correctamente.",
+      // Instead of using a deleteProperty function, we can implement deletion logic here
+      const { error } = await fetch(`/api/properties/${fetchedProperty.id}`, {
+        method: 'DELETE',
+      }).then(res => res.json());
+      
+      if (error) throw error;
+      
+      toast.success("Propiedad eliminada", {
+        description: "La propiedad ha sido eliminada correctamente."
       });
       navigate('/properties');
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error al eliminar la propiedad.",
-        description: "No se pudo eliminar la propiedad. Por favor, inténtelo de nuevo.",
+      toast.error("Error al eliminar la propiedad", {
+        description: "No se pudo eliminar la propiedad. Por favor, inténtelo de nuevo."
       });
     }
   };
