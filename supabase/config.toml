@@ -142,10 +142,6 @@ handler = "supabase/functions"
 # Port to serve Edge Functions on.
 port = 54334
 
-# Configure calendar export function to be public
-[functions.calendar]
-verify_jwt = false
-
 # Configure Edge Functions using external Deno runtime.
 # This will cause Edge Functions to use an external Deno installation instead of using the built-in
 # Deno runtime.
