@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
+import { supabaseClient } from "../../_shared/supabase-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,20 +28,8 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const path = url.pathname;
     const queryParams = url.searchParams;
-    let token = null;
-    
-    // Support multiple URL formats for maximum compatibility
-    if (path.endsWith('.ics')) {
-      // Original format: /generate-ical/TOKEN.ics
-      const segments = path.split('/');
-      const filename = segments[segments.length - 1];
-      token = filename.replace('.ics', '');
-    } else if (queryParams.get('t')) {
-      // Booking.com style: /v1/export?t=TOKEN or /calendar/export?t=TOKEN
-      token = queryParams.get('t');
-    }
+    const token = queryParams.get('t');
 
     if (!token) {
       console.error('No token provided in URL');
@@ -57,9 +45,7 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = supabaseClient();
 
     const { data: property, error: propertyError } = await supabase
       .from('properties')
@@ -121,9 +107,9 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 
-        } 
-      }
-    );
+          } 
+        }
+      );
   }
 });
 
@@ -136,7 +122,7 @@ function generateICalContent(property: Property, reservations: Reservation[]): s
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Alanto//Calendar Service//ES', // Neutral PRODID that doesn't mention Supabase
+    'PRODID:-//Alanto//Calendar Service//ES', // Neutral PRODID 
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH' // Added METHOD as per RFC 5545
   ];
@@ -148,7 +134,7 @@ function generateICalContent(property: Property, reservations: Reservation[]): s
     const endDate = reservation.end_date.replace(/-/g, '');
     
     // Format the summary based on reservation status and guest name
-    let summary = 'CLOSED - Not available'; // Default to Booking.com format
+    let summary = 'CLOSED - Not available'; // Booking.com format
     if (reservation.status?.toLowerCase() !== 'blocked' && reservation.guest_name) {
       summary = `Reserved - ${reservation.guest_name}`; // VRBO format
     }

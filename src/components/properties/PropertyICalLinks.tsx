@@ -9,6 +9,7 @@ import ICalLinkCard from '@/components/ical/ICalLinkCard';
 import { getICalLinksForProperty, syncICalLink } from '@/services/icalLinkService';
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
 
 interface PropertyICalLinksProps {
   propertyId: string;
@@ -81,6 +82,62 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     }
   };
   
+  // Get the property from the Supabase database
+  const { data: property } = useQuery({
+    queryKey: ['property', propertyId],
+    queryFn: async () => {
+      const supabaseUrl = 'https://akqzaaniiflyxfrzipqq.supabase.co';
+      const response = await fetch(`${supabaseUrl}/rest/v1/properties?id=eq.${propertyId}&select=ical_token`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrcXphYW5paWZseXhmcnppcHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzMjYwMjUsImV4cCI6MjA1OTkwMjAyNX0.P-LD-Gg_tGih4pKGZxxEu3DtySmYObgqhxXOyTddWiY',
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      return data[0];
+    },
+    enabled: !!propertyId
+  });
+  
+  // Show a nice input with the iCal URL for this property
+  const renderCalendarExportSection = () => {
+    if (!property?.ical_token) return null;
+    
+    const supabaseUrl = 'https://akqzaaniiflyxfrzipqq.supabase.co';
+    
+    // Booking.com style URL (for better compatibility)
+    const calendarUrl = `${supabaseUrl}/functions/v1/calendar/export?t=${property.ical_token}`;
+    
+    return (
+      <div className="space-y-4 mt-4 border-t pt-4">
+        <h3 className="text-sm font-medium">URL de Exportación de Calendario</h3>
+        <p className="text-xs text-muted-foreground">
+          Comparte esta URL con plataformas como Airbnb, Booking.com o VRBO para sincronizar las reservas de esta propiedad.
+        </p>
+        <div className="flex w-full items-center space-x-2">
+          <Input 
+            readOnly 
+            value={calendarUrl} 
+            className="font-mono text-xs"
+          />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(calendarUrl);
+              toast({
+                title: "URL copiada",
+                description: "URL de calendario copiada al portapapeles"
+              });
+            }}
+          >
+            Copiar
+          </Button>
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -139,6 +196,8 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
             </p>
           </div>
         )}
+        
+        {renderCalendarExportSection()}
       </CardContent>
     </Card>
   );
