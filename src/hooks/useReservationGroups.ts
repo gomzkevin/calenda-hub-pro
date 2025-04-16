@@ -11,18 +11,12 @@ export const useReservationGroups = () => {
   });
 
   const now = new Date();
-  const mexicoCityTime = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Mexico_City',
-    hour: 'numeric',
-    hour12: false
-  }).format(now);
-  const currentHour = parseInt(mexicoCityTime, 10);
 
   const groups = {
     checkingOut: [] as Reservation[],        // Salen hoy (hasta 12:00 PM)
-    checkingIn: [] as Reservation[],         // Llegan hoy (hasta 3:00 PM)
+    checkingIn: [] as Reservation[],         // Llegan hoy (todo el día)
     active: [] as Reservation[],             // En curso
-    checkingOutTomorrow: [] as Reservation[], // Terminan pronto
+    checkingOutTomorrow: [] as Reservation[], // Terminan mañana
     checkingInTomorrow: [] as Reservation[], // Empiezan pronto
     upcoming: [] as Reservation[]            // Próximas reservas
   };
@@ -31,14 +25,11 @@ export const useReservationGroups = () => {
     const startDate = new Date(reservation.startDate);
     const endDate = new Date(reservation.endDate);
 
+    // Updated logic: checkingIn is now for the entire day
     if (isToday(startDate)) {
-      if (currentHour < 15) { // Before 3:00 PM
-        groups.checkingIn.push(reservation);
-      } else {
-        groups.active.push(reservation);
-      }
+      groups.checkingIn.push(reservation);
     } else if (isToday(endDate)) {
-      if (currentHour < 12) { // Before 12:00 PM
+      if (now.getHours() < 12) { // Before 12:00 PM
         groups.checkingOut.push(reservation);
       }
     } else if (isTomorrow(startDate)) {

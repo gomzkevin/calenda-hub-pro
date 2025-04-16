@@ -3,9 +3,8 @@ import React from 'react';
 import { useReservationGroups } from '@/hooks/useReservationGroups';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DoorClosed, DoorOpen, Clock, Home, Calendar } from 'lucide-react';
+import { DoorClosed, DoorOpen, Clock, Home, Calendar, BellDot } from 'lucide-react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -18,6 +17,7 @@ const Dashboard: React.FC = () => {
       value: reservationGroups.checkingOut.length,
       icon: <DoorClosed className="w-5 h-5" />,
       color: 'bg-alanto-forest',
+      emptyMessage: 'No hay salidas hoy',
       details: reservationGroups.checkingOut.map(res => ({
         propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
       }))
@@ -27,6 +27,7 @@ const Dashboard: React.FC = () => {
       value: reservationGroups.checkingIn.length,
       icon: <DoorOpen className="w-5 h-5" />,
       color: 'bg-alanto-forest-light',
+      emptyMessage: 'No hay llegadas hoy',
       details: reservationGroups.checkingIn.map(res => ({
         propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
       }))
@@ -82,20 +83,29 @@ const Dashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="flex items-start space-x-3">
                 <div className="text-3xl font-bold text-alanto-forest-dark">
                   {stat.value}
                 </div>
-                {stat.details && stat.details.length > 0 && (
-                  <ScrollArea className="h-20 w-full">
-                    <div className="space-y-1">
-                      {stat.details.map((detail, idx) => (
-                        <p key={idx} className="text-sm text-alanto-forest-light">
-                          {detail.propertyName}
-                        </p>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                {stat.details && (
+                  <div className="pt-1.5">
+                    {stat.value === 0 && stat.emptyMessage ? (
+                      <p className="text-sm text-alanto-forest-light italic">
+                        {stat.emptyMessage}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {stat.details.map((detail, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <BellDot className="w-3 h-3 text-alanto-forest-light" />
+                            <span className="text-sm text-alanto-forest-light">
+                              {detail.propertyName}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </CardContent>
