@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { useReservationGroups } from '@/hooks/useReservationGroups';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DoorClosed, DoorOpen, Clock, Home, Calendar } from 'lucide-react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -15,19 +17,28 @@ const Dashboard: React.FC = () => {
       title: 'Salen hoy',
       value: reservationGroups.checkingOut.length,
       icon: <DoorClosed className="w-5 h-5" />,
-      color: 'bg-alanto-forest'
+      color: 'bg-alanto-forest',
+      details: reservationGroups.checkingOut.map(res => ({
+        propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
+      }))
     },
     {
       title: 'Llegan hoy',
       value: reservationGroups.checkingIn.length,
       icon: <DoorOpen className="w-5 h-5" />,
-      color: 'bg-alanto-forest-light'
+      color: 'bg-alanto-forest-light',
+      details: reservationGroups.checkingIn.map(res => ({
+        propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
+      }))
     },
     {
-      title: 'Terminan pronto',
+      title: 'Terminan mañana',
       value: reservationGroups.checkingOutTomorrow.length,
       icon: <Clock className="w-5 h-5" />,
-      color: 'bg-alanto-amber'
+      color: 'bg-alanto-amber',
+      details: reservationGroups.checkingOutTomorrow.map(res => ({
+        propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
+      }))
     },
     {
       title: 'En curso',
@@ -71,8 +82,21 @@ const Dashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-alanto-forest-dark">
-                {stat.value}
+              <div className="space-y-2">
+                <div className="text-3xl font-bold text-alanto-forest-dark">
+                  {stat.value}
+                </div>
+                {stat.details && stat.details.length > 0 && (
+                  <ScrollArea className="h-20 w-full">
+                    <div className="space-y-1">
+                      {stat.details.map((detail, idx) => (
+                        <p key={idx} className="text-sm text-alanto-forest-light">
+                          {detail.propertyName}
+                        </p>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
               </div>
             </CardContent>
           </Card>
