@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { getReservations } from '@/services/reservation';
 import { Reservation } from '@/types';
@@ -25,7 +24,6 @@ export const useReservationGroups = () => {
     const startDate = new Date(reservation.startDate);
     const endDate = new Date(reservation.endDate);
 
-    // Updated logic: checkingIn is now for the entire day
     if (isToday(startDate)) {
       groups.checkingIn.push(reservation);
     } else if (isToday(endDate)) {
@@ -40,10 +38,6 @@ export const useReservationGroups = () => {
       groups.upcoming.push(reservation);
     }
 
-    // Corregida la lógica para reservas activas:
-    // 1. No incluir bloqueos propagados ni reservas con sourceReservationId
-    // 2. Solo incluir reservas que estén activas hoy (después de la fecha de inicio y antes de la fecha de fin)
-    // 3. No incluir reservas con notes igual a "Blocked"
     if (!reservation.isRelationshipBlock && 
         !reservation.sourceReservationId &&
         reservation.notes !== 'Blocked' &&
