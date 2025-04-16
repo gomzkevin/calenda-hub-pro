@@ -1,61 +1,52 @@
 
 import React from 'react';
-import { Building, Calendar, Link as LinkIcon, Users } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { sampleProperties, sampleICalLinks, sampleReservations, sampleUsers } from '@/data/mockData';
-import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
-import { Link } from 'react-router-dom';
+import { Building, CalendarCheck, CalendarClock, LogOut } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 const Dashboard: React.FC = () => {
-  const properties = sampleProperties;
-  const icalLinks = sampleICalLinks;
-  const reservations = sampleReservations;
-  const activeReservations = reservations.filter(res => new Date(res.endDate) >= new Date());
+  const { 
+    totalProperties,
+    activeReservations,
+    checkInsToday,
+    checkOutsToday,
+    propertyOccupancy
+  } = useDashboardStats();
   
   const stats = [
     {
       title: 'Properties',
-      value: properties.length,
+      value: totalProperties,
       icon: <Building className="w-5 h-5" />,
-      color: 'bg-blue-500',
-      link: '/properties'
+      color: 'bg-blue-500'
     },
     {
       title: 'Active Reservations',
-      value: activeReservations.length,
-      icon: <Calendar className="w-5 h-5" />,
-      color: 'bg-green-500',
-      link: '/calendar'
+      value: activeReservations,
+      icon: <CalendarClock className="w-5 h-5" />,
+      color: 'bg-green-500'
     },
     {
-      title: 'iCal Sources',
-      value: icalLinks.length,
-      icon: <LinkIcon className="w-5 h-5" />,
-      color: 'bg-purple-500',
-      link: '/ical-links'
+      title: 'Check-ins Today',
+      value: checkInsToday,
+      icon: <CalendarCheck className="w-5 h-5" />,
+      color: 'bg-amber-500'
     },
     {
-      title: 'Users',
-      value: sampleUsers.length,
-      icon: <Users className="w-5 h-5" />,
-      color: 'bg-amber-500',
-      link: '/users'
+      title: 'Check-outs Today',
+      value: checkOutsToday,
+      icon: <LogOut className="w-5 h-5" />,
+      color: 'bg-purple-500'
     }
   ];
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <Button asChild>
-          <Link to="/calendar">
-            <Calendar className="w-4 h-4 mr-2" />
-            View Calendar
-          </Link>
-        </Button>
       </div>
       
+      {/* Key Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <Card key={index}>
@@ -69,27 +60,39 @@ const Dashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stat.value}</div>
-              <div className="mt-2">
-                <Button asChild variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
-                  <Link to={stat.link}>
-                    View All
-                  </Link>
-                </Button>
-              </div>
             </CardContent>
           </Card>
         ))}
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Reservations</CardTitle>
-          <CardDescription>Calendar view of all properties</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MonthlyCalendar />
-        </CardContent>
-      </Card>
+      {/* Property Occupancy */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {propertyOccupancy.map((property) => (
+          <Card key={property.id}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                {property.name}
+                <span className="text-sm text-muted-foreground ml-2">
+                  ({property.type || 'standalone'})
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${Math.min(property.occupancyRate, 100)}%` }}
+                  />
+                </div>
+                <span className="text-sm font-medium">
+                  {property.occupancyRate.toFixed(1)}%
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
