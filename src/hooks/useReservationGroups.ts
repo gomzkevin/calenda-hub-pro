@@ -1,10 +1,11 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { getReservations } from '@/services/reservation';
 import { Reservation } from '@/types';
 import { format, isToday, isTomorrow, isAfter, isBefore, addDays } from 'date-fns';
 
 export const useReservationGroups = () => {
-  const { data: reservations = [] } = useQuery({
+  const { data: allReservations = [] } = useQuery({
     queryKey: ['reservations'],
     queryFn: () => getReservations()
   });
@@ -20,7 +21,15 @@ export const useReservationGroups = () => {
     upcoming: [] as Reservation[]
   };
 
-  reservations.forEach(reservation => {
+  // Filtrar primero para excluir las reservas bloqueadas y propagadas
+  const validReservations = allReservations.filter(reservation => 
+    reservation.notes !== 'Blocked' && 
+    reservation.status !== 'Blocked' &&
+    !reservation.sourceReservationId &&
+    !reservation.isRelationshipBlock
+  );
+
+  validReservations.forEach(reservation => {
     const startDate = new Date(reservation.startDate);
     const endDate = new Date(reservation.endDate);
 
@@ -35,14 +44,12 @@ export const useReservationGroups = () => {
     } else if (isTomorrow(endDate)) {
       groups.checkingOutTomorrow.push(reservation);
     } else if (isAfter(startDate, addDays(now, 1))) {
+      // Solo incluir en próximas reservas si la fecha de inicio es después de mañana
       groups.upcoming.push(reservation);
     }
 
-    if (!reservation.isRelationshipBlock && 
-        !reservation.sourceReservationId &&
-        reservation.notes !== 'Blocked' &&
-        isBefore(startDate, now) && 
-        isAfter(endDate, now)) {
+    // Comprobar si está activa (inicio en el pasado y fin en el futuro)
+    if (isBefore(startDate, now) && isAfter(endDate, now)) {
       groups.active.push(reservation);
     }
   });

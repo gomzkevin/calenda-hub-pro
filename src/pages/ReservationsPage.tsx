@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getReservations, createManualReservation, updateManualReservation, deleteManualReservation } from '@/services/reservation';
@@ -171,6 +170,14 @@ const ReservationsPage: React.FC = () => {
     });
   };
   
+  // Filter for active reservations (not blocked and not propagated)
+  const activeReservations = allReservations.filter(res => 
+    res.notes !== 'Blocked' && 
+    res.status !== 'Blocked' &&
+    !res.sourceReservationId &&
+    !res.isRelationshipBlock
+  );
+  
   const isSubmitting = 
     createReservation.isPending || 
     updateReservation.isPending || 
@@ -234,10 +241,7 @@ const ReservationsPage: React.FC = () => {
             <div className="p-4 border-b">
               <div className="flex justify-between items-center">
                 <h2 className="font-medium">
-                  {allReservations.filter(res => 
-                    res.notes !== 'Blocked' && 
-                    res.status !== 'Blocked'
-                  ).length} reservas activas
+                  {activeReservations.length} reservas activas
                 </h2>
               </div>
             </div>
