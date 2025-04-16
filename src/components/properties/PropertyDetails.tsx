@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Link, Calendar, Copy } from 'lucide-react';
+import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
