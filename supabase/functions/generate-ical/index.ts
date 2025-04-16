@@ -31,27 +31,16 @@ serve(async (req) => {
     const path = url.pathname;
     let token = null;
     
-    // Support multiple formats for better compatibility with various platforms
     if (path.endsWith('.ics')) {
-      // Format: /TOKEN.ics
       const segments = path.split('/');
       const filename = segments[segments.length - 1];
       token = filename.replace('.ics', '');
-    } else if (path.includes('/calendar/export') && url.searchParams.has('t')) {
-      // New format: /calendar/export?t=TOKEN (similar to Booking.com)
-      token = url.searchParams.get('t');
-    } else if (path.includes('/export') && url.searchParams.has('t')) {
-      // Format: /export?t=TOKEN (Booking.com style)
-      token = url.searchParams.get('t');
-    } else if (url.searchParams.has('token')) {
-      // Alternative format: ?token=TOKEN
-      token = url.searchParams.get('token');
     }
 
     if (!token) {
       console.error('No token provided in URL');
       return new Response(
-        JSON.stringify({ error: 'Token required' }),
+        JSON.stringify({ error: 'Token requerido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -69,7 +58,7 @@ serve(async (req) => {
     if (propertyError || !property) {
       console.error('Property not found for token:', token, propertyError);
       return new Response(
-        JSON.stringify({ error: 'Property not found' }),
+        JSON.stringify({ error: 'Propiedad no encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -84,7 +73,7 @@ serve(async (req) => {
     if (reservationsError) {
       console.error('Error fetching reservations:', reservationsError);
       return new Response(
-        JSON.stringify({ error: 'Error fetching reservations' }),
+        JSON.stringify({ error: 'Error al obtener reservaciones' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -95,49 +84,46 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/calendar',
-        'Content-Disposition': `attachment; filename="calendar-${token.substring(0, 8)}.ics"`,
+        'Content-Disposition': `attachment; filename="${token}.ics"`,
       },
     });
 
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
 function generateICalContent(property: Property, reservations: Reservation[]): string {
-  const now = new Date().toISOString().replace(/[-:.]/g, '').replace(/\.\d+Z$/, 'Z');
+  const now = new Date().toISOString().replace(/[-:.]/g, '');
   
-  // Create iCal content that matches common platform formats
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//PropertyManager//NONSGML v1.0//EN',
     'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH'
+    'PRODID:-//HomeAway.com, Inc.//EN'
   ];
 
   // Add each reservation as an event
   for (const reservation of reservations) {
-    // Format dates to YYYYMMDD format (no dashes)
     const startDate = reservation.start_date.replace(/-/g, '');
     const endDate = reservation.end_date.replace(/-/g, '');
     
-    // Format the summary based on status and guest name
-    let summary = 'CLOSED - Not available';
+    // Format the summary like VRBO: either "Reserved - GuestName" or just "Blocked"
+    let summary = 'Blocked';
     if (reservation.status?.toLowerCase() !== 'blocked' && reservation.guest_name) {
       summary = `Reserved - ${reservation.guest_name}`;
     }
 
     icalContent = icalContent.concat([
       'BEGIN:VEVENT',
+      `UID:${reservation.id}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${startDate}`,
       `DTEND;VALUE=DATE:${endDate}`,
-      `UID:${reservation.id}@propertymanager.com`,
       `SUMMARY:${summary}`,
       'END:VEVENT'
     ]);
