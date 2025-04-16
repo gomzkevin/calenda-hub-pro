@@ -31,16 +31,21 @@ serve(async (req) => {
     const path = url.pathname;
     let token = null;
     
+    // Support both formats: /TOKEN.ics and /v1/export?t=TOKEN
     if (path.endsWith('.ics')) {
+      // Format: /TOKEN.ics
       const segments = path.split('/');
       const filename = segments[segments.length - 1];
       token = filename.replace('.ics', '');
+    } else if (path.includes('/export') && url.searchParams.has('t')) {
+      // Format: /v1/export?t=TOKEN (Booking.com style)
+      token = url.searchParams.get('t');
     }
 
     if (!token) {
       console.error('No token provided in URL');
       return new Response(
-        JSON.stringify({ error: 'Token requerido' }),
+        JSON.stringify({ error: 'Token required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -58,7 +63,7 @@ serve(async (req) => {
     if (propertyError || !property) {
       console.error('Property not found for token:', token, propertyError);
       return new Response(
-        JSON.stringify({ error: 'Propiedad no encontrada' }),
+        JSON.stringify({ error: 'Property not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -73,7 +78,7 @@ serve(async (req) => {
     if (reservationsError) {
       console.error('Error fetching reservations:', reservationsError);
       return new Response(
-        JSON.stringify({ error: 'Error al obtener reservaciones' }),
+        JSON.stringify({ error: 'Error fetching reservations' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -91,39 +96,42 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: 'Error interno del servidor' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
 function generateICalContent(property: Property, reservations: Reservation[]): string {
-  const now = new Date().toISOString().replace(/[-:.]/g, '');
+  const now = new Date().toISOString().replace(/[-:.]/g, '').replace(/\.\d+Z$/, 'Z');
   
+  // Create iCal content that works with multiple platforms
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
+    'PRODID:-//PropertyManager//NONSGML v1.0//EN',
     'CALSCALE:GREGORIAN',
-    'PRODID:-//HomeAway.com, Inc.//EN'
+    'METHOD:PUBLISH'
   ];
 
   // Add each reservation as an event
   for (const reservation of reservations) {
+    // Format dates to YYYYMMDD format (no dashes)
     const startDate = reservation.start_date.replace(/-/g, '');
     const endDate = reservation.end_date.replace(/-/g, '');
     
-    // Format the summary like VRBO: either "Reserved - GuestName" or just "Blocked"
-    let summary = 'Blocked';
+    // Format the summary based on status and guest name
+    let summary = 'CLOSED - Not available';
     if (reservation.status?.toLowerCase() !== 'blocked' && reservation.guest_name) {
       summary = `Reserved - ${reservation.guest_name}`;
     }
 
     icalContent = icalContent.concat([
       'BEGIN:VEVENT',
-      `UID:${reservation.id}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${startDate}`,
       `DTEND;VALUE=DATE:${endDate}`,
+      `UID:${reservation.id}@propertymanager.com`,
       `SUMMARY:${summary}`,
       'END:VEVENT'
     ]);
