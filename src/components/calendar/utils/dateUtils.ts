@@ -1,4 +1,3 @@
-
 import { eachDayOfInterval, eachWeekOfInterval, endOfMonth, format, startOfMonth } from "date-fns";
 
 // Helper to normalize date to local noon to avoid timezone issues
@@ -11,8 +10,7 @@ export const normalizeDate = (date: Date): Date => {
   // Create a new date object to avoid mutating the original
   const newDate = new Date(date);
   
-  // Set to local noon to ensure consistent date across timezones
-  // This prevents the date from shifting due to UTC conversion
+  // Set to local noon and reset milliseconds to ensure consistent date comparison
   newDate.setHours(12, 0, 0, 0);
   
   return newDate;

@@ -24,6 +24,7 @@ export const findReservationPositionInWeek = (
   const lastDayOfWeek = validDays[validDays.length - 1];
   
   // Normalize all dates for consistent comparison
+  // Use clone to ensure we're not modifying original dates
   const normalizedStartDate = normalizeDate(new Date(startDate));
   const normalizedEndDate = normalizeDate(new Date(endDate));
   const normalizedFirstDay = normalizeDate(new Date(firstDayOfWeek));
@@ -40,8 +41,8 @@ export const findReservationPositionInWeek = (
   const continuesToNext = isAfter(normalizedEndDate, normalizedLastDay);
   
   // Check if the reservation overlaps with this week
-  const reservationStartsBeforeWeekEnds = normalizedStartDate <= normalizedLastDay;
-  const reservationEndsAfterWeekStarts = normalizedEndDate >= normalizedFirstDay;
+  const reservationStartsBeforeWeekEnds = isSameDay(normalizedStartDate, normalizedLastDay) || isBefore(normalizedStartDate, normalizedLastDay);
+  const reservationEndsAfterWeekStarts = isSameDay(normalizedEndDate, normalizedFirstDay) || isAfter(normalizedEndDate, normalizedFirstDay);
   
   const hasOverlap = reservationStartsBeforeWeekEnds && reservationEndsAfterWeekStarts;
   
@@ -50,15 +51,16 @@ export const findReservationPositionInWeek = (
     return { startPos: -1, endPos: -1, continuesFromPrevious: false, continuesToNext: false };
   }
   
-  // Find starting position - start from the beginning of the week
+  // Find starting position - check each day in the week
   for (let i = 0; i < week.length; i++) {
     const day = week[i];
     if (!day) continue;
     
     const normalizedDay = normalizeDate(new Date(day));
     
-    // If this day is the start date or later than the start date
-    if (isSameDay(normalizedDay, normalizedStartDate) || isAfter(normalizedDay, normalizedStartDate)) {
+    // If this day is the start date or we've passed the start date
+    if (isSameDay(normalizedDay, normalizedStartDate) || 
+        (isAfter(normalizedDay, normalizedStartDate) && startPos === -1)) {
       startPos = i;
       break;
     }
@@ -75,7 +77,7 @@ export const findReservationPositionInWeek = (
     }
   }
   
-  // Find ending position - start from the end of the week
+  // Find ending position - examine each day from the end of the week backward
   for (let i = week.length - 1; i >= 0; i--) {
     const day = week[i];
     if (!day) continue;
@@ -83,7 +85,8 @@ export const findReservationPositionInWeek = (
     const normalizedDay = normalizeDate(new Date(day));
     
     // If this day is the end date or earlier than the end date
-    if (isSameDay(normalizedDay, normalizedEndDate) || isBefore(normalizedDay, normalizedEndDate)) {
+    if (isSameDay(normalizedDay, normalizedEndDate) || 
+        (isBefore(normalizedDay, normalizedEndDate) && endPos === -1)) {
       endPos = i;
       break;
     }

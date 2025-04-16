@@ -52,8 +52,8 @@ const DayCell: React.FC<DayCellProps> = ({
   // Sort reservations to display check-outs first, then check-ins
   const sortedDayReservations = [...dayReservations].sort((a, b) => {
     // First check if one is a check-out and the other is a check-in
-    const aIsCheckout = isSameDay(normalizeDate(a.endDate), normalizedDay);
-    const bIsCheckout = isSameDay(normalizeDate(b.endDate), normalizedDay);
+    const aIsCheckout = isSameDay(normalizeDate(new Date(a.endDate)), normalizedDay);
+    const bIsCheckout = isSameDay(normalizeDate(new Date(b.endDate)), normalizedDay);
     
     if (aIsCheckout && !bIsCheckout) return -1; // a is checkout, b is not
     if (!aIsCheckout && bIsCheckout) return 1;  // b is checkout, a is not
@@ -73,11 +73,13 @@ const DayCell: React.FC<DayCellProps> = ({
   let hasSameDayChangeOver = false;
   if (property.type === 'parent') {
     const checkInReservations = sortedDayReservations.filter(res => 
-      isSameDay(normalizeDate(res.startDate), normalizedDay) && !isSameDay(normalizeDate(res.endDate), normalizedDay)
+      isSameDay(normalizeDate(new Date(res.startDate)), normalizedDay) && 
+      !isSameDay(normalizeDate(new Date(res.endDate)), normalizedDay)
     );
     
     const checkOutReservations = sortedDayReservations.filter(res => 
-      isSameDay(normalizeDate(res.endDate), normalizedDay) && !isSameDay(normalizeDate(res.startDate), normalizedDay)
+      isSameDay(normalizeDate(new Date(res.endDate)), normalizedDay) && 
+      !isSameDay(normalizeDate(new Date(res.startDate)), normalizedDay)
     );
     
     hasSameDayChangeOver = checkInReservations.length > 0 && checkOutReservations.length > 0;
@@ -116,10 +118,12 @@ const DayCell: React.FC<DayCellProps> = ({
         const sourceInfo = getSourceReservationInfo(res);
         
         // Check if this is a check-in day (reservation starts on this day)
-        const isCheckInDay = isSameDay(normalizeDate(res.startDate), normalizedDay);
+        // Ensure we're comparing normalized dates
+        const isCheckInDay = isSameDay(normalizeDate(new Date(res.startDate)), normalizedDay);
         
         // Check if this is a check-out day (reservation ends on this day)
-        const isCheckOutDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
+        // Ensure we're comparing normalized dates
+        const isCheckOutDay = isSameDay(normalizeDate(new Date(res.endDate)), normalizedDay);
         
         // Special logic for parent properties to visualize continuous occupation
         let forceDisplayAsMiddle = false;

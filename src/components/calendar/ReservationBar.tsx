@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/tooltip';
 import { findReservationPositionInWeek } from './utils/reservationPosition';
 import { calculateBarPositionAndStyle } from './utils/styleCalculation';
+import { normalizeDate } from './utils/dateUtils';
 
 interface ReservationBarProps {
   reservation: Reservation;
@@ -31,9 +32,9 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   baseOffset,
   forceContinuous = false
 }) => {
-  // Ensure dates are properly parsed
-  const startDate = new Date(reservation.startDate);
-  const endDate = new Date(reservation.endDate);
+  // Ensure dates are properly parsed and normalized
+  const startDate = normalizeDate(new Date(reservation.startDate));
+  const endDate = normalizeDate(new Date(reservation.endDate));
   
   console.log(`==== Processing reservation ${reservation.id} ====`);
   console.log(`Reservation dates: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);

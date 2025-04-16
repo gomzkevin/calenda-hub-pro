@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip';
+import { normalizeDate } from '../utils/dateUtils';
 
 interface ReservationTooltipProps {
   reservation: Reservation;
@@ -30,6 +31,10 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   isEndDay,
   forceDisplayAsMiddle = false
 }) => {
+  // Ensure dates are properly normalized for display
+  const startDate = normalizeDate(new Date(reservation.startDate));
+  const endDate = normalizeDate(new Date(reservation.endDate));
+  
   // Determine the background color/styling class
   const bgClass = style || 'bg-gray-500';
   
@@ -92,8 +97,8 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   let tooltipContent = (
     <div className="text-xs space-y-1">
       <p><strong>Platform:</strong> {reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
-      <p><strong>Check-in:</strong> {format(reservation.startDate, 'MMM d, yyyy')}</p>
-      <p><strong>Check-out:</strong> {format(reservation.endDate, 'MMM d, yyyy')}</p>
+      <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
+      <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
       {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
       {sourceInfo.property && (
         <p><strong>Source Property:</strong> {sourceInfo.property.name}</p>
