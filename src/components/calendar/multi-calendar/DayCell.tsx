@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { isSameDay } from 'date-fns';
+import { isSameDay, addDays, subDays } from 'date-fns';
 import { Property } from '@/types';
 import ReservationTooltip from './ReservationTooltip';
 import { Link } from 'lucide-react';
@@ -43,6 +43,12 @@ const DayCell: React.FC<DayCellProps> = ({
     reservations: dayReservations 
   } = getDayReservationStatus(property, day);
   
+  // Get additional info for adjacent days to check for continual occupation
+  const prevDay = subDays(day, 1);
+  const nextDay = addDays(day, 1);
+  const prevDayStatus = getDayReservationStatus(property, prevDay);
+  const nextDayStatus = getDayReservationStatus(property, nextDay);
+  
   // Sort reservations to display check-outs first, then check-ins
   const sortedDayReservations = [...dayReservations].sort((a, b) => {
     // First check if one is a check-out and the other is a check-in
@@ -61,6 +67,28 @@ const DayCell: React.FC<DayCellProps> = ({
   if (hasReservation && sortedDayReservations.length === 0) {
     bgColorClass = isIndirect ? 'bg-gray-100' : bgColorClass;
   }
+  
+  // For parent properties, check if we have both check-in and check-out reservations on the same day
+  // across different child properties
+  let hasSameDayChangeOver = false;
+  if (property.type === 'parent') {
+    const checkInReservations = sortedDayReservations.filter(res => 
+      isSameDay(normalizeDate(res.startDate), normalizedDay) && !isSameDay(normalizeDate(res.endDate), normalizedDay)
+    );
+    
+    const checkOutReservations = sortedDayReservations.filter(res => 
+      isSameDay(normalizeDate(res.endDate), normalizedDay) && !isSameDay(normalizeDate(res.startDate), normalizedDay)
+    );
+    
+    hasSameDayChangeOver = checkInReservations.length > 0 && checkOutReservations.length > 0;
+  }
+  
+  // Check for continuous occupation
+  const hasContinuousOccupation = property.type === 'parent' && 
+    // We have a reservation today
+    hasReservation && 
+    // And either yesterday or tomorrow has a reservation
+    (prevDayStatus.hasReservation || nextDayStatus.hasReservation);
   
   return (
     <div
@@ -93,6 +121,29 @@ const DayCell: React.FC<DayCellProps> = ({
         // Check if this is a check-out day (reservation ends on this day)
         const isCheckOutDay = isSameDay(normalizeDate(res.endDate), normalizedDay);
         
+        // Special logic for parent properties to visualize continuous occupation
+        let forceDisplayAsMiddle = false;
+        
+        if (property.type === 'parent') {
+          // If this is a checkout day or a checkin day and adjacent days are occupied
+          if (hasContinuousOccupation) {
+            // For checkout days with next day occupied - force mid-segment display
+            if (isCheckOutDay && nextDayStatus.hasReservation) {
+              forceDisplayAsMiddle = true;
+            }
+            
+            // For checkin days with previous day occupied - force mid-segment display
+            if (isCheckInDay && prevDayStatus.hasReservation) {
+              forceDisplayAsMiddle = true;
+            }
+            
+            // If we have both check-in and check-out on the same day in different child properties
+            if (hasSameDayChangeOver) {
+              forceDisplayAsMiddle = true;
+            }
+          }
+        }
+        
         return (
           <ReservationTooltip
             key={`res-${res.id}-${idx}`}
@@ -103,6 +154,7 @@ const DayCell: React.FC<DayCellProps> = ({
             topPosition={topPosition}
             isStartDay={isCheckInDay}
             isEndDay={isCheckOutDay}
+            forceDisplayAsMiddle={forceDisplayAsMiddle}
           />
         );
       })}

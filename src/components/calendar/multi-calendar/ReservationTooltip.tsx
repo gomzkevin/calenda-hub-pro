@@ -17,6 +17,7 @@ interface ReservationTooltipProps {
   topPosition: number;
   isStartDay: boolean;
   isEndDay: boolean;
+  forceDisplayAsMiddle?: boolean;
 }
 
 const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
@@ -26,7 +27,8 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   style,
   topPosition,
   isStartDay,
-  isEndDay
+  isEndDay,
+  forceDisplayAsMiddle = false
 }) => {
   // Determine the background color/styling class
   const bgClass = style || 'bg-gray-500';
@@ -37,7 +39,16 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
     height: '20px'
   };
   
-  if (isEndDay && !isStartDay) {
+  // Special case for parent properties with continuous occupation
+  if (forceDisplayAsMiddle) {
+    // Override normal positioning logic - show as a full bar segment
+    positionStyle = {
+      ...positionStyle,
+      left: '0',
+      width: '100%',
+      borderRadius: '0' // No rounding
+    };
+  } else if (isEndDay && !isStartDay) {
     // Check-out only - position at the left edge, full width
     positionStyle = {
       ...positionStyle,
@@ -92,7 +103,8 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   );
 
   // Only show tooltip for check-in days (including single-day reservations)
-  if (isStartDay) {
+  // or when forced to display as middle
+  if (isStartDay || forceDisplayAsMiddle) {
     return (
       <TooltipProvider>
         <Tooltip>
@@ -101,7 +113,7 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
               className={`absolute flex items-center justify-center text-white text-xs font-medium cursor-pointer ${bgClass}`}
               style={positionStyle}
             >
-              <span className="truncate px-1">{displayLabel}</span>
+              <span className="truncate px-1">{forceDisplayAsMiddle ? '' : displayLabel}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
