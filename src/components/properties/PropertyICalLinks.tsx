@@ -124,9 +124,7 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
             size="sm"
             onClick={() => {
               navigator.clipboard.writeText(calendarUrl);
-              toast({
-                description: "URL de calendario copiada al portapapeles"
-              });
+              toast("URL de calendario copiada al portapapeles");
             }}
           >
             Copiar
