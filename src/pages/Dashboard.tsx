@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useReservationGroups } from '@/hooks/useReservationGroups';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,10 +47,14 @@ const Dashboard: React.FC = () => {
       color: 'bg-alanto-amber-dark'
     },
     {
-      title: 'Empiezan pronto',
+      title: 'Empiezan mañana',
       value: reservationGroups.checkingInTomorrow.length,
       icon: <Calendar className="w-5 h-5" />,
-      color: 'bg-alanto-forest-light'
+      color: 'bg-alanto-forest-light',
+      emptyMessage: 'No hay llegadas mañana',
+      details: reservationGroups.checkingInTomorrow.map(res => ({
+        propertyName: propertyOccupancy.find(p => p.id === res.propertyId)?.name || 'Alojamiento'
+      }))
     },
     {
       title: 'Próximas reservas',
