@@ -50,11 +50,14 @@ const Dashboard: React.FC = () => {
     }
   ];
   
+  // Get user's name from metadata or email or fallback to 'Usuario'
+  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuario';
+  
   return (
     <div className="space-y-6 bg-alanto-cream min-h-screen p-6">
       <div>
         <h1 className="text-2xl font-bold text-alanto-forest">
-          Te damos la Bienvenida, {user?.name || 'Usuario'}
+          Te damos la Bienvenida, {userName}
         </h1>
       </div>
       
