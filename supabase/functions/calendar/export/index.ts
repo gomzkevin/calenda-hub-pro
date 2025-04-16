@@ -28,8 +28,20 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const path = url.pathname;
     const queryParams = url.searchParams;
-    const token = queryParams.get('t');
+    let token = null;
+    
+    // Support multiple URL formats for maximum compatibility
+    if (path.endsWith('.ics')) {
+      // Format: /calendar/export/TOKEN.ics
+      const segments = path.split('/');
+      const filename = segments[segments.length - 1];
+      token = filename.replace('.ics', '');
+    } else if (queryParams.get('t')) {
+      // Format: /calendar/export?t=TOKEN
+      token = queryParams.get('t');
+    }
 
     if (!token) {
       console.error('No token provided in URL');
@@ -90,11 +102,14 @@ serve(async (req) => {
 
     const icalContent = generateICalContent(property, reservations || []);
 
+    // Always set the appropriate filename with .ics extension
+    const filename = `${property.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_calendar.ics`;
+
     return new Response(icalContent, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/calendar; charset=UTF-8',
-        'Content-Disposition': `inline; filename="${property.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_calendar.ics"`,
+        'Content-Disposition': `inline; filename="${filename}"`,
       },
     });
 
@@ -107,9 +122,9 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 
-          } 
-        }
-      );
+        } 
+      }
+    );
   }
 });
 

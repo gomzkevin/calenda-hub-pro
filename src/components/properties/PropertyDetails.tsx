@@ -30,7 +30,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   const copyICalUrl = () => {
     if (property.ical_token) {
       // Use the calendar/export endpoint with .ics extension for better compatibility
-      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/calendar/export?t=${property.ical_token}`;
+      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/calendar/export/${property.ical_token}.ics`;
       navigator.clipboard.writeText(icalUrl);
       toast.success('URL del calendario copiada al portapapeles');
     } else {

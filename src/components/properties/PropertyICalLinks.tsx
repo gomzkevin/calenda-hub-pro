@@ -104,8 +104,8 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     
     const supabaseUrl = 'https://akqzaaniiflyxfrzipqq.supabase.co';
     
-    // Use the calendar/export endpoint with correct URL format for better compatibility
-    const calendarUrl = `${supabaseUrl}/functions/v1/calendar/export?t=${property.ical_token}`;
+    // Use the calendar/export endpoint with .ics extension for better compatibility
+    const calendarUrl = `${supabaseUrl}/functions/v1/calendar/export/${property.ical_token}.ics`;
     
     return (
       <div className="space-y-4 mt-4 border-t pt-4">
@@ -124,7 +124,7 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
             size="sm"
             onClick={() => {
               navigator.clipboard.writeText(calendarUrl);
-              toast("URL copiada", {
+              toast({
                 description: "URL de calendario copiada al portapapeles"
               });
             }}
