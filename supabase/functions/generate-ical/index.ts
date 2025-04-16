@@ -69,11 +69,13 @@ serve(async (req) => {
       );
     }
 
-    // Fetch reservations for the property
+    // Fetch ONLY MANUAL reservations for the property (where platform is 'Other')
     const { data: reservations, error: reservationsError } = await supabase
       .from('reservations')
       .select('id, start_date, end_date, guest_name, status, notes, source, platform')
-      .eq('property_id', propertyId);
+      .eq('property_id', propertyId)
+      .eq('platform', 'Other') // Add this filter to only include manual reservations
+      .order('start_date', { ascending: true });
 
     if (reservationsError) {
       console.error('Error fetching reservations:', reservationsError);
@@ -82,6 +84,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`Found ${reservations?.length || 0} manual reservations for property ${propertyId}`);
 
     // Generate iCal content
     const icalContent = generateICalContent(property, reservations || []);
@@ -113,7 +117,7 @@ function generateICalContent(property: Property, reservations: Reservation[]): s
     'PRODID:-//Alanto//Property Calendar//ES',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:${property.name}`,
+    `X-WR-CALNAME:${property.name} - Reservas Manuales`,
     'X-WR-TIMEZONE:UTC',
   ];
 

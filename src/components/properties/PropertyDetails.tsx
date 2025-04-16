@@ -110,6 +110,11 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
               Calendario iCal para Reservas Manuales
             </h3>
             
+            <p className="text-sm text-muted-foreground mb-3">
+              Este enlace iCal <strong>solo contiene las reservas manuales</strong> (plataforma "Other") 
+              para compartir con otros sistemas.
+            </p>
+            
             {property.ical_token ? (
               <Button
                 variant="outline"
