@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Property, PropertyType } from "@/types";
 
@@ -29,6 +28,8 @@ export const getProperties = async (): Promise<Property[]> => {
     type: prop.type as PropertyType || undefined,
     parentId: prop.parent_id || undefined,
     description: prop.description || undefined,
+    ical_token: prop.ical_token || undefined,
+    ical_url: prop.ical_url || undefined,
     createdAt: new Date(prop.created_at)
   })) : [];
 };
@@ -67,6 +68,8 @@ export const getPropertyById = async (propertyId: string): Promise<Property | nu
     type: data.type as PropertyType || undefined,
     parentId: data.parent_id || undefined,
     description: data.description || undefined,
+    ical_token: data.ical_token || undefined,
+    ical_url: data.ical_url || undefined,
     createdAt: new Date(data.created_at)
   };
 };
@@ -146,6 +149,31 @@ export const setPropertyRelationship = async (
   return mapPropertyFromDatabase(data);
 };
 
+/**
+ * Generate an iCal token for a property
+ */
+export const generateICalToken = async (propertyId: string): Promise<Property> => {
+  // Generate a random token
+  const token = Array(32)
+    .fill(0)
+    .map(() => Math.random().toString(36).charAt(2))
+    .join('');
+  
+  const { data, error } = await supabase
+    .from("properties")
+    .update({ ical_token: token })
+    .eq("id", propertyId)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error(`Error generating iCal token for property ${propertyId}:`, error);
+    throw error;
+  }
+  
+  return mapPropertyFromDatabase(data);
+};
+
 const mapPropertyFromDatabase = (prop: any): Property => ({
   id: prop.id,
   operatorId: prop.operator_id,
@@ -160,5 +188,7 @@ const mapPropertyFromDatabase = (prop: any): Property => ({
   type: prop.type as PropertyType || 'standalone',
   parentId: prop.parent_id || undefined,
   description: prop.description || undefined,
+  ical_token: prop.ical_token || undefined,
+  ical_url: prop.ical_url || undefined,
   createdAt: new Date(prop.created_at)
 });

@@ -1,16 +1,32 @@
 
 import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy } from 'lucide-react';
+import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { generateICalToken } from '@/services/propertyService';
 
 interface PropertyDetailsProps {
   property: Property;
 }
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
+  const queryClient = useQueryClient();
+  
+  const generateTokenMutation = useMutation({
+    mutationFn: (propertyId: string) => generateICalToken(propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['property', property.id] });
+      toast.success('Token de calendario generado correctamente');
+    },
+    onError: (error) => {
+      console.error('Error generating iCal token:', error);
+      toast.error('Error al generar el token de calendario');
+    }
+  });
+  
   const copyICalUrl = () => {
     if (property.ical_token) {
       const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical?propertyId=${property.id}&token=${property.ical_token}`;
@@ -19,6 +35,10 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
     } else {
       toast.error('No se ha generado un token de calendario para esta propiedad');
     }
+  };
+
+  const handleGenerateToken = () => {
+    generateTokenMutation.mutate(property.id);
   };
 
   return (
@@ -84,12 +104,13 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
             </div>
           )}
 
-          {property.ical_token && (
-            <div className="mt-6 pt-4 border-t">
-              <h3 className="font-medium flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4" />
-                Calendario iCal para Reservas Manuales
-              </h3>
+          <div className="mt-6 pt-4 border-t">
+            <h3 className="font-medium flex items-center gap-2 mb-2">
+              <Calendar className="w-4 h-4" />
+              Calendario iCal para Reservas Manuales
+            </h3>
+            
+            {property.ical_token ? (
               <Button
                 variant="outline"
                 className="gap-2"
@@ -98,11 +119,27 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
                 <Copy className="w-4 h-4" />
                 Copiar URL del Calendario iCal
               </Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                Usa este enlace para importar las reservas manuales de esta propiedad en otros calendarios.
-              </p>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Esta propiedad no tiene un token de calendario generado.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={handleGenerateToken}
+                  disabled={generateTokenMutation.isPending}
+                >
+                  <RefreshCw className={`w-4 h-4 ${generateTokenMutation.isPending ? 'animate-spin' : ''}`} />
+                  {generateTokenMutation.isPending ? 'Generando...' : 'Generar Token de Calendario'}
+                </Button>
+              </div>
+            )}
+            
+            <p className="text-sm text-muted-foreground mt-2">
+              Usa este enlace para importar las reservas manuales de esta propiedad en otros calendarios.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
