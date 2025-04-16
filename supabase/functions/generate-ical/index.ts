@@ -74,6 +74,7 @@ serve(async (req) => {
       .single();
 
     if (propertyError || !property) {
+      console.error('Property not found:', propertyId, propertyError);
       return new Response(
         JSON.stringify({ error: 'Propiedad no encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
