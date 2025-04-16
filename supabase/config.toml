@@ -17,3 +17,5 @@ verify_jwt = false
 [functions.process-ical]
 verify_jwt = false
 
+[functions.calendar/export]
+verify_jwt = false
