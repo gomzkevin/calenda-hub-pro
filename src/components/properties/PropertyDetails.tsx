@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +29,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   
   const copyICalUrl = () => {
     if (property.ical_token) {
-      // Booking.com style URL (for better compatibility)
+      // Use the calendar/export endpoint with .ics extension for better compatibility
       const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/calendar/export?t=${property.ical_token}`;
       navigator.clipboard.writeText(icalUrl);
       toast.success('URL del calendario copiada al portapapeles');
@@ -40,7 +41,6 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   const handleGenerateToken = () => {
     generateTokenMutation.mutate(property.id);
   };
-
   
   return (
     <div className="space-y-6">

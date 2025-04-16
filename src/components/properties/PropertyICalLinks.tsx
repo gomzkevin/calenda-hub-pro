@@ -104,7 +104,7 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     
     const supabaseUrl = 'https://akqzaaniiflyxfrzipqq.supabase.co';
     
-    // Booking.com style URL (for better compatibility)
+    // Use the calendar/export endpoint with correct URL format for better compatibility
     const calendarUrl = `${supabaseUrl}/functions/v1/calendar/export?t=${property.ical_token}`;
     
     return (
