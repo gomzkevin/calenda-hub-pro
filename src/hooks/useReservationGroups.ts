@@ -43,8 +43,10 @@ export const useReservationGroups = () => {
     // Corregida la lógica para reservas activas:
     // 1. No incluir bloqueos propagados ni reservas con sourceReservationId
     // 2. Solo incluir reservas que estén activas hoy (después de la fecha de inicio y antes de la fecha de fin)
+    // 3. No incluir reservas con notes igual a "Blocked"
     if (!reservation.isRelationshipBlock && 
         !reservation.sourceReservationId &&
+        reservation.notes !== 'Blocked' &&
         isBefore(startDate, now) && 
         isAfter(endDate, now)) {
       groups.active.push(reservation);
