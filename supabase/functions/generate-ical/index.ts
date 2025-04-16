@@ -41,12 +41,18 @@ serve(async (req) => {
     if (path.endsWith('.ics')) {
       // Path format: /[property-id]-[token].ics
       const filenamePart = path.split('/').pop() || '';
-      const parts = filenamePart.replace('.ics', '').split('-');
+      const cleanFilename = filenamePart.replace('.ics', '');
       
-      if (parts.length >= 2) {
-        propertyId = parts[0];
-        // Get the rest of the parts and join them back as the token (in case token has hyphens)
-        token = parts.slice(1).join('-');
+      // Find the position of the first hyphen (-)
+      const firstHyphenPos = cleanFilename.indexOf('-');
+      
+      if (firstHyphenPos !== -1) {
+        // Extract the propertyId (everything before the first hyphen)
+        propertyId = cleanFilename.substring(0, firstHyphenPos);
+        // Extract the token (everything after the first hyphen)
+        token = cleanFilename.substring(firstHyphenPos + 1);
+        
+        console.log(`Extracted propertyId: ${propertyId}, token: ${token}`);
       }
     } else {
       // Fall back to query parameters for backward compatibility

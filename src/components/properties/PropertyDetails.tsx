@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +28,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   
   const copyICalUrl = () => {
     if (property.ical_token) {
-      // New format with .ics extension
+      // Correct format with full UUID as propertyId
       const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.id}-${property.ical_token}.ics`;
       navigator.clipboard.writeText(icalUrl);
       toast.success('URL del calendario copiada al portapapeles');
