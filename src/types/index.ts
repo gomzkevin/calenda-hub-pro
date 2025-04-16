@@ -42,6 +42,7 @@ export interface Property {
   type?: PropertyType;
   parentId?: string;  // New field for parent-child relationships
   description?: string;
+  icalToken?: string;  // Add token for iCal URL access
   createdAt: Date;
 }
 
