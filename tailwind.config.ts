@@ -19,6 +19,27 @@ export default {
     },
     extend: {
       colors: {
+        alanto: {
+          'forest': '#2d4c1c',
+          'forest-dark': '#1e3313',
+          'forest-light': '#3a6425',
+          'forest-pale': '#e8f0e4',
+          'amber': '#eaa934',
+          'amber-dark': '#d99620',
+          'amber-light': '#f2bc5e',
+          'amber-pale': '#fdf2e0',
+          'cream': '#fbf6ed',
+          'gray-light': '#f2f2f2',
+          'gray-medium': '#d0d0d0',
+          'gray-dark': '#333333',
+        },
+        platform: {
+          'airbnb': '#FF5A5F',
+          'booking': '#003580',
+          'vrbo': '#4CAF50',
+          'manual': '#9C27B0',
+          'other': '#9E9E9E'
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -62,27 +83,6 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
         },
-        platform: {
-          'airbnb': '#FF5A5F',
-          'booking': '#003580',
-          'vrbo': '#4CAF50',
-          'manual': '#9C27B0',
-          'other': '#9E9E9E'
-        },
-        alanto: {
-          'forest': '#2d4c1c',
-          'forest-dark': '#1e3313',
-          'forest-light': '#3a6425',
-          'forest-pale': '#e8f0e4',
-          'amber': '#eaa934',
-          'amber-dark': '#d99620',
-          'amber-light': '#f2bc5e',
-          'amber-pale': '#fdf2e0',
-          'cream': '#fbf6ed',
-          'gray-light': '#f2f2f2',
-          'gray-medium': '#d0d0d0',
-          'gray-dark': '#333333',
-        }
       },
       borderRadius: {
         lg: 'var(--radius)',
