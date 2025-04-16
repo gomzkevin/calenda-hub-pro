@@ -193,6 +193,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
                         "flex-shrink-0 transition-colors",
                         isCopied && "bg-green-50 text-green-600 border-green-200"
                       )}
+                      aria-label="Copiar URL del iCal"
                     >
                       {isCopied ? (
                         <Check className="w-4 h-4" />
