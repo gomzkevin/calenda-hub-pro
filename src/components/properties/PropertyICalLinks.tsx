@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarIcon, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ICalLinkCard from '@/components/ical/ICalLinkCard';
 import { getICalLinksForProperty, syncICalLink } from '@/services/icalLinkService';
 import { toast } from 'sonner';
@@ -58,9 +58,8 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
           description: `Se sincronizaron exitosamente ${success} calendarios.`
         });
       } else {
-        toast("Sincronización parcial", {
-          description: `${success} calendarios sincronizados, ${failed} fallaron.`,
-          variant: "destructive"
+        toast.error("Sincronización parcial", {
+          description: `${success} calendarios sincronizados, ${failed} fallaron.`
         });
       }
       
@@ -69,9 +68,8 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
       
     } catch (error) {
       console.error("Error syncing all calendars:", error);
-      toast("Error de sincronización", {
-        description: "Ocurrió un error al sincronizar los calendarios.",
-        variant: "destructive"
+      toast.error("Error de sincronización", {
+        description: "Ocurrió un error al sincronizar los calendarios."
       });
     } finally {
       setSyncingAll(false);

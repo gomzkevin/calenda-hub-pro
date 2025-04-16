@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +41,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
     generateTokenMutation.mutate(property.id);
   };
 
+  
   return (
     <div className="space-y-6">
       <Card>
