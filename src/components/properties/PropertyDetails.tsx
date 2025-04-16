@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Calendar } from 'lucide-react';
+import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
@@ -44,7 +43,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
     }
   };
   
-  // Create a base URL for the iCal feed that points to our Edge Function
+  // Create a base URL for the iCal feed
   const getICalFeedUrl = () => {
     if (!property.icalToken) return null;
     
@@ -108,60 +107,66 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
           </div>
           
           {/* iCal Export Section */}
-          <div className="mt-6 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium flex items-center">
-                <Calendar className="w-4 h-4 mr-2" />
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <Calendar className="w-5 h-5 mr-2" />
                 Exportar Calendario (iCal)
-              </h3>
-              
-              {!property.icalToken && (
-                <Button 
-                  size="sm" 
-                  onClick={generateICalToken}
-                >
-                  Generar Token
-                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!property.icalToken ? (
+                <div>
+                  <p className="text-muted-foreground mb-4">
+                    Genera un token para crear un enlace iCal exportable para esta propiedad.
+                  </p>
+                  <Button onClick={generateICalToken}>
+                    Generar Token
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <input 
+                      type="text" 
+                      value={icalUrl} 
+                      readOnly 
+                      className="flex-1 bg-muted p-2 rounded text-sm border"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(icalUrl);
+                        toast({
+                          title: "Copiado",
+                          description: "Enlace iCal copiado al portapapeles"
+                        });
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    <p>Comparte este enlace en Airbnb, Booking, o cualquier otra plataforma para sincronizar disponibilidad.</p>
+                    <p className="mt-2 text-xs">
+                      Consejo: Algunos sistemas requieren que pegues esta URL exactamente como aparece.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={generateICalToken}
+                    >
+                      Regenerar Token
+                    </Button>
+                  </div>
+                </div>
               )}
-            </div>
-            
-            {property.icalToken ? (
-              <div className="mt-2">
-                <div className="bg-muted p-2 rounded text-xs font-mono break-all">
-                  {icalUrl}
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      navigator.clipboard.writeText(icalUrl);
-                      toast({
-                        title: "Enlace copiado",
-                        description: "El enlace ha sido copiado al portapapeles"
-                      });
-                    }}
-                  >
-                    Copiar Enlace
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={generateICalToken}
-                  >
-                    Regenerar Token
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Comparte este enlace en Airbnb, Booking, o cualquier otra plataforma para sincronizar disponibilidad.
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-2">
-                Genera un token para crear un enlace iCal exportable para esta propiedad.
-              </p>
-            )}
-          </div>
+            </CardContent>
+          </Card>
           
           {property.description && (
             <div className="mt-4">
