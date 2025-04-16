@@ -1,19 +1,38 @@
-import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface PropertyDetailsProps {
   property: Property;
 }
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
+  const [isCopied, setIsCopied] = useState(false);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+
+  // Create a base URL for the iCal feed
+  const getICalFeedUrl = () => {
+    if (!property.icalToken) return null;
+    
+    const baseUrl = import.meta.env.PROD 
+      ? "https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/calendar/export"
+      : "http://localhost:54321/functions/v1/calendar/export";
+    
+    return `${baseUrl}/${property.icalToken}.ics`;
+  };
+
+  const icalUrl = getICalFeedUrl();
   
   const generateICalToken = async () => {
     try {
+      setIsGeneratingToken(true);
+      
       const { data, error } = await supabase
         .from('properties')
         .update({ 
@@ -40,21 +59,36 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
         title: "Error",
         description: "No se pudo generar el token iCal"
       });
+    } finally {
+      setIsGeneratingToken(false);
     }
   };
   
-  // Create a base URL for the iCal feed
-  const getICalFeedUrl = () => {
-    if (!property.icalToken) return null;
+  const copyICalUrl = async () => {
+    if (!icalUrl) return;
     
-    const baseUrl = import.meta.env.PROD 
-      ? "https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/calendar/export"
-      : "http://localhost:54321/functions/v1/calendar/export";
-    
-    return `${baseUrl}/${property.icalToken}.ics`;
+    try {
+      await navigator.clipboard.writeText(icalUrl);
+      setIsCopied(true);
+      
+      toast({
+        title: "Copiado",
+        description: "Enlace iCal copiado al portapapeles"
+      });
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo copiar al portapapeles"
+      });
+    }
   };
-
-  const icalUrl = getICalFeedUrl();
   
   return (
     <div className="space-y-6">
@@ -107,7 +141,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
           </div>
           
           {/* iCal Export Section */}
-          <Card>
+          <Card className="mt-6">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Calendar className="w-5 h-5 mr-2" />
@@ -119,37 +153,60 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
                 <div>
                   <p className="text-muted-foreground mb-4">
                     Genera un token para crear un enlace iCal exportable para esta propiedad.
+                    Este enlace te permitirá sincronizar las reservas manuales con otras plataformas.
                   </p>
-                  <Button onClick={generateICalToken}>
-                    Generar Token
+                  <Button 
+                    onClick={generateICalToken}
+                    disabled={isGeneratingToken}
+                  >
+                    {isGeneratingToken ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                        Generando...
+                      </>
+                    ) : (
+                      <>Generar Token</>
+                    )}
                   </Button>
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <input 
-                      type="text" 
-                      value={icalUrl} 
-                      readOnly 
-                      className="flex-1 bg-muted p-2 rounded text-sm border"
-                    />
+                  <label htmlFor="ical-url" className="block text-sm font-medium mb-1.5">
+                    URL para sincronización (iCal)
+                  </label>
+                  
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="relative flex-grow">
+                      <input 
+                        id="ical-url"
+                        type="text" 
+                        value={icalUrl || ''} 
+                        readOnly 
+                        className="w-full bg-muted p-2 pr-10 rounded text-sm border"
+                      />
+                    </div>
                     <Button 
                       variant="outline" 
-                      size="icon" 
-                      onClick={() => {
-                        navigator.clipboard.writeText(icalUrl);
-                        toast({
-                          title: "Copiado",
-                          description: "Enlace iCal copiado al portapapeles"
-                        });
-                      }}
+                      size="icon"
+                      onClick={copyICalUrl}
+                      className={cn(
+                        "flex-shrink-0 transition-colors",
+                        isCopied && "bg-green-50 text-green-600 border-green-200"
+                      )}
                     >
-                      <Copy className="w-4 h-4" />
+                      {isCopied ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                   
                   <div className="text-sm text-muted-foreground">
-                    <p>Comparte este enlace en Airbnb, Booking, o cualquier otra plataforma para sincronizar disponibilidad.</p>
+                    <p className="mb-2">
+                      <strong>Importante:</strong> Este enlace solo sincroniza las reservas de tipo "Manual" creadas en esta plataforma.
+                    </p>
+                    <p>Comparte este enlace en Airbnb, Booking o cualquier otra plataforma para sincronizar disponibilidad.</p>
                     <p className="mt-2 text-xs">
                       Consejo: Algunos sistemas requieren que pegues esta URL exactamente como aparece.
                     </p>
@@ -159,8 +216,10 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
                     <Button 
                       variant="outline" 
                       onClick={generateICalToken}
+                      disabled={isGeneratingToken}
+                      size="sm"
                     >
-                      Regenerar Token
+                      {isGeneratingToken ? 'Regenerando...' : 'Regenerar Token'}
                     </Button>
                   </div>
                 </div>
