@@ -34,10 +34,13 @@ const getReservationsForProperty = async (
   propertyId: string
 ): Promise<any[]> => {
   console.log(`Fetching reservations for property: ${propertyId}`);
+  
+  // Updated query to only include manual reservations (source "Manual")
   const { data, error } = await supabase
     .from('reservations')
     .select('*')
     .eq('property_id', propertyId)
+    .eq('source', 'Manual')  // Only include manual reservations
     .order('start_date', { ascending: true });
   
   if (error) {
@@ -45,7 +48,7 @@ const getReservationsForProperty = async (
     throw error;
   }
   
-  console.log(`Found ${data?.length || 0} reservations`);
+  console.log(`Found ${data?.length || 0} manual reservations`);
   return data || [];
 };
 
