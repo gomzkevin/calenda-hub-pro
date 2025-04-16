@@ -13,12 +13,12 @@ export const useReservationGroups = () => {
   const now = new Date();
 
   const groups = {
-    checkingOut: [] as Reservation[],        // Salen hoy (hasta 12:00 PM)
-    checkingIn: [] as Reservation[],         // Llegan hoy (todo el día)
-    active: [] as Reservation[],             // En curso
-    checkingOutTomorrow: [] as Reservation[], // Terminan mañana
-    checkingInTomorrow: [] as Reservation[], // Empiezan pronto
-    upcoming: [] as Reservation[]            // Próximas reservas
+    checkingOut: [] as Reservation[],
+    checkingIn: [] as Reservation[],
+    active: [] as Reservation[],
+    checkingOutTomorrow: [] as Reservation[],
+    checkingInTomorrow: [] as Reservation[],
+    upcoming: [] as Reservation[]
   };
 
   reservations.forEach(reservation => {
@@ -29,7 +29,7 @@ export const useReservationGroups = () => {
     if (isToday(startDate)) {
       groups.checkingIn.push(reservation);
     } else if (isToday(endDate)) {
-      if (now.getHours() < 12) { // Before 12:00 PM
+      if (now.getHours() < 12) {
         groups.checkingOut.push(reservation);
       }
     } else if (isTomorrow(startDate)) {
@@ -40,8 +40,10 @@ export const useReservationGroups = () => {
       groups.upcoming.push(reservation);
     }
 
-    // Add to active if staying tonight
-    if (isToday(startDate) || (isBefore(startDate, now) && isAfter(endDate, now))) {
+    // Nueva lógica para reservas activas: solo reservas regulares (no propagadas)
+    if (!reservation.isRelationshipBlock && !reservation.sourceReservationId &&
+        ((isToday(startDate) && now.getHours() >= 12) || // Si empezó hoy después del mediodía
+         (isBefore(startDate, now) && isAfter(endDate, now)))) { // O si está en curso
       groups.active.push(reservation);
     }
   });
