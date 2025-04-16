@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 
@@ -35,34 +34,31 @@ serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname;
     
-    // Extract property ID and token from path segments when URL ends with .ics
-    let propertyId, token;
+    console.log("Request path:", path);
+    
+    // Extract token from path
+    // We're looking for a path like /generate-ical/TOKEN.ics
+    let token = null;
     
     if (path.endsWith('.ics')) {
-      // Path format: /[property-id]-[token].ics
-      const filenamePart = path.split('/').pop() || '';
-      const cleanFilename = filenamePart.replace('.ics', '');
+      // Format: /generate-ical/TOKEN.ics
+      const segments = path.split('/');
+      const filename = segments[segments.length - 1];
+      token = filename.replace('.ics', '');
       
-      // Find the position of the first hyphen (-)
-      const firstHyphenPos = cleanFilename.indexOf('-');
-      
-      if (firstHyphenPos !== -1) {
-        // Extract the propertyId (everything before the first hyphen)
-        propertyId = cleanFilename.substring(0, firstHyphenPos);
-        // Extract the token (everything after the first hyphen)
-        token = cleanFilename.substring(firstHyphenPos + 1);
-        
-        console.log(`Extracted propertyId: ${propertyId}, token: ${token}`);
-      }
-    } else {
-      // Fall back to query parameters for backward compatibility
-      propertyId = url.searchParams.get('propertyId');
+      console.log(`Extracted token from path: ${token}`);
+    }
+    
+    // Fallback to query parameter if path-based token is not found
+    if (!token) {
       token = url.searchParams.get('token');
+      console.log(`Using query parameter token: ${token}`);
     }
 
-    if (!propertyId || !token) {
+    if (!token) {
+      console.error('No token provided in URL');
       return new Response(
-        JSON.stringify({ error: 'Se requieren propertyId y token' }),
+        JSON.stringify({ error: 'Token requerido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -72,34 +68,29 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify property and token
+    // Find property by token (no need to provide property ID separately)
     const { data: property, error: propertyError } = await supabase
       .from('properties')
       .select('id, name, ical_token, internal_code')
-      .eq('id', propertyId)
+      .eq('ical_token', token)
       .single();
 
     if (propertyError || !property) {
-      console.error('Property not found:', propertyId, propertyError);
+      console.error('Property not found for token:', token, propertyError);
       return new Response(
         JSON.stringify({ error: 'Propiedad no encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (property.ical_token !== token) {
-      return new Response(
-        JSON.stringify({ error: 'Token inválido' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`Found property with id ${property.id} for token ${token}`);
 
     // Fetch ONLY MANUAL reservations for the property (where platform is 'Other')
     const { data: reservations, error: reservationsError } = await supabase
       .from('reservations')
       .select('id, start_date, end_date, guest_name, status, notes, source, platform')
-      .eq('property_id', propertyId)
-      .eq('platform', 'Other') // Add this filter to only include manual reservations
+      .eq('property_id', property.id)
+      .eq('platform', 'Other')
       .order('start_date', { ascending: true });
 
     if (reservationsError) {
@@ -110,7 +101,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${reservations?.length || 0} manual reservations for property ${propertyId}`);
+    console.log(`Found ${reservations?.length || 0} manual reservations for property ${property.id}`);
 
     // Generate iCal content
     const icalContent = generateICalContent(property, reservations || []);

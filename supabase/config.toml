@@ -10,4 +10,3 @@ functions_deploy_mode = "local_emulator"
 [functions]
 [functions.generate-ical]
 verify_jwt = false
-
