@@ -1,20 +1,32 @@
+
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Trash, RefreshCw, AlertTriangle, Calendar, User, PhoneCall } from 'lucide-react';
+import { ExternalLink, Trash, RefreshCw, AlertTriangle, Calendar, User, PhoneCall, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ICalLink, Property } from '@/types';
 import { getPropertyById } from '@/services/propertyService';
-import { processICalLink, syncICalLink, getCachedICalData } from '@/services/icalLinkService';
-import { toast } from '@/hooks/use-toast';
+import { processICalLink, syncICalLink, getCachedICalData, deleteICalLink } from '@/services/icalLinkService';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
 
 interface Reservation {
   checkIn: string;
@@ -45,9 +57,12 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [icalDetails, setIcalDetails] = useState<ICalProcessResult | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchProperty = async () => {
@@ -56,9 +71,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
         setProperty(propertyData);
       } catch (error) {
         console.error('Error fetching property:', error);
-        toast({
-          variant: "destructive",
-          title: "Error al cargar propiedad",
+        toast.error("Error al cargar propiedad", {
           description: "No pudimos cargar los detalles de la propiedad."
         });
       } finally {
@@ -88,9 +101,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
       console.error('Error processing iCal data:', error);
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";
       setSyncError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error al procesar el calendario",
+      toast.error("Error al procesar el calendario", {
         description: "Ocurrió un error al procesar la información del calendario."
       });
       setIcalDetails(null);
@@ -108,8 +119,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     
     try {
       console.log("Procesando y mostrando detalles del calendario:", icalLink.url);
-      toast({
-        title: "Procesando calendario",
+      toast.info("Procesando calendario", {
         description: "Obteniendo detalles del calendario..."
       });
       
@@ -121,8 +131,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
         const result = await syncICalLink(icalLink);
         
         if (result.success && result.results) {
-          toast({
-            title: "Calendario sincronizado",
+          toast.success("Calendario sincronizado", {
             description: `Se encontraron ${result.results.total} eventos. ${result.results.added} nuevas reservas añadidas, ${result.results.updated} actualizadas.`
           });
           
@@ -134,9 +143,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
         } else {
           console.error('Error syncing iCal:', result.error);
           setSyncError(result.error || "Error desconocido");
-          toast({
-            variant: "destructive",
-            title: "Error al sincronizar",
+          toast.error("Error al sincronizar", {
             description: result.error || "No se pudieron sincronizar las reservas."
           });
         }
@@ -145,9 +152,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
       console.error('Error procesando o sincronizando calendario:', error);
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";
       setSyncError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error al procesar o sincronizar",
+      toast.error("Error al procesar o sincronizar", {
         description: "Ocurrió un error al procesar o sincronizar el calendario."
       });
     } finally {
@@ -155,10 +160,43 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
     }
   };
   
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(icalLink.id);
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      const success = await deleteICalLink(icalLink.id);
+      if (success) {
+        toast.success("Enlace iCal eliminado", {
+          description: "El enlace iCal ha sido eliminado correctamente."
+        });
+        
+        // Update queries
+        queryClient.invalidateQueries({ queryKey: ['icalLinks'] });
+        queryClient.invalidateQueries({ queryKey: ['propertyICalLinks', icalLink.propertyId] });
+        
+        if (onDelete) {
+          onDelete(icalLink.id);
+        }
+      } else {
+        toast.error("Error al eliminar", {
+          description: "No se pudo eliminar el enlace iCal. Intenta de nuevo."
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting iCal link:', error);
+      toast.error("Error al eliminar", {
+        description: "Ocurrió un error al eliminar el enlace iCal."
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
+  };
+  
+  const handleEdit = () => {
+    // Navigate to an edit page or show an edit dialog (future implementation)
+    toast.info("Esta funcionalidad está en desarrollo", {
+      description: "La edición de enlaces iCal estará disponible próximamente."
+    });
   };
   
   const getLastSyncedText = () => {
@@ -196,8 +234,7 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
       detailsMessage += "No hay reservaciones próximas.";
     }
     
-    toast({
-      title: "Detalles del Calendario",
+    toast("Detalles del Calendario", {
       description: detailsMessage,
       duration: 10000,
     });
@@ -294,19 +331,52 @@ const ICalLinkCard: React.FC<ICalLinkCardProps> = ({ icalLink, onSyncComplete, o
           <Button 
             variant="ghost" 
             size="sm" 
+            onClick={handleEdit}
+          >
+            <Edit className="w-4 h-4 text-alanto-forest" />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
             onClick={handleRefreshAndShowDetails} 
             disabled={isSyncing || isProcessing}
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing || isProcessing ? "animate-spin" : ""}`} />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-red-500 hover:text-red-700"
-            onClick={handleDelete}
-          >
-            <Trash className="w-4 h-4" />
-          </Button>
+          
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmar eliminación</DialogTitle>
+                <DialogDescription>
+                  ¿Estás seguro de que deseas eliminar este enlace iCal?
+                  Esta acción no se puede deshacer y eliminará el enlace de calendario para {property?.name || 'esta propiedad'}.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" disabled={isDeleting}>Cancelar</Button>
+                </DialogClose>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteConfirm}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardFooter>
     </Card>

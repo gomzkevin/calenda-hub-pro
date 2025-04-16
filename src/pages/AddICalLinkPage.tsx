@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -13,8 +13,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
+import { getProperties } from '@/services/propertyService';
 
 const formSchema = z.object({
+  propertyId: z.string().min(1, { message: 'Por favor selecciona una propiedad' }),
   platform: z.string().min(1, { message: 'Por favor selecciona una plataforma' }),
   url: z.string().url({ message: 'Por favor ingresa una URL válida' }),
 });
@@ -26,9 +28,16 @@ const AddICalLinkPage = () => {
   const { propertyId } = useParams<{ propertyId?: string }>();
   const queryClient = useQueryClient();
 
+  // Fetch properties for the dropdown
+  const { data: properties, isLoading: propertiesLoading } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      propertyId: propertyId || '',
       platform: '',
       url: '',
     }
@@ -38,7 +47,7 @@ const AddICalLinkPage = () => {
     const { data: newICalLink, error } = await supabase
       .from('ical_links')
       .insert({
-        property_id: propertyId,
+        property_id: data.propertyId,
         platform: data.platform,
         url: data.url
       })
@@ -98,6 +107,35 @@ const AddICalLinkPage = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="propertyId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Propiedad</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      disabled={!!propertyId || propertiesLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una propiedad" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {properties?.map((property) => (
+                          <SelectItem key={property.id} value={property.id}>
+                            {property.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="platform"

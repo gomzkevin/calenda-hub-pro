@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ICalLink } from "@/types";
 
@@ -316,5 +315,83 @@ export const syncICalLink = async (icalLink: ICalLink): Promise<{
       success: false, 
       error: error instanceof Error ? error.message : 'Error desconocido'
     };
+  }
+};
+
+/**
+ * Sync all iCal links
+ */
+export const syncAllICalLinks = async (): Promise<{
+  success: boolean;
+  totalLinks: number;
+  syncedSuccessfully: number;
+  failed: number;
+  error?: string;
+}> => {
+  try {
+    const icalLinks = await getICalLinks();
+    if (!icalLinks || icalLinks.length === 0) {
+      return {
+        success: true,
+        totalLinks: 0,
+        syncedSuccessfully: 0,
+        failed: 0
+      };
+    }
+    
+    let syncedSuccessfully = 0;
+    let failed = 0;
+    
+    for (const link of icalLinks) {
+      try {
+        const result = await syncICalLink(link);
+        if (result.success) {
+          syncedSuccessfully++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        console.error(`Error syncing calendar ${link.url}:`, error);
+        failed++;
+      }
+    }
+    
+    return {
+      success: true,
+      totalLinks: icalLinks.length,
+      syncedSuccessfully,
+      failed
+    };
+  } catch (error) {
+    console.error("Error syncing all iCal links:", error);
+    return {
+      success: false,
+      totalLinks: 0,
+      syncedSuccessfully: 0,
+      failed: 0,
+      error: error instanceof Error ? error.message : "Error desconocido"
+    };
+  }
+};
+
+/**
+ * Delete an iCal link
+ */
+export const deleteICalLink = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("ical_links")
+      .delete()
+      .eq("id", id);
+    
+    if (error) {
+      console.error("Error deleting iCal link:", error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting iCal link:", error);
+    return false;
   }
 };
