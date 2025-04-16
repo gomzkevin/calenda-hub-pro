@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'user';
 
 export type Platform = 'Airbnb' | 'Booking' | 'Vrbo' | 'Other';
@@ -40,8 +39,10 @@ export interface Property {
   bathrooms: number;
   capacity: number;
   type?: PropertyType;
-  parentId?: string;  // New field for parent-child relationships
+  parentId?: string;
   description?: string;
+  ical_token?: string;
+  ical_url?: string;
   createdAt: Date;
 }
 
@@ -69,8 +70,8 @@ export interface Reservation {
   icalUrl?: string;
   notes?: string;
   externalId?: string;
-  isBlocking?: boolean;  // New field to indicate if this reservation blocks related properties
-  sourceReservationId?: string;  // New field to track the source of a blocking reservation
-  isRelationshipBlock?: boolean;  // Added property to identify blocks from parent-child relationships
+  isBlocking?: boolean;
+  sourceReservationId?: string;
+  isRelationshipBlock?: boolean;
   createdAt: Date;
 }

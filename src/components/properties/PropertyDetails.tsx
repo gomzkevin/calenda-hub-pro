@@ -1,19 +1,26 @@
 
 import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home } from 'lucide-react';
+import { Building2, BedDouble, Bath, Users, Home, Link, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
+import { toast } from 'sonner';
 
 interface PropertyDetailsProps {
   property: Property;
 }
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
+  const copyICalUrl = () => {
+    if (property.ical_token) {
+      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical?propertyId=${property.id}&token=${property.ical_token}`;
+      navigator.clipboard.writeText(icalUrl);
+      toast.success('URL del calendario copiada al portapapeles');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Removed the image section */}
-      
-      {/* Property Details */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
@@ -60,16 +67,38 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
               </p>
             </div>
           </div>
+          
           {property.description && (
             <div className="mt-4">
               <h3 className="font-medium">Descripción</h3>
               <p className="text-muted-foreground">{property.description}</p>
             </div>
           )}
+          
           {property.notes && (
             <div className="mt-4">
               <h3 className="font-medium">Notas Internas</h3>
               <p className="text-muted-foreground">{property.notes}</p>
+            </div>
+          )}
+
+          {property.ical_token && (
+            <div className="mt-6 pt-4 border-t">
+              <h3 className="font-medium flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4" />
+                Calendario iCal para Reservas Manuales
+              </h3>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={copyICalUrl}
+              >
+                <Link className="w-4 h-4" />
+                Copiar URL del Calendario iCal
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Usa este enlace para importar las reservas manuales de esta propiedad en otros calendarios.
+              </p>
             </div>
           )}
         </CardContent>

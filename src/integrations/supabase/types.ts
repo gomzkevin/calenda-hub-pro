@@ -114,6 +114,8 @@ export type Database = {
           capacity: number
           created_at: string
           description: string | null
+          ical_token: string | null
+          ical_url: string | null
           id: string
           image_url: string | null
           internal_code: string
@@ -130,6 +132,8 @@ export type Database = {
           capacity: number
           created_at?: string
           description?: string | null
+          ical_token?: string | null
+          ical_url?: string | null
           id?: string
           image_url?: string | null
           internal_code: string
@@ -146,6 +150,8 @@ export type Database = {
           capacity?: number
           created_at?: string
           description?: string | null
+          ical_token?: string | null
+          ical_url?: string | null
           id?: string
           image_url?: string | null
           internal_code?: string
