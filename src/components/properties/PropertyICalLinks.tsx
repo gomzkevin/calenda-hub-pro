@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import ICalLinkCard from '@/components/ical/ICalLinkCard';
 import { getICalLinksForProperty, syncICalLink } from '@/services/icalLinkService';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 
@@ -31,8 +31,7 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     if (!icalLinks || icalLinks.length === 0) return;
     
     setSyncingAll(true);
-    toast({
-      title: "Sincronizando calendarios",
+    toast("Sincronizando calendarios", {
       description: `Iniciando sincronización de ${icalLinks.length} calendarios...`
     });
     
@@ -55,15 +54,13 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
       }
       
       if (failed === 0) {
-        toast({
-          title: "Sincronización completada",
+        toast("Sincronización completada", {
           description: `Se sincronizaron exitosamente ${success} calendarios.`
         });
       } else {
-        toast({
-          variant: "destructive",
-          title: "Sincronización parcial",
-          description: `${success} calendarios sincronizados, ${failed} fallaron.`
+        toast("Sincronización parcial", {
+          description: `${success} calendarios sincronizados, ${failed} fallaron.`,
+          variant: "destructive"
         });
       }
       
@@ -72,10 +69,9 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
       
     } catch (error) {
       console.error("Error syncing all calendars:", error);
-      toast({
-        variant: "destructive",
-        title: "Error de sincronización",
-        description: "Ocurrió un error al sincronizar los calendarios."
+      toast("Error de sincronización", {
+        description: "Ocurrió un error al sincronizar los calendarios.",
+        variant: "destructive"
       });
     } finally {
       setSyncingAll(false);
@@ -83,18 +79,23 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
   };
   
   // Get the property from the Supabase database
-  const { data: property } = useQuery({
-    queryKey: ['property', propertyId],
+  const { data: property, isLoading: isPropertyLoading } = useQuery({
+    queryKey: ['propertyICalToken', propertyId],
     queryFn: async () => {
       const supabaseUrl = 'https://akqzaaniiflyxfrzipqq.supabase.co';
-      const response = await fetch(`${supabaseUrl}/rest/v1/properties?id=eq.${propertyId}&select=ical_token`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrcXphYW5paWZseXhmcnppcHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzMjYwMjUsImV4cCI6MjA1OTkwMjAyNX0.P-LD-Gg_tGih4pKGZxxEu3DtySmYObgqhxXOyTddWiY',
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      return data[0];
+      try {
+        const response = await fetch(`${supabaseUrl}/rest/v1/properties?id=eq.${propertyId}&select=ical_token`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrcXphYW5paWZseXhmcnppcHFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzMjYwMjUsImV4cCI6MjA1OTkwMjAyNX0.P-LD-Gg_tGih4pKGZxxEu3DtySmYObgqhxXOyTddWiY',
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        return data && data.length > 0 ? data[0] : null;
+      } catch (error) {
+        console.error("Error fetching property ical token:", error);
+        return null;
+      }
     },
     enabled: !!propertyId
   });
@@ -125,8 +126,7 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
             size="sm"
             onClick={() => {
               navigator.clipboard.writeText(calendarUrl);
-              toast({
-                title: "URL copiada",
+              toast("URL copiada", {
                 description: "URL de calendario copiada al portapapeles"
               });
             }}
@@ -197,7 +197,13 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
           </div>
         )}
         
-        {renderCalendarExportSection()}
+        {isPropertyLoading ? (
+          <div className="py-4 flex justify-center mt-4 border-t pt-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          renderCalendarExportSection()
+        )}
       </CardContent>
     </Card>
   );

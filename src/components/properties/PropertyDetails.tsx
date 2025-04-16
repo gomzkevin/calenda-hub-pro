@@ -29,8 +29,8 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   
   const copyICalUrl = () => {
     if (property.ical_token) {
-      // Simplified format - just the token itself as the identifier
-      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.ical_token}.ics`;
+      // Booking.com style URL (for better compatibility)
+      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/calendar/export?t=${property.ical_token}`;
       navigator.clipboard.writeText(icalUrl);
       toast.success('URL del calendario copiada al portapapeles');
     } else {

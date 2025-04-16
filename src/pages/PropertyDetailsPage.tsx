@@ -16,7 +16,10 @@ const PropertyDetailsPage: React.FC = () => {
   
   const { data: property, isLoading: isPropertyLoading, error: propertyError } = useQuery({
     queryKey: ['property', id],
-    queryFn: () => getPropertyById(id || ''),
+    queryFn: () => {
+      if (!id) throw new Error('Property ID is required');
+      return getPropertyById(id);
+    },
     enabled: !!id
   });
   
@@ -29,6 +32,7 @@ const PropertyDetailsPage: React.FC = () => {
   }
   
   if (propertyError || !property) {
+    console.error('Error loading property:', propertyError);
     return (
       <div className="flex flex-col items-center justify-center h-full p-6">
         <h1 className="text-2xl font-bold mb-4">Propiedad no encontrada</h1>
