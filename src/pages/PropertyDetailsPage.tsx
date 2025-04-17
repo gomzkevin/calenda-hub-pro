@@ -14,7 +14,6 @@ const PropertyDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   
-  // Get property data
   const { data: property, isLoading: isPropertyLoading, error: propertyError } = useQuery({
     queryKey: ['property', id],
     queryFn: () => getPropertyById(id || ''),
@@ -65,14 +64,9 @@ const PropertyDetailsPage: React.FC = () => {
           onCancel={() => setIsEditing(false)} 
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <PropertyDetails property={property} />
-          </div>
-          
-          <div>
-            <PropertyICalLinks propertyId={property.id} />
-          </div>
+        <div className="space-y-6">
+          <PropertyDetails property={property} />
+          <PropertyICalLinks propertyId={property.id} />
         </div>
       )}
     </div>
