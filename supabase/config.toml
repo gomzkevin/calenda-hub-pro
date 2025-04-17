@@ -42,6 +42,6 @@ backend = "postgres"
 [experimental]
 postgres_webhooks = true
 
-# Add this to make the generate-ical function publicly accessible
+# Make the generate-ical function publicly accessible
 [functions.generate-ical]
 verify_jwt = false

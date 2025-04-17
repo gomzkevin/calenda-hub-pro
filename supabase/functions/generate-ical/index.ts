@@ -49,8 +49,17 @@ serve(async (req) => {
       );
     }
 
+    // Enhanced token validation with better error messaging
+    if (!propertyData.ical_token) {
+      console.error("No iCal token found for property:", propertyId);
+      return new Response(
+        JSON.stringify({ error: "Property has no iCal token configured" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (propertyData.ical_token !== token) {
-      console.error("Invalid token provided:", token, "Expected:", propertyData.ical_token);
+      console.error(`Invalid token provided: "${token}" - Expected: "${propertyData.ical_token}"`);
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -82,7 +91,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Internal server error", details: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
