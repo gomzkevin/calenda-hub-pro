@@ -1,53 +1,50 @@
 
-import React, { useState } from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Copy, Check } from 'lucide-react';
+import React from 'react';
+import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Property } from '@/types';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { Property } from '@/types';
+import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { generateICalToken } from '@/services/propertyService';
 
 interface PropertyDetailsProps {
   property: Property;
 }
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
-  const { toast } = useToast();
-  const [copying, setCopying] = useState(false);
-
-  // Function to copy iCal URL to clipboard
-  const copyICalUrl = async () => {
-    try {
-      if (property.id) {
-        // Generate the iCal URL with the property's ID and token
-        const baseUrl = window.location.origin.includes('localhost') 
-          ? 'http://localhost:54321/functions/v1'
-          : 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1';
-          
-        const url = `${baseUrl}/generate-ical?property_id=${property.id}&token=${property.icalToken || ''}`;
-        
-        await navigator.clipboard.writeText(url);
-        setCopying(true);
-        
-        toast({
-          title: 'Enlace copiado',
-          description: 'URL del calendario iCal copiado al portapapeles.',
-        });
-        
-        setTimeout(() => setCopying(false), 2000);
-      }
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo copiar el enlace. Intente nuevamente.',
-        variant: 'destructive',
-      });
+  const queryClient = useQueryClient();
+  
+  const generateTokenMutation = useMutation({
+    mutationFn: (propertyId: string) => generateICalToken(propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['property', property.id] });
+      toast.success('Token de calendario generado correctamente');
+    },
+    onError: (error) => {
+      console.error('Error generating iCal token:', error);
+      toast.error('Error al generar el token de calendario');
     }
+  });
+  
+  const copyICalUrl = () => {
+    if (property.ical_token) {
+      // Standard iCal URL format similar to popular platforms
+      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.ical_token}.ics`;
+      
+      navigator.clipboard.writeText(icalUrl);
+      toast.success('URL del calendario copiada al portapapeles');
+    } else {
+      toast.error('No se ha generado un token de calendario para esta propiedad');
+    }
+  };
+
+  const handleGenerateToken = () => {
+    generateTokenMutation.mutate(property.id);
   };
 
   return (
     <div className="space-y-6">
-      {/* Property Details */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
@@ -95,37 +92,61 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
             </div>
           </div>
           
-          {/* iCal Export Section */}
-          <div className="mt-6 border-t pt-4">
-            <h3 className="font-medium mb-2">Exportar Calendario (iCal)</h3>
-            <div className="flex items-center">
-              <p className="text-muted-foreground text-sm mr-2">
-                Copie este enlace para compartir con plataformas externas (solo reservas manuales)
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={copyICalUrl}
-                className="flex items-center"
-              >
-                {copying ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                {copying ? 'Copiado' : 'Copiar'}
-              </Button>
-            </div>
-          </div>
-          
           {property.description && (
             <div className="mt-4">
               <h3 className="font-medium">Descripción</h3>
               <p className="text-muted-foreground">{property.description}</p>
             </div>
           )}
+          
           {property.notes && (
             <div className="mt-4">
               <h3 className="font-medium">Notas Internas</h3>
               <p className="text-muted-foreground">{property.notes}</p>
             </div>
           )}
+
+          <div className="mt-6 pt-4 border-t">
+            <h3 className="font-medium flex items-center gap-2 mb-2">
+              <Calendar className="w-4 h-4" />
+              Calendario iCal para Reservas Manuales
+            </h3>
+            
+            <p className="text-sm text-muted-foreground mb-3">
+              Este enlace iCal <strong>solo contiene las reservas manuales</strong> (plataforma "Other") 
+              para compartir con otros sistemas.
+            </p>
+            
+            {property.ical_token ? (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={copyICalUrl}
+              >
+                <Copy className="w-4 h-4" />
+                Copiar URL del Calendario iCal (.ics)
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Esta propiedad no tiene un token de calendario generado.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={handleGenerateToken}
+                  disabled={generateTokenMutation.isPending}
+                >
+                  <RefreshCw className={`w-4 h-4 ${generateTokenMutation.isPending ? 'animate-spin' : ''}`} />
+                  {generateTokenMutation.isPending ? 'Generando...' : 'Generar Token de Calendario'}
+                </Button>
+              </div>
+            )}
+            
+            <p className="text-sm text-muted-foreground mt-2">
+              Usa este enlace para importar las reservas manuales de esta propiedad en otros calendarios.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
