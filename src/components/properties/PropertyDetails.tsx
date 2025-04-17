@@ -24,8 +24,8 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
           ? 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1'
           : 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1';
           
-        // Make sure we're not adding .ics to the token parameter - it should be in the path
-        const url = `${baseUrl}/generate-ical?property_id=${property.id}&token=${property.icalToken || ''}`;
+        // Add .ics extension to make it a valid calendar URL
+        const url = `${baseUrl}/generate-ical.ics?property_id=${property.id}&token=${property.icalToken || ''}`;
         
         await navigator.clipboard.writeText(url);
         setCopying(true);

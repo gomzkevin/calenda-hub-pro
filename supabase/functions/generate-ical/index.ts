@@ -34,6 +34,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Log the current request for debugging
+    console.log(`Processing iCal request for property ${propertyId} with token: "${token}"`);
+
     // Verify the token is valid for this property
     const { data: propertyData, error: propertyError } = await supabase
       .from("properties")
@@ -58,6 +61,9 @@ serve(async (req) => {
       );
     }
 
+    // Print expected vs actual token for debugging
+    console.log(`Comparing tokens - Expected: "${propertyData.ical_token}" vs Provided: "${token}"`);
+    
     if (propertyData.ical_token !== token) {
       console.error(`Invalid token provided: "${token}" - Expected: "${propertyData.ical_token}"`);
       return new Response(

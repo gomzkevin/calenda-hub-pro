@@ -45,3 +45,4 @@ postgres_webhooks = true
 # Make the generate-ical function publicly accessible
 [functions.generate-ical]
 verify_jwt = false
+
