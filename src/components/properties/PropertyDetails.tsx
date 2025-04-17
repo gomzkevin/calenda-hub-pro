@@ -29,7 +29,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   
   const copyICalUrl = () => {
     if (property.ical_token) {
-      // Simplified format - just the token itself as the identifier
+      // Format with token directly in the path with .ics extension
       const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.ical_token}.ics`;
       navigator.clipboard.writeText(icalUrl);
       toast.success('URL del calendario copiada al portapapeles');
