@@ -1,165 +1,147 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
+// CORS headers for the function
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-type Reservation = {
-  id: string;
-  start_date: string;
-  end_date: string;
-  guest_name: string | null;
-  status: string | null;
-  notes: string | null;
-  source: string;
-  platform: string;
-};
-
-type Property = {
-  id: string;
-  name: string;
-  ical_token: string;
-  internal_code: string;
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "text/calendar; charset=utf-8",
+  "Content-Disposition": "attachment; filename=calendar.ics"
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Get property_id from the URL query parameters
     const url = new URL(req.url);
-    const propertyId = url.searchParams.get('propertyId');
-    const token = url.searchParams.get('token');
+    const propertyId = url.searchParams.get("property_id");
+    const token = url.searchParams.get("token");
 
-    if (!propertyId || !token) {
+    if (!propertyId) {
       return new Response(
-        JSON.stringify({ error: 'Se requieren propertyId y token' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Property ID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Initialize Supabase client with service role key for database access
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify property and token
-    const { data: property, error: propertyError } = await supabase
-      .from('properties')
-      .select('id, name, ical_token, internal_code')
-      .eq('id', propertyId)
+    // Verify the token is valid for this property
+    const { data: propertyData, error: propertyError } = await supabase
+      .from("properties")
+      .select("ical_token")
+      .eq("id", propertyId)
       .single();
 
-    if (propertyError || !property) {
+    if (propertyError || !propertyData) {
+      console.error("Error fetching property:", propertyError);
       return new Response(
-        JSON.stringify({ error: 'Propiedad no encontrada' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Property not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (property.ical_token !== token) {
+    if (propertyData.ical_token !== token) {
       return new Response(
-        JSON.stringify({ error: 'Token inválido' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fetch ONLY MANUAL reservations for the property (where platform is 'Other')
+    // Fetch manual reservations for the specified property
     const { data: reservations, error: reservationsError } = await supabase
-      .from('reservations')
-      .select('id, start_date, end_date, guest_name, status, notes, source, platform')
-      .eq('property_id', propertyId)
-      .eq('platform', 'Other') // Add this filter to only include manual reservations
-      .order('start_date', { ascending: true });
+      .from("reservations")
+      .select("*")
+      .eq("property_id", propertyId)
+      .eq("source", "Manual")  // Only include manual reservations
+      .neq("status", "Blocked") // Exclude blocked periods
+      .order("start_date", { ascending: true });
 
     if (reservationsError) {
-      console.error('Error fetching reservations:', reservationsError);
+      console.error("Error fetching reservations:", reservationsError);
       return new Response(
-        JSON.stringify({ error: 'Error al obtener reservaciones' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Failed to fetch reservations" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Found ${reservations?.length || 0} manual reservations for property ${propertyId}`);
-
     // Generate iCal content
-    const icalContent = generateICalContent(property, reservations || []);
+    const icalContent = generateICalContent(reservations, propertyId);
 
-    // Return iCal file
-    return new Response(icalContent, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/calendar',
-        'Content-Disposition': `attachment; filename="${property.internal_code}.ics"`,
-      },
-    });
-
+    // Return the iCal file
+    return new Response(icalContent, { headers: corsHeaders });
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: 'Error interno del servidor' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
 
-function generateICalContent(property: Property, reservations: Reservation[]): string {
-  const now = new Date().toISOString().replace(/[-:.]/g, '');
+/**
+ * Generate iCal content according to RFC 5545
+ */
+function generateICalContent(reservations: any[], propertyId: string): string {
+  const now = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   
+  // Start building the iCal content
   let icalContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Alanto//Property Calendar//ES',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${property.name} - Reservas Manuales`,
-    'X-WR-TIMEZONE:UTC',
-  ];
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Booking Calendar//Property " + propertyId + "//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+  ].join("\r\n") + "\r\n";
 
   // Add each reservation as an event
   for (const reservation of reservations) {
-    const startDate = reservation.start_date.replace(/-/g, '');
-    const endDate = reservation.end_date.replace(/-/g, '');
-    const status = reservation.status || 'CONFIRMED';
-    const summary = reservation.guest_name 
-      ? `Reserva: ${reservation.guest_name}`
-      : `${status} - ${reservation.source}`;
+    // Format dates to iCal format (YYYYMMDDTHHMMSSZ)
+    const startDate = formatDateForICal(new Date(reservation.start_date));
     
-    let description = `Estado: ${status}\n`;
-    description += `Fuente: ${reservation.source}\n`;
-    description += `Plataforma: ${reservation.platform}\n`;
-    if (reservation.notes) {
-      description += `Notas: ${reservation.notes}\n`;
-    }
-
-    // Determine color based on status
-    let color = '#3366CC'; // Default blue
-    if (status.toLowerCase() === 'blocked') {
-      color = '#CC0000'; // Red for blocked
-    } else if (status.toLowerCase() === 'tentative') {
-      color = '#FF9900'; // Orange for tentative
-    }
-
-    icalContent = icalContent.concat([
-      'BEGIN:VEVENT',
-      `UID:${reservation.id}@${property.internal_code}`,
+    // For the end date, we need to use the checkout date
+    // iCal uses exclusive end dates, so no need to add a day
+    const endDate = formatDateForICal(new Date(reservation.end_date));
+    
+    // Create a unique ID for the event
+    const uid = `reservation-${reservation.id}@property-${propertyId}`;
+    
+    // Add the event to the calendar
+    icalContent += [
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${startDate}`,
       `DTEND;VALUE=DATE:${endDate}`,
-      `SUMMARY:${summary}`,
-      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
-      `STATUS:${status}`,
-      `COLOR:${color}`,
-      'SEQUENCE:0',
-      'END:VEVENT'
-    ]);
+      `SUMMARY:Reservation${reservation.guest_name ? ` - ${reservation.guest_name}` : ""}`,
+      "STATUS:CONFIRMED",
+      "TRANSP:OPAQUE", // Shows as busy time
+      `DESCRIPTION:Reservation ID: ${reservation.id}${reservation.notes ? `\\n${reservation.notes.replace(/\n/g, "\\n")}` : ""}`,
+      "END:VEVENT",
+    ].join("\r\n") + "\r\n";
   }
 
-  icalContent.push('END:VCALENDAR');
-  return icalContent.join('\r\n');
+  // Close the calendar
+  icalContent += "END:VCALENDAR\r\n";
+  
+  return icalContent;
+}
+
+/**
+ * Format a date for iCal format (YYYYMMDD)
+ */
+function formatDateForICal(date: Date): string {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  
+  return `${year}${month}${day}`;
 }
