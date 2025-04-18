@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Reservation, Property } from '@/types';
@@ -23,24 +22,20 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
   onEdit,
   onDelete,
 }) => {
-  // Maps for easy lookup
   const propertyMap = properties.reduce<Record<string, Property>>((acc, property) => {
     acc[property.id] = property;
     return acc;
   }, {});
 
-  // Filter out blocked reservations first
   const filteredReservations = reservations.filter(res => 
     res.notes !== 'Blocked' && 
     res.status !== 'Blocked'
   );
 
-  // Sort reservations by check-in date (startDate)
   const sortedReservations = [...filteredReservations].sort((a, b) => 
     a.startDate.getTime() - b.startDate.getTime()
   );
 
-  // Get platform color class
   const getPlatformColorClass = (platform: string): string => {
     switch (platform) {
       case 'Airbnb':
@@ -56,12 +51,10 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
     }
   };
 
-  // Get displayed platform name
   const getDisplayPlatform = (platform: string): string => {
     return platform === 'Other' ? 'Manual' : platform;
   };
 
-  // Get status color class
   const getStatusColorClass = (status?: string): string => {
     switch (status) {
       case 'Reserved':
@@ -75,7 +68,6 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
     }
   };
 
-  // Find source reservation property
   const getSourceReservationInfo = (reservation: Reservation): { property?: Property, reservation?: Reservation } => {
     if (!reservation.sourceReservationId) return {};
     
@@ -178,25 +170,24 @@ const ReservationsTable: React.FC<ReservationsTableProps> = ({
                       </Button>
                       
                       {reservation.source === 'Manual' && !reservation.sourceReservationId && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(reservation)}
-                            title="Editar reserva"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(reservation)}
-                            title="Eliminar reserva"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(reservation)}
+                          title="Editar reserva"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(reservation)}
+                        title="Eliminar reserva"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

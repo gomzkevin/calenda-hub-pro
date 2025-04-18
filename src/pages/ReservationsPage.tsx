@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getReservations, createManualReservation, updateManualReservation, deleteManualReservation } from '@/services/reservation';
+import { getReservations, createManualReservation, updateManualReservation, deleteReservation } from '@/services/reservation';
 import { getProperties } from '@/services/propertyService';
 import { Reservation, Property } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -103,8 +103,8 @@ const ReservationsPage: React.FC = () => {
     },
   });
   
-  const deleteReservation = useMutation({
-    mutationFn: deleteManualReservation,
+  const deleteReservationMutation = useMutation({
+    mutationFn: deleteReservation,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       toast({
@@ -156,7 +156,7 @@ const ReservationsPage: React.FC = () => {
   
   const handleDeleteReservation = async () => {
     if (selectedReservation) {
-      await deleteReservation.mutateAsync(selectedReservation.id);
+      await deleteReservationMutation.mutateAsync(selectedReservation.id);
     }
   };
   
@@ -181,7 +181,7 @@ const ReservationsPage: React.FC = () => {
   const isSubmitting = 
     createReservation.isPending || 
     updateReservation.isPending || 
-    deleteReservation.isPending;
+    deleteReservationMutation.isPending;
   
   return (
     <div className="space-y-6">

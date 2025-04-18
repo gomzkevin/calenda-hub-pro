@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, ReservationStatus, Platform, ReservationSource } from "@/types";
 import { mapReservationFromDatabase, normalizeDate } from "./utils";
@@ -166,9 +165,9 @@ export const updateManualReservation = async (
 };
 
 /**
- * Delete a manual reservation and its propagated blocks
+ * Delete any reservation and its propagated blocks
  */
-export const deleteManualReservation = async (id: string): Promise<void> => {
+export const deleteReservation = async (id: string): Promise<void> => {
   // First delete any propagated blocks
   const { deletePropagatedBlocks } = await import('./blockManagement');
 
@@ -182,8 +181,7 @@ export const deleteManualReservation = async (id: string): Promise<void> => {
   const { error } = await supabase
     .from("reservations")
     .delete()
-    .eq("id", id)
-    .eq("source", "Manual");
+    .eq("id", id);
 
   if (error) {
     console.error(`Error deleting reservation ${id}:`, error);
