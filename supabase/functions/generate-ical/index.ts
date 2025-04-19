@@ -38,7 +38,6 @@ serve(async (req) => {
     console.log("Request path:", path);
     
     // Extract token from path
-    // We're looking for a path like /generate-ical/TOKEN.ics
     let token = null;
     
     if (path.endsWith('.ics')) {
@@ -69,7 +68,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find property by token (no need to provide property ID separately)
+    // Find property by token
     const { data: property, error: propertyError } = await supabase
       .from('properties')
       .select('id, name, ical_token, internal_code')
@@ -104,8 +103,8 @@ serve(async (req) => {
 
     console.log(`Found ${reservations?.length || 0} manual reservations for property ${property.id}`);
 
-    // Generate iCal content
-    const icalContent = generateICalContent(property, reservations || []);
+    // Generate iCal content in Airbnb format
+    const icalContent = generateAirbnbFormatICalContent(property, reservations || []);
 
     // Return iCal file
     return new Response(icalContent, {
@@ -125,54 +124,28 @@ serve(async (req) => {
   }
 });
 
-function generateICalContent(property: Property, reservations: Reservation[]): string {
+function generateAirbnbFormatICalContent(property: Property, reservations: Reservation[]): string {
   const now = new Date().toISOString().replace(/[-:.]/g, '');
   
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Alanto//Property Calendar//ES',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${property.name} - Reservas Manuales`,
-    'X-WR-TIMEZONE:UTC',
+    'PRODID:-//Converted Calendar//EN',
+    'CALSCALE:GREGORIAN'
   ];
 
-  // Add each reservation as an event
+  // Add each reservation as an event with Airbnb format
   for (const reservation of reservations) {
     const startDate = reservation.start_date.replace(/-/g, '');
     const endDate = reservation.end_date.replace(/-/g, '');
-    const status = reservation.status || 'CONFIRMED';
-    const summary = reservation.guest_name 
-      ? `Reserva: ${reservation.guest_name}`
-      : `${status} - ${reservation.source}`;
     
-    let description = `Estado: ${status}\n`;
-    description += `Fuente: ${reservation.source}\n`;
-    description += `Plataforma: ${reservation.platform}\n`;
-    if (reservation.notes) {
-      description += `Notas: ${reservation.notes}\n`;
-    }
-
-    // Determine color based on status
-    let color = '#3366CC'; // Default blue
-    if (status.toLowerCase() === 'blocked') {
-      color = '#CC0000'; // Red for blocked
-    } else if (status.toLowerCase() === 'tentative') {
-      color = '#FF9900'; // Orange for tentative
-    }
-
     icalContent = icalContent.concat([
       'BEGIN:VEVENT',
-      `UID:${reservation.id}@${property.internal_code}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${startDate}`,
       `DTEND;VALUE=DATE:${endDate}`,
-      `SUMMARY:${summary}`,
-      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
-      `STATUS:${status}`,
-      `COLOR:${color}`,
-      'SEQUENCE:0',
+      'SUMMARY:Airbnb (Not available)',
+      `UID:${reservation.id}@${property.internal_code}`,
       'END:VEVENT'
     ]);
   }
@@ -180,3 +153,4 @@ function generateICalContent(property: Property, reservations: Reservation[]): s
   icalContent.push('END:VCALENDAR');
   return icalContent.join('\r\n');
 }
+
