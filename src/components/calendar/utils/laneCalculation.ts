@@ -1,9 +1,8 @@
-
 import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
 
 /**
- * Improved lane calculation with better week-specific filtering
+ * Improved lane calculation with better week-specific filtering and priority lanes
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -36,14 +35,24 @@ export const calculateReservationLanes = (
       return normalizedStartDate <= normalizedLastDay && normalizedEndDate >= normalizedFirstDay;
     });
     
-    // Sort reservations by start date to optimize lane assignment
-    weekReservations.sort((a, b) => 
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-    );
+    // Sort reservations by priority and then by start date
+    weekReservations.sort((a, b) => {
+      // First compare by priority type
+      const aPriority = getPriorityValue(a);
+      const bPriority = getPriorityValue(b);
+      
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+      
+      // If same priority, sort by start date
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    });
     
-    // In our simplified approach, all reservations get lane 0
+    // Assign lanes based on priority and overlapping
     weekReservations.forEach(reservation => {
-      weekLanes[reservation.id] = 0;
+      const lane = getPriorityValue(reservation);
+      weekLanes[reservation.id] = lane;
     });
     
     lanes[weekIndex] = weekLanes;
@@ -52,8 +61,28 @@ export const calculateReservationLanes = (
   return lanes;
 };
 
+// Helper function to determine reservation priority
+const getPriorityValue = (reservation: Reservation): number => {
+  // Regular reservations get top priority (lane 0)
+  if (!reservation.sourceReservationId && !reservation.isBlocking) {
+    return 0;
+  }
+  
+  // Parent-child relationship blocks get second priority (lane 1)
+  if (reservation.isRelationshipBlock) {
+    return 1;
+  }
+  
+  // Propagated blocks get lowest priority (lane 2)
+  if (reservation.sourceReservationId || reservation.isBlocking) {
+    return 2;
+  }
+  
+  return 0; // Default to top priority if unknown
+};
+
 /**
- * Simplified block lanes with improved week-specific filtering
+ * Simplified block lanes calculation
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
