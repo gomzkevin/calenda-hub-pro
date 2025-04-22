@@ -42,21 +42,34 @@ export const calculateBarPositionAndStyle = (
   const isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
   const isCheckOutDay = forceContinuous ? false : !continuesToNext;
   
-  // Adjust based on neighboring reservations - this is the key for propagated blocks
-  const hasNeighborAtStart = neighboringReservation.hasNeighborStart || false;
-  const hasNeighborAtEnd = neighboringReservation.hasNeighborEnd || false;
+  // Adjust based on neighboring reservations - CRITICAL for propagated blocks
+  const hasNeighborAtStart = neighboringReservation.hasNeighborStart === true;
+  const hasNeighborAtEnd = neighboringReservation.hasNeighborEnd === true;
+  
+  console.log(`Has neighbor at start: ${hasNeighborAtStart}, at end: ${hasNeighborAtEnd}`);
   
   // Calculate cell width percentages with room for check-in/out visual separation
-  let cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
-  let cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
+  // IMPROVED: For propagated blocks, we need to ensure they have rounded edges when meeting reservations
+  let cellStartOffset = 0;
+  let cellEndOffset = 0;
   
-  // Special handling for neighboring reservations
-  if (hasNeighborAtStart) {
-    cellStartOffset = 0.52; // Force rounded beginning if there's a neighbor at start
+  // Default behavior for regular reservations
+  if (!forceContinuous && !hasNeighborAtStart) {
+    // If it's the start of a reservation or has a block next to it, add start offset
+    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
+  } else if (hasNeighborAtStart) {
+    // Force rounded beginning if there's a neighbor at start
+    cellStartOffset = 0.52;
   }
   
-  if (hasNeighborAtEnd) {
-    cellEndOffset = 0.48; // Force rounded end if there's a neighbor at end
+  if (!forceContinuous && !hasNeighborAtEnd) {
+    // If it's the end of a reservation or has a block next to it, add end offset
+    cellEndOffset = continuesToNext ? 1 : 0.48;
+  } else if (hasNeighborAtEnd) {
+    // Force rounded end if there's a neighbor at end
+    cellEndOffset = 0.48;
+  } else {
+    cellEndOffset = 1;
   }
   
   // Apply offsets
@@ -73,51 +86,46 @@ export const calculateBarPositionAndStyle = (
   // Define border radius style 
   let borderRadiusStyle = 'rounded-none';
   
-  // If forceContinuous and no neighbors, always use no radius
-  if (forceContinuous && !hasNeighborAtStart && !hasNeighborAtEnd) {
-    borderRadiusStyle = 'rounded-none';
-    console.log('Forced continuous segment - using no rounding');
-  } else {
-    // Normalize dates for comparison
-    const normalizedStartDate = normalizeDate(new Date(startDate));
-    const normalizedEndDate = normalizeDate(new Date(endDate));
+  // Normalize dates for comparison
+  const normalizedStartDate = normalizeDate(new Date(startDate));
+  const normalizedEndDate = normalizeDate(new Date(endDate));
+  
+  // Special handling for single day reservation (same day check-in and check-out)
+  if (isSameDay(normalizedStartDate, normalizedEndDate)) {
+    borderRadiusStyle = 'rounded-full';
+    console.log('Single day reservation - using rounded-full');
+  } 
+  // Special handling for reservation that spans one night (two days)
+  else if (
+    !continuesFromPrevious && 
+    !continuesToNext && 
+    (endPos - startPos === 1 || (startPos === endPos && !isSameDay(normalizedStartDate, normalizedEndDate)))
+  ) {
+    borderRadiusStyle = 'rounded-lg';
+    console.log('Two-day reservation - using rounded-lg');
+  }
+  // Multiple day reservation or propagated block
+  else {
+    // IMPROVED: Consider neighboring reservations for border radius
+    if (!continuesFromPrevious || hasNeighborAtStart) {
+      borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+      console.log('Adding rounded-l-lg due to start condition or neighbor');
+    }
     
-    // Special handling for single day reservation (same day check-in and check-out)
-    if (isSameDay(normalizedStartDate, normalizedEndDate)) {
-      borderRadiusStyle = 'rounded-full';
-      console.log('Single day reservation - using rounded-full');
-    } 
-    // Special handling for reservation that spans one night (two days)
-    else if (
-      !continuesFromPrevious && 
-      !continuesToNext && 
-      (endPos - startPos === 1 || (startPos === endPos && !isSameDay(normalizedStartDate, normalizedEndDate)))
-    ) {
+    if (!continuesToNext || hasNeighborAtEnd) {
+      borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+      console.log('Adding rounded-r-lg due to end condition or neighbor');
+    }
+    
+    // Clean up the style if needed
+    borderRadiusStyle = borderRadiusStyle.trim();
+    if (borderRadiusStyle === 'rounded-none rounded-l-lg rounded-r-lg') {
       borderRadiusStyle = 'rounded-lg';
-      console.log('Two-day reservation - using rounded-lg');
+    } else if (borderRadiusStyle === 'rounded-none') {
+      borderRadiusStyle = '';
     }
-    // Multiple day reservation
-    else {
-      // Apply rounded left if it's the start or has a neighbor at start
-      if (!continuesFromPrevious || hasNeighborAtStart) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
-      }
-      
-      // Apply rounded right if it's the end or has a neighbor at end
-      if (!continuesToNext || hasNeighborAtEnd) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
-      }
-      
-      // Clean up the style if needed
-      borderRadiusStyle = borderRadiusStyle.trim();
-      if (borderRadiusStyle === 'rounded-none rounded-l-lg rounded-r-lg') {
-        borderRadiusStyle = 'rounded-lg';
-      } else if (borderRadiusStyle === 'rounded-none') {
-        borderRadiusStyle = '';
-      }
-      
-      console.log(`Multiple day reservation - using ${borderRadiusStyle}`);
-    }
+    
+    console.log(`Multiple day reservation - using ${borderRadiusStyle}`);
   }
   
   return { barLeft, barWidth, borderRadiusStyle };

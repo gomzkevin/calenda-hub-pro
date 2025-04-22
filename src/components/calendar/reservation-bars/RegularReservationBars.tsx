@@ -22,13 +22,13 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   laneGap,
   propagatedBlocks = []
 }) => {
-  // Función para comprobar si hay un bloque propagado en una fecha específica
+  // Function to check if there's a propagated block on a specific date
   const checkForNeighboringBlocks = (date: Date, propertyId: string): boolean => {
-    // Normalizar la fecha para comparación
+    // Normalize the date for comparison
     const normalizedDate = new Date(date);
     normalizedDate.setHours(12, 0, 0, 0);
     
-    // Buscar si hay algún bloque propagado que comience o termine en esta fecha
+    // Look for any propagated block that starts or ends on this date for this property
     return propagatedBlocks.some(block => {
       if (block.propertyId !== propertyId) return false;
       
@@ -38,8 +38,14 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
       const blockEndDate = new Date(block.endDate);
       blockEndDate.setHours(12, 0, 0, 0);
       
-      return blockStartDate.getTime() === normalizedDate.getTime() || 
-             blockEndDate.getTime() === normalizedDate.getTime();
+      // Check if the propagated block starts or ends exactly on this date
+      const isStartDateMatch = blockStartDate.getTime() === normalizedDate.getTime();
+      const isEndDateMatch = blockEndDate.getTime() === normalizedDate.getTime();
+      
+      console.log(`Checking block ${block.id} against date ${normalizedDate.toLocaleDateString()}: ` +
+                 `Start: ${isStartDateMatch}, End: ${isEndDateMatch}`);
+                 
+      return isStartDateMatch || isEndDateMatch;
     });
   };
 
@@ -49,21 +55,21 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
         <div key={`reservations-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
           <div className="col-span-7 relative h-full w-full">
             {filteredReservations.map((reservation) => {
-              // Verificar si la reserva intersecta con esta semana
+              // Verify if the reservation intersects with this week
               const startDate = new Date(reservation.startDate);
               const endDate = new Date(reservation.endDate);
               
-              // Verificar si al menos un día de la semana está entre las fechas de la reserva
+              // Check if at least one day of the week is between the reservation dates
               const anyDayInWeek = week.find(day => day !== null);
               if (!anyDayInWeek) return null;
               
-              // Verificar si la semana intersecta con la reserva
+              // Check if the week intersects with the reservation
               const weekStart = week.find(day => day !== null);
               const weekEnd = [...week].reverse().find(day => day !== null);
               
               if (!weekStart || !weekEnd) return null;
               
-              // Normalizar fechas para comparación (mediodía para evitar problemas de zona horaria)
+              // Normalize dates for comparison
               const normalizedWeekStart = new Date(weekStart);
               normalizedWeekStart.setHours(12, 0, 0, 0);
               
@@ -76,7 +82,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
               const normalizedEndDate = new Date(endDate);
               normalizedEndDate.setHours(12, 0, 0, 0);
               
-              // Comprobar si hay intersección entre la reserva y la semana
+              // Check if there's an intersection between the reservation and the week
               const reservationStartsBeforeWeekEnds = normalizedStartDate <= normalizedWeekEnd;
               const reservationEndsAfterWeekStarts = normalizedEndDate >= normalizedWeekStart;
               
@@ -96,6 +102,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
+                  laneGap={laneGap}
                   checkForNeighboringBlocks={checkForNeighboringBlocks}
                 />
               );

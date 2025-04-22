@@ -24,10 +24,10 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   weekRelationshipBlockLanes,
   weekPropagatedBlockLanes
 }) => {
-  // Adjusted constants for better vertical spacing
-  const laneHeight = 26; // Increased height for better separation
-  const baseOffset = 28; // Adjusted base offset
-  const laneGap = 2;    // Gap between lanes
+  // Adjusted constants for better vertical spacing and gap between reservations
+  const laneHeight = 26; // Height of each reservation bar
+  const baseOffset = 28; // Initial offset from the top
+  const laneGap = 4;    // Gap between lanes (increased to create more visual separation)
   
   // Debug outputs
   console.log('ReservationBars - filteredReservations:', filteredReservations?.length);
@@ -44,7 +44,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
         laneHeight={laneHeight}
         baseOffset={baseOffset}
         laneGap={laneGap}
-        propagatedBlocks={propagatedBlocks} // Pasamos los bloques propagados
+        propagatedBlocks={propagatedBlocks} // Pass the propagated blocks to check for neighbors
       />
       
       {/* Relationship Block Bars (parent-child blocks) - MEDIUM PRIORITY */}
@@ -54,7 +54,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
           relationshipBlocks={relationshipBlocks}
           weekRelationshipBlockLanes={weekRelationshipBlockLanes}
           laneHeight={laneHeight}
-          baseOffset={baseOffset + laneHeight + laneGap}
+          baseOffset={baseOffset + (laneHeight + laneGap)}
           laneGap={laneGap}
         />
       )}
@@ -68,7 +68,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
           laneHeight={laneHeight}
           baseOffset={baseOffset + (2 * (laneHeight + laneGap))}
           laneGap={laneGap}
-          filteredReservations={filteredReservations} // Pasar las reservas filtradas para detectar vecinos
+          filteredReservations={filteredReservations} // Pass the original reservations to check for neighbors
         />
       )}
     </div>

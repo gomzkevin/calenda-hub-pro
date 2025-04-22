@@ -20,6 +20,7 @@ interface PropagatedBlockBarProps {
   lane: number;
   laneHeight: number;
   baseOffset: number;
+  laneGap: number;
   checkForNeighboringReservations?: (date: Date, propertyId: string) => boolean;
 }
 
@@ -30,6 +31,7 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
   lane,
   laneHeight,
   baseOffset,
+  laneGap,
   checkForNeighboringReservations
 }) => {
   // Find positions in the week
@@ -68,9 +70,11 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
         block.propertyId
       );
     }
+    
+    console.log(`Block ${block.id} has neighboring reservations:`, 
+                `Start: ${neighboringReservation.hasNeighborStart}`, 
+                `End: ${neighboringReservation.hasNeighborEnd}`);
   }
-  
-  console.log(`Block ${block.id} neighboring reservations:`, neighboringReservation);
   
   // Get bar position, width and style
   const { barLeft, barWidth, borderRadiusStyle } = calculateBarPositionAndStyle(
@@ -86,7 +90,7 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
   );
   
   // Calculate vertical position relative to the week
-  const verticalPosition = baseOffset + (lane * laneHeight);
+  const verticalPosition = baseOffset + (lane * (laneHeight + laneGap));
   
   return (
     <TooltipProvider key={`block-${weekIndex}-${block.id}`}>

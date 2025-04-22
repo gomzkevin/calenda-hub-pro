@@ -20,6 +20,7 @@ interface ReservationBarProps {
   lane: number;
   laneHeight: number;
   baseOffset: number;
+  laneGap: number;
   forceContinuous?: boolean;
   checkForNeighboringBlocks?: (date: Date, propertyId: string) => boolean;
 }
@@ -31,6 +32,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   lane,
   laneHeight,
   baseOffset,
+  laneGap,
   forceContinuous = false,
   checkForNeighboringBlocks
 }) => {
@@ -41,7 +43,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   console.log(`==== Processing reservation ${reservation.id} ====`);
   console.log(`Reservation dates: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
   console.log(`Week dates: ${week[0]?.toLocaleDateString() || 'null'} to ${week[6]?.toLocaleDateString() || 'null'}`);
-  console.log(`Force continuous: ${forceContinuous}`);
   
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
@@ -69,6 +70,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
         startDate, 
         reservation.propertyId
       );
+      console.log(`Checked for neighbor at start (${startDate.toLocaleDateString()}): ${neighboringReservation.hasNeighborStart}`);
     }
     
     // Check for neighboring blocks at the end date
@@ -77,10 +79,9 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
         endDate,
         reservation.propertyId
       );
+      console.log(`Checked for neighbor at end (${endDate.toLocaleDateString()}): ${neighboringReservation.hasNeighborEnd}`);
     }
   }
-  
-  console.log(`Reservation ${reservation.id} neighboring blocks:`, neighboringReservation);
   
   // Get bar position, width and style
   const { barLeft, barWidth, borderRadiusStyle } = calculateBarPositionAndStyle(
@@ -96,16 +97,13 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   );
   
   // Calculate vertical position relative to the week
-  const verticalPosition = baseOffset + (lane * laneHeight);
+  const verticalPosition = baseOffset + (lane * (laneHeight + laneGap));
   
   // Determine text size based on bar width - smaller text for short reservations
   const isShortReservation = (endPos - startPos) < 1;
   
   // Determine the label to display
   let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
-  
-  // Debug output
-  console.log(`Final render: Week ${weekIndex}, Lane ${lane}, Position: ${barLeft}, Width: ${barWidth}, Style: ${borderRadiusStyle}`);
   
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
