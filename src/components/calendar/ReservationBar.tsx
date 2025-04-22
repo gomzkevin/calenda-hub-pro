@@ -21,6 +21,7 @@ interface ReservationBarProps {
   laneHeight: number;
   baseOffset: number;
   forceContinuous?: boolean;
+  checkForNeighboringBlocks?: (date: Date, propertyId: string) => boolean;
 }
 
 const ReservationBar: React.FC<ReservationBarProps> = ({
@@ -30,7 +31,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   lane,
   laneHeight,
   baseOffset,
-  forceContinuous = false
+  forceContinuous = false,
+  checkForNeighboringBlocks
 }) => {
   // Ensure dates are properly parsed and normalized
   const startDate = normalizeDate(new Date(reservation.startDate));
@@ -54,6 +56,32 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     return null;
   }
   
+  // Check for neighboring blocks at start and end dates
+  const neighboringReservation = {
+    hasNeighborStart: false,
+    hasNeighborEnd: false
+  };
+  
+  if (checkForNeighboringBlocks) {
+    // Check for neighboring blocks at the start date
+    if (startPos >= 0 && week[startPos]) {
+      neighboringReservation.hasNeighborStart = checkForNeighboringBlocks(
+        startDate, 
+        reservation.propertyId
+      );
+    }
+    
+    // Check for neighboring blocks at the end date
+    if (endPos >= 0 && endPos < week.length && week[endPos]) {
+      neighboringReservation.hasNeighborEnd = checkForNeighboringBlocks(
+        endDate,
+        reservation.propertyId
+      );
+    }
+  }
+  
+  console.log(`Reservation ${reservation.id} neighboring blocks:`, neighboringReservation);
+  
   // Get bar position, width and style
   const { barLeft, barWidth, borderRadiusStyle } = calculateBarPositionAndStyle(
     startPos,
@@ -63,7 +91,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     week,
     startDate,
     endDate,
-    forceContinuous
+    forceContinuous,
+    neighboringReservation
   );
   
   // Calculate vertical position relative to the week

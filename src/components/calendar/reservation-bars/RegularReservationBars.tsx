@@ -10,6 +10,7 @@ interface RegularReservationBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
+  propagatedBlocks?: Reservation[];
 }
 
 const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
@@ -18,8 +19,30 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   weekReservationLanes,
   laneHeight,
   baseOffset,
-  laneGap
+  laneGap,
+  propagatedBlocks = []
 }) => {
+  // Función para comprobar si hay un bloque propagado en una fecha específica
+  const checkForNeighboringBlocks = (date: Date, propertyId: string): boolean => {
+    // Normalizar la fecha para comparación
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(12, 0, 0, 0);
+    
+    // Buscar si hay algún bloque propagado que comience o termine en esta fecha
+    return propagatedBlocks.some(block => {
+      if (block.propertyId !== propertyId) return false;
+      
+      const blockStartDate = new Date(block.startDate);
+      blockStartDate.setHours(12, 0, 0, 0);
+      
+      const blockEndDate = new Date(block.endDate);
+      blockEndDate.setHours(12, 0, 0, 0);
+      
+      return blockStartDate.getTime() === normalizedDate.getTime() || 
+             blockEndDate.getTime() === normalizedDate.getTime();
+    });
+  };
+
   return (
     <>
       {weeks.map((week, weekIndex) => (
@@ -73,6 +96,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
+                  checkForNeighboringBlocks={checkForNeighboringBlocks}
                 />
               );
             })}

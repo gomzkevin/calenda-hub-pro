@@ -44,6 +44,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
         laneHeight={laneHeight}
         baseOffset={baseOffset}
         laneGap={laneGap}
+        propagatedBlocks={propagatedBlocks} // Pasamos los bloques propagados
       />
       
       {/* Relationship Block Bars (parent-child blocks) - MEDIUM PRIORITY */}
@@ -67,6 +68,7 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
           laneHeight={laneHeight}
           baseOffset={baseOffset + (2 * (laneHeight + laneGap))}
           laneGap={laneGap}
+          filteredReservations={filteredReservations} // Pasar las reservas filtradas para detectar vecinos
         />
       )}
     </div>

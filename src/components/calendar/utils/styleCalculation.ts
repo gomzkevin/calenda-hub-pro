@@ -13,12 +13,17 @@ export const calculateBarPositionAndStyle = (
   week: (Date | null)[],
   startDate: Date, 
   endDate: Date,
-  forceContinuous: boolean = false
+  forceContinuous: boolean = false,
+  neighboringReservation: {
+    hasNeighborStart?: boolean;
+    hasNeighborEnd?: boolean;
+  } = {}
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
   // Debug current values
   console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
   console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
   console.log(`forceContinuous=${forceContinuous}`);
+  console.log(`neighboringReservation=`, neighboringReservation);
   
   // Ensure positions are valid
   if (startPos === -1 || endPos === -1) {
@@ -37,10 +42,22 @@ export const calculateBarPositionAndStyle = (
   const isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
   const isCheckOutDay = forceContinuous ? false : !continuesToNext;
   
+  // Adjust based on neighboring reservations - this is the key for propagated blocks
+  const hasNeighborAtStart = neighboringReservation.hasNeighborStart || false;
+  const hasNeighborAtEnd = neighboringReservation.hasNeighborEnd || false;
+  
   // Calculate cell width percentages with room for check-in/out visual separation
-  // If forceContinuous is true, no offsets
-  const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
-  const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
+  let cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
+  let cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
+  
+  // Special handling for neighboring reservations
+  if (hasNeighborAtStart) {
+    cellStartOffset = 0.52; // Force rounded beginning if there's a neighbor at start
+  }
+  
+  if (hasNeighborAtEnd) {
+    cellEndOffset = 0.48; // Force rounded end if there's a neighbor at end
+  }
   
   // Apply offsets
   const adjustedStartPos = startPos + cellStartOffset;
@@ -56,8 +73,8 @@ export const calculateBarPositionAndStyle = (
   // Define border radius style 
   let borderRadiusStyle = 'rounded-none';
   
-  // If forceContinuous, always use no radius
-  if (forceContinuous) {
+  // If forceContinuous and no neighbors, always use no radius
+  if (forceContinuous && !hasNeighborAtStart && !hasNeighborAtEnd) {
     borderRadiusStyle = 'rounded-none';
     console.log('Forced continuous segment - using no rounding');
   } else {
@@ -81,11 +98,13 @@ export const calculateBarPositionAndStyle = (
     }
     // Multiple day reservation
     else {
-      if (!continuesFromPrevious) {
+      // Apply rounded left if it's the start or has a neighbor at start
+      if (!continuesFromPrevious || hasNeighborAtStart) {
         borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
       }
       
-      if (!continuesToNext) {
+      // Apply rounded right if it's the end or has a neighbor at end
+      if (!continuesToNext || hasNeighborAtEnd) {
         borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
       }
       

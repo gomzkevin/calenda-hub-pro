@@ -10,6 +10,7 @@ interface PropagatedBlockBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
+  filteredReservations?: Reservation[];
 }
 
 const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
@@ -18,10 +19,32 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   weekPropagatedBlockLanes,
   laneHeight,
   baseOffset,
-  laneGap
+  laneGap,
+  filteredReservations = []
 }) => {
   // Early return if no blocks
   if (!propagatedBlocks || propagatedBlocks.length === 0) return null;
+  
+  // Función para comprobar si hay una reserva original en una fecha específica
+  const checkForNeighboringReservations = (date: Date, propertyId: string): boolean => {
+    // Normalizar la fecha para comparación
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(12, 0, 0, 0);
+    
+    // Buscar si hay alguna reserva original que comience o termine en esta fecha
+    return filteredReservations.some(res => {
+      if (res.propertyId !== propertyId) return false;
+      
+      const resStartDate = new Date(res.startDate);
+      resStartDate.setHours(12, 0, 0, 0);
+      
+      const resEndDate = new Date(res.endDate);
+      resEndDate.setHours(12, 0, 0, 0);
+      
+      return resStartDate.getTime() === normalizedDate.getTime() || 
+             resEndDate.getTime() === normalizedDate.getTime();
+    });
+  };
   
   return (
     <>
@@ -72,6 +95,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
+                  checkForNeighboringReservations={checkForNeighboringReservations}
                 />
               );
             })}
