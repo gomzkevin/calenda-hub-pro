@@ -9,6 +9,7 @@ interface RelationshipBlockBarsProps {
   weekRelationshipBlockLanes: Record<number, Record<string, number>>;
   laneHeight: number;
   baseOffset: number;
+  laneGap: number;
 }
 
 const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
@@ -16,7 +17,8 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
   relationshipBlocks,
   weekRelationshipBlockLanes,
   laneHeight,
-  baseOffset
+  baseOffset,
+  laneGap
 }) => {
   // Early return if no blocks
   if (!relationshipBlocks || relationshipBlocks.length === 0) return null;

@@ -9,6 +9,7 @@ interface RegularReservationBarsProps {
   weekReservationLanes: Record<number, Record<string, number>>;
   laneHeight: number;
   baseOffset: number;
+  laneGap: number;
 }
 
 const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
@@ -16,7 +17,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   filteredReservations,
   weekReservationLanes,
   laneHeight,
-  baseOffset
+  baseOffset,
+  laneGap
 }) => {
   return (
     <>

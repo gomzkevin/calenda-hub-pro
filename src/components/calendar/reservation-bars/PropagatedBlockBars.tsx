@@ -9,6 +9,7 @@ interface PropagatedBlockBarsProps {
   weekPropagatedBlockLanes: Record<number, Record<string, number>>;
   laneHeight: number;
   baseOffset: number;
+  laneGap: number;
 }
 
 const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
@@ -16,7 +17,8 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   propagatedBlocks,
   weekPropagatedBlockLanes,
   laneHeight,
-  baseOffset
+  baseOffset,
+  laneGap
 }) => {
   // Early return if no blocks
   if (!propagatedBlocks || propagatedBlocks.length === 0) return null;
