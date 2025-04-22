@@ -73,7 +73,9 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
     
     console.log(`Block ${block.id} has neighboring reservations:`, 
                 `Start: ${neighboringReservation.hasNeighborStart}`, 
-                `End: ${neighboringReservation.hasNeighborEnd}`);
+                `End: ${neighboringReservation.hasNeighborEnd}`,
+                `PropertyId: ${block.propertyId}`,
+                `Dates: ${normalizedStartDate.toISOString()} to ${normalizedEndDate.toISOString()}`);
   }
   
   // Get bar position, width and style

@@ -43,6 +43,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   console.log(`==== Processing reservation ${reservation.id} ====`);
   console.log(`Reservation dates: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
   console.log(`Week dates: ${week[0]?.toLocaleDateString() || 'null'} to ${week[6]?.toLocaleDateString() || 'null'}`);
+  console.log(`Reservation property: ${reservation.propertyId}`);
   
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
@@ -70,7 +71,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
         startDate, 
         reservation.propertyId
       );
-      console.log(`Checked for neighbor at start (${startDate.toLocaleDateString()}): ${neighboringReservation.hasNeighborStart}`);
+      console.log(`Checked for neighbor at start (${startDate.toISOString()}): ${neighboringReservation.hasNeighborStart}`);
     }
     
     // Check for neighboring blocks at the end date
@@ -79,7 +80,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
         endDate,
         reservation.propertyId
       );
-      console.log(`Checked for neighbor at end (${endDate.toLocaleDateString()}): ${neighboringReservation.hasNeighborEnd}`);
+      console.log(`Checked for neighbor at end (${endDate.toISOString()}): ${neighboringReservation.hasNeighborEnd}`);
     }
   }
   

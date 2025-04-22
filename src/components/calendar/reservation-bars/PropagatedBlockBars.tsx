@@ -25,7 +25,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   // Early return if no blocks
   if (!propagatedBlocks || propagatedBlocks.length === 0) return null;
   
-  // Function to check if there's an original reservation on a specific date
+  // Función mejorada para verificar si hay una reserva original en una fecha específica
   const checkForNeighboringReservations = (date: Date, propertyId: string): boolean => {
     // Normalize the date for comparison
     const normalizedDate = new Date(date);
@@ -45,8 +45,8 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
       const isStartDateMatch = resStartDate.getTime() === normalizedDate.getTime();
       const isEndDateMatch = resEndDate.getTime() === normalizedDate.getTime();
       
-      console.log(`Checking reservation ${res.id} against date ${normalizedDate.toLocaleDateString()}: ` +
-                 `Start: ${isStartDateMatch}, End: ${isEndDateMatch}`);
+      console.log(`Checking reservation ${res.id} against date ${normalizedDate.toISOString()}: ` +
+                 `Start: ${isStartDateMatch}, End: ${isEndDateMatch}, Property: ${propertyId}`);
                  
       return isStartDateMatch || isEndDateMatch;
     });

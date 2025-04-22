@@ -53,23 +53,33 @@ export const calculateBarPositionAndStyle = (
   let cellStartOffset = 0;
   let cellEndOffset = 0;
   
-  // Default behavior for regular reservations
-  if (!forceContinuous && !hasNeighborAtStart) {
-    // If it's the start of a reservation or has a block next to it, add start offset
-    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
-  } else if (hasNeighborAtStart) {
-    // Force rounded beginning if there's a neighbor at start
+  // Calculate offsets based on whether we're at the start/end of a reservation
+  // and whether there are neighboring blocks
+  
+  // Start offset calculation
+  if (hasNeighborAtStart) {
+    // If there's a neighbor at the start, force rounded beginning
     cellStartOffset = 0.52;
+    console.log("Setting rounded start due to neighbor");
+  } else if (!forceContinuous && !continuesFromPrevious) {
+    // If it's the start of a regular reservation, add start offset
+    cellStartOffset = 0.52;
+    console.log("Setting rounded start due to reservation beginning");
   }
   
-  if (!forceContinuous && !hasNeighborAtEnd) {
-    // If it's the end of a reservation or has a block next to it, add end offset
-    cellEndOffset = continuesToNext ? 1 : 0.48;
-  } else if (hasNeighborAtEnd) {
-    // Force rounded end if there's a neighbor at end
+  // End offset calculation
+  if (hasNeighborAtEnd) {
+    // If there's a neighbor at the end, force rounded end (and only go up to 48% of the cell)
     cellEndOffset = 0.48;
+    console.log("Setting rounded end due to neighbor");
+  } else if (!forceContinuous && !continuesToNext) {
+    // If it's the end of a regular reservation, add end offset
+    cellEndOffset = 0.48;
+    console.log("Setting rounded end due to reservation ending");
   } else {
+    // If it continues to next day
     cellEndOffset = 1;
+    console.log("Setting full end due to continuation");
   }
   
   // Apply offsets
@@ -106,12 +116,16 @@ export const calculateBarPositionAndStyle = (
   }
   // Multiple day reservation or propagated block
   else {
-    // IMPROVED: Consider neighboring reservations for border radius
+    // Critical improvement: Consider neighboring reservations for border radius
+    // This is essential for propagated blocks that meet reservations
+    
+    // Start border radius
     if (!continuesFromPrevious || hasNeighborAtStart) {
       borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
       console.log('Adding rounded-l-lg due to start condition or neighbor');
     }
     
+    // End border radius
     if (!continuesToNext || hasNeighborAtEnd) {
       borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
       console.log('Adding rounded-r-lg due to end condition or neighbor');

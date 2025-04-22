@@ -42,8 +42,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
       const isStartDateMatch = blockStartDate.getTime() === normalizedDate.getTime();
       const isEndDateMatch = blockEndDate.getTime() === normalizedDate.getTime();
       
-      console.log(`Checking block ${block.id} against date ${normalizedDate.toLocaleDateString()}: ` +
-                 `Start: ${isStartDateMatch}, End: ${isEndDateMatch}`);
+      console.log(`Checking block ${block.id} against date ${normalizedDate.toISOString()}: ` +
+                 `Start: ${isStartDateMatch}, End: ${isEndDateMatch}, Property: ${propertyId}`);
                  
       return isStartDateMatch || isEndDateMatch;
     });
