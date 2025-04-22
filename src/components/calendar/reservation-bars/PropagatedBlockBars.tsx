@@ -10,7 +10,6 @@ interface PropagatedBlockBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
-  filteredReservations?: Reservation[];
 }
 
 const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
@@ -19,38 +18,10 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   weekPropagatedBlockLanes,
   laneHeight,
   baseOffset,
-  laneGap,
-  filteredReservations = []
+  laneGap
 }) => {
   // Early return if no blocks
   if (!propagatedBlocks || propagatedBlocks.length === 0) return null;
-  
-  // Función mejorada para verificar si hay una reserva original en una fecha específica
-  const checkForNeighboringReservations = (date: Date, propertyId: string): boolean => {
-    // Normalize the date for comparison
-    const normalizedDate = new Date(date);
-    normalizedDate.setHours(12, 0, 0, 0);
-    
-    // Look for any regular reservation that starts or ends on this date for this property
-    return filteredReservations.some(res => {
-      if (res.propertyId !== propertyId) return false;
-      
-      const resStartDate = new Date(res.startDate);
-      resStartDate.setHours(12, 0, 0, 0);
-      
-      const resEndDate = new Date(res.endDate);
-      resEndDate.setHours(12, 0, 0, 0);
-      
-      // Check if the reservation starts or ends exactly on this date
-      const isStartDateMatch = resStartDate.getTime() === normalizedDate.getTime();
-      const isEndDateMatch = resEndDate.getTime() === normalizedDate.getTime();
-      
-      console.log(`Checking reservation ${res.id} against date ${normalizedDate.toISOString()}: ` +
-                 `Start: ${isStartDateMatch}, End: ${isEndDateMatch}, Property: ${propertyId}`);
-                 
-      return isStartDateMatch || isEndDateMatch;
-    });
-  };
   
   return (
     <>
@@ -89,7 +60,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
               
               if (!hasIntersection) return null;
               
-              // Get the lane assignment for this block in this week
+              // Always use lane 0 in our simplified approach
               const lane = weekPropagatedBlockLanes[weekIndex]?.[block.id] || 0;
               
               return (
@@ -101,8 +72,6 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
-                  laneGap={laneGap}
-                  checkForNeighboringReservations={checkForNeighboringReservations}
                 />
               );
             })}
