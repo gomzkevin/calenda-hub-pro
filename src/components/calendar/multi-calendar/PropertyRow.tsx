@@ -1,9 +1,7 @@
 
-import React, { useMemo } from 'react';
-import { Property, Reservation } from '@/types';
+import React from 'react';
+import { Property } from '@/types';
 import DayCell from './DayCell';
-import { findReservationPositionInWeek } from '../utils/reservationPosition';
-import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
 interface PropertyRowProps {
   property: Property;

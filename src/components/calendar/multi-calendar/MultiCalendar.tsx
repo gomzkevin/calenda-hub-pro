@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CalendarLegend from '../CalendarLegend';
+import DayCell from './DayCell'; // Import DayCell component
 
 // Import hooks
 import { useReservations } from './hooks/useReservations';
@@ -96,7 +97,6 @@ const MultiCalendar: React.FC = () => {
             {/* Scrollable day headers */}
             <ScrollArea 
               className="flex-1 overflow-x-auto"
-              orientation="horizontal"
               scrollHideDelay={0}
               ref={headerScrollRef}
               onScrollPositionChange={({ x }) => handleHeaderScroll(x || 0)}
@@ -137,7 +137,6 @@ const MultiCalendar: React.FC = () => {
             {/* Scrollable day cells */}
             <ScrollArea 
               className="flex-1 overflow-x-auto"
-              orientation="horizontal"
               scrollHideDelay={0}
               ref={mainScrollRef}
               onScrollPositionChange={({ x }) => handleMainScroll(x || 0)}
@@ -145,21 +144,17 @@ const MultiCalendar: React.FC = () => {
               <div className="min-w-max">
                 {properties.map((property) => (
                   <div key={`row-${property.id}`} className="flex h-16">
-                    {visibleDays.map((day, dayIndex) => (
-                      <DayCell
-                        key={`day-${property.id}-${dayIndex}`}
-                        day={day}
-                        property={property}
-                        dayIndex={dayIndex}
-                        getDayReservationStatus={getDayReservationStatus}
-                        sortReservations={sortReservations}
-                        propertyLanes={propertyLanes}
-                        getReservationStyle={getReservationStyle}
-                        getSourceReservationInfo={getSourceReservationInfo}
-                        normalizeDate={normalizeDate}
-                        width={cellWidth}
-                      />
-                    ))}
+                    <PropertyRow
+                      property={property}
+                      visibleDays={visibleDays}
+                      width={cellWidth}
+                      getDayReservationStatus={getDayReservationStatus}
+                      sortReservations={sortReservations}
+                      propertyLanes={propertyLanes}
+                      getReservationStyle={getReservationStyle}
+                      getSourceReservationInfo={getSourceReservationInfo}
+                      normalizeDate={normalizeDate}
+                    />
                   </div>
                 ))}
               </div>
