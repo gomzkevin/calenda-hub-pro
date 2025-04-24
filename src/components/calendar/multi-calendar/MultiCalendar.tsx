@@ -34,15 +34,15 @@ const MultiCalendar: React.FC = () => {
   const mainScrollRef = useRef<HTMLDivElement>(null);
   
   // Handlers for synchronized scrolling
-  const handleHeaderScroll = useCallback((position: number) => {
+  const handleHeaderScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     if (mainScrollRef.current) {
-      mainScrollRef.current.scrollLeft = position;
+      mainScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
   }, []);
   
-  const handleMainScroll = useCallback((position: number) => {
+  const handleMainScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     if (headerScrollRef.current) {
-      headerScrollRef.current.scrollLeft = position;
+      headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
   }, []);
   
@@ -99,7 +99,7 @@ const MultiCalendar: React.FC = () => {
               className="flex-1 overflow-x-auto"
               scrollHideDelay={0}
               ref={headerScrollRef}
-              onScrollPositionChange={({ x }) => handleHeaderScroll(x || 0)}
+              onScroll={handleHeaderScroll}
             >
               <div className="flex min-w-max">
                 {visibleDays.map((day, index) => (
@@ -139,7 +139,7 @@ const MultiCalendar: React.FC = () => {
               className="flex-1 overflow-x-auto"
               scrollHideDelay={0}
               ref={mainScrollRef}
-              onScrollPositionChange={({ x }) => handleMainScroll(x || 0)}
+              onScroll={handleMainScroll}
             >
               <div className="min-w-max">
                 {properties.map((property) => (
