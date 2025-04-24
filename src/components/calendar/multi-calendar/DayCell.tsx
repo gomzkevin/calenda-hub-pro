@@ -11,6 +11,7 @@ interface DayCellProps {
   day: Date;
   property: Property;
   dayIndex: number;
+  width?: string;
   getDayReservationStatus: (property: Property, day: Date) => {
     hasReservation: boolean;
     isIndirect: boolean;
@@ -27,6 +28,7 @@ const DayCell: React.FC<DayCellProps> = ({
   day,
   property,
   dayIndex,
+  width = "70px",
   getDayReservationStatus,
   sortReservations,
   propertyLanes,
@@ -94,7 +96,8 @@ const DayCell: React.FC<DayCellProps> = ({
   
   return (
     <div
-      className={`border relative min-h-[4rem] h-16 ${bgColorClass}`}
+      className={`border-b border-r relative min-h-[4rem] h-16 ${bgColorClass}`}
+      style={{ width, minWidth: width }}
     >
       {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">

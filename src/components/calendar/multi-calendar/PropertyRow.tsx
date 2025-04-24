@@ -8,6 +8,7 @@ import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 interface PropertyRowProps {
   property: Property;
   visibleDays: Date[];
+  width?: string;
   getDayReservationStatus: (property: Property, day: Date) => {
     hasReservation: boolean;
     isIndirect: boolean;
@@ -23,6 +24,7 @@ interface PropertyRowProps {
 const PropertyRow: React.FC<PropertyRowProps> = ({
   property,
   visibleDays,
+  width = "70px",
   getDayReservationStatus,
   sortReservations,
   propertyLanes,
@@ -30,38 +32,15 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   getSourceReservationInfo,
   normalizeDate
 }) => {
-  const typeIndicator = 
-    property.type === 'parent' ? 'Alojamiento principal' : 
-    property.type === 'child' ? 'Habitación' : '';
-
-  // Group days into weeks for reservation bar rendering
-  const weeks = useMemo(() => {
-    const result: Date[][] = [];
-    for (let i = 0; i < visibleDays.length; i += 7) {
-      result.push(visibleDays.slice(i, i + 7));
-    }
-    return result;
-  }, [visibleDays]);
-
   return (
     <React.Fragment>
-      <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate h-16">
-        <div className="flex flex-col">
-          <span>{property.name}</span>
-          {typeIndicator && (
-            <span className="text-xs text-muted-foreground mt-1">
-              {typeIndicator}
-            </span>
-          )}
-        </div>
-      </div>
-      
       {visibleDays.map((day, dayIndex) => (
         <DayCell
           key={`day-${property.id}-${dayIndex}`}
           day={day}
           property={property}
           dayIndex={dayIndex}
+          width={width}
           getDayReservationStatus={getDayReservationStatus}
           sortReservations={sortReservations}
           propertyLanes={propertyLanes}
