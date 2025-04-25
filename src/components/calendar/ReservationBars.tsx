@@ -24,10 +24,10 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   weekRelationshipBlockLanes,
   weekPropagatedBlockLanes
 }) => {
-  // Adjusted constants for better vertical spacing
-  const laneHeight = 26; // Increased height for better separation
-  const baseOffset = 28; // Adjusted base offset
-  const laneGap = 2;    // Gap between lanes
+  // Adjusted constants for better vertical spacing and visual separation
+  const laneHeight = 26; // Height for each lane
+  const baseOffset = 28; // Base offset from the top
+  const laneGap = 2;    // Gap between different types of lanes
   
   // Debug outputs
   console.log('ReservationBars - filteredReservations:', filteredReservations?.length);

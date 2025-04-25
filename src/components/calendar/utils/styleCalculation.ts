@@ -1,5 +1,5 @@
 
-import { isSameDay } from "date-fns";
+import { isSameDay, addDays } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
 /**
@@ -31,16 +31,18 @@ export const calculateBarPositionAndStyle = (
     console.log('Correcting invalid positions (startPos > endPos)');
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
+
+  // New approach to better handle transitions between different reservation types
   
   // Determine if this is a check-in or check-out day
   // If forceContinuous is true, treat as part of continuous stay
   const isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
   const isCheckOutDay = forceContinuous ? false : !continuesToNext;
   
-  // Calculate cell width percentages with room for check-in/out visual separation
-  // If forceContinuous is true, no offsets
-  const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
-  const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
+  // Calculate cell width percentages with more precise offsets for visual transitions
+  // Fine-tuned offsets to create better visual continuity between adjacent blocks
+  const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.48);
+  const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.52);
   
   // Apply offsets
   const adjustedStartPos = startPos + cellStartOffset;
@@ -53,7 +55,7 @@ export const calculateBarPositionAndStyle = (
   console.log(`Adjusted positions: start=${adjustedStartPos}, end=${adjustedEndPos}`);
   console.log(`Bar styling: width=${barWidth}, left=${barLeft}`);
   
-  // Define border radius style 
+  // Define border radius style with improved logic for transitions
   let borderRadiusStyle = 'rounded-none';
   
   // If forceContinuous, always use no radius

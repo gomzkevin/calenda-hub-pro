@@ -60,7 +60,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
               
               if (!hasIntersection) return null;
               
-              // Always use lane 0 in our simplified approach
+              // Get lane assignment for this block in this week
               const lane = weekPropagatedBlockLanes[weekIndex]?.[block.id] || 0;
               
               return (
