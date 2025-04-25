@@ -1,4 +1,3 @@
-
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
@@ -34,7 +33,7 @@ export const calculateBarPositionAndStyle = (
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
 
-  // Calculate cell width percentages with adjustments for propagated and original blocks
+  // Calculate cell width percentages with fixed offsets for propagated and original blocks
   let cellStartOffset = 0;
   let cellEndOffset = 0;
 
@@ -42,15 +41,15 @@ export const calculateBarPositionAndStyle = (
     cellStartOffset = 0;
     cellEndOffset = 1;
   } else if (isPropagatedBlock) {
-    // Propagated blocks: always end at 48% when it's the last day
-    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
-    cellEndOffset = 0.48; // Always end at 48% for propagated blocks
+    // Propagated blocks: always start at 0 and end at 48%
+    cellStartOffset = 0;
+    cellEndOffset = 0.48;
   } else if (isOriginalBlock) {
-    // Original blocks: always start at 52% when it's the first day
-    cellStartOffset = 0.52; // Always start at 52% for original blocks
-    cellEndOffset = continuesToNext ? 1 : 0.48;
+    // Original blocks: always start at 52% and end at 100%
+    cellStartOffset = 0.52;
+    cellEndOffset = 1;
   } else {
-    // Regular reservations
+    // Regular reservations - keep existing behavior
     cellStartOffset = continuesFromPrevious ? 0 : 0.52;
     cellEndOffset = continuesToNext ? 1 : 0.48;
   }
@@ -95,14 +94,14 @@ export const calculateBarPositionAndStyle = (
     // Multiple day reservation
     else {
       if (isPropagatedBlock) {
-        // Propagated blocks: always round the end
+        // Propagated blocks: ALWAYS round right side, only round left if it's the start
         borderRadiusStyle = 'rounded-r-lg';
         if (!continuesFromPrevious) {
           borderRadiusStyle = `${borderRadiusStyle} rounded-l-lg`;
         }
       }
       else if (isOriginalBlock) {
-        // Original blocks: always round the beginning
+        // Original blocks: ALWAYS round left side, only round right if it's the end
         borderRadiusStyle = 'rounded-l-lg';
         if (!continuesToNext) {
           borderRadiusStyle = `${borderRadiusStyle} rounded-r-lg`;
