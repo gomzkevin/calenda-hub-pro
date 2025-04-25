@@ -47,7 +47,10 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
     continuesToNext,
     week,
     block.startDate,
-    block.endDate
+    block.endDate,
+    false,  // forceContinuous
+    false,  // isPropagatedBlock
+    true    // isOriginalBlock - always true for this component
   );
   
   // Calculate vertical position relative to the week

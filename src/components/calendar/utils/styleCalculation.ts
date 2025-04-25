@@ -13,12 +13,14 @@ export const calculateBarPositionAndStyle = (
   week: (Date | null)[],
   startDate: Date, 
   endDate: Date,
-  forceContinuous: boolean = false
+  forceContinuous: boolean = false,
+  isPropagatedBlock: boolean = false,
+  isOriginalBlock: boolean = false
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
   // Debug current values
   console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
   console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
-  console.log(`forceContinuous=${forceContinuous}`);
+  console.log(`forceContinuous=${forceContinuous}, isPropagatedBlock=${isPropagatedBlock}, isOriginalBlock=${isOriginalBlock}`);
   
   // Ensure positions are valid
   if (startPos === -1 || endPos === -1) {
@@ -32,13 +34,21 @@ export const calculateBarPositionAndStyle = (
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
   
-  // Determine if this is a check-in or check-out day
-  // If forceContinuous is true, treat as part of continuous stay
-  const isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
-  const isCheckOutDay = forceContinuous ? false : !continuesToNext;
+  // Special handling for propagated blocks and original blocks
+  let isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
+  let isCheckOutDay = forceContinuous ? false : !continuesToNext;
+  
+  // For propagated blocks: always round the end (right side)
+  if (isPropagatedBlock) {
+    isCheckOutDay = true;
+  }
+  
+  // For original blocks: always round the beginning (left side)
+  if (isOriginalBlock) {
+    isCheckInDay = true;
+  }
   
   // Calculate cell width percentages with room for check-in/out visual separation
-  // If forceContinuous is true, no offsets
   const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
   const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
   
@@ -81,12 +91,29 @@ export const calculateBarPositionAndStyle = (
     }
     // Multiple day reservation
     else {
-      if (!continuesFromPrevious) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
-      }
-      
-      if (!continuesToNext) {
+      // For propagated blocks: always round the end (right side)
+      if (isPropagatedBlock) {
         borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+        if (!continuesFromPrevious) {
+          borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+        }
+      }
+      // For original blocks: always round the beginning (left side)
+      else if (isOriginalBlock) {
+        borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+        if (!continuesToNext) {
+          borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+        }
+      }
+      // Regular processing for other elements
+      else {
+        if (!continuesFromPrevious) {
+          borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+        }
+        
+        if (!continuesToNext) {
+          borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+        }
       }
       
       // Clean up the style if needed

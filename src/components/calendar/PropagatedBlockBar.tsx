@@ -47,7 +47,9 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
     continuesToNext,
     week,
     block.startDate,
-    block.endDate
+    block.endDate,
+    false, // forceContinuous
+    true   // isPropagatedBlock - always true for this component
   );
   
   // Calculate vertical position relative to the week
