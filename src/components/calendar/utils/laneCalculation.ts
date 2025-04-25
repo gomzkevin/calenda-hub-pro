@@ -1,9 +1,8 @@
-
 import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
 
 /**
- * Unified lane calculation with better week-specific filtering and adjacency awareness
+ * Improved lane calculation with better week-specific filtering and priority lanes
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -47,71 +46,13 @@ export const calculateReservationLanes = (
       }
       
       // If same priority, sort by start date
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     });
     
-    // Create a map to track occupied lanes for each day of the week
-    const dayLaneMap: Record<number, boolean[]> = {};
-    
-    // Initialize occupied lane tracking for each day
-    validDays.forEach((_, dayIndex) => {
-      dayLaneMap[dayIndex] = [];
-    });
-    
-    // Mejorado: Asignar lanes con un algoritmo de "mejor ajuste" y conciencia de adyacencia
+    // Assign lanes based on priority and overlapping
     weekReservations.forEach(reservation => {
-      const normalizedStartDate = normalizeDate(new Date(reservation.startDate));
-      const normalizedEndDate = normalizeDate(new Date(reservation.endDate));
-      
-      // Determinar días afectados
-      const affectedDays: number[] = [];
-      
-      // Encontrar qué días de la semana están ocupados por esta reserva
-      for (let dayIndex = 0; dayIndex < validDays.length; dayIndex++) {
-        const currentDay = validDays[dayIndex];
-        if (!currentDay) continue;
-        
-        const normalizedCurrentDay = normalizeDate(new Date(currentDay));
-        
-        // Check if this day is within the reservation period
-        if (
-          normalizedCurrentDay >= normalizedStartDate && 
-          normalizedCurrentDay <= normalizedEndDate
-        ) {
-          affectedDays.push(dayIndex);
-        }
-      }
-      
-      if (affectedDays.length === 0) return;
-      
-      // Encontrar la primera lane disponible para todos los días afectados
-      let laneToAssign = 0;
-      let foundLane = false;
-      
-      while (!foundLane) {
-        foundLane = true;
-        
-        // Check if current lane is available for all affected days
-        for (const dayIndex of affectedDays) {
-          if (dayLaneMap[dayIndex][laneToAssign]) {
-            foundLane = false;
-            break;
-          }
-        }
-        
-        if (!foundLane) {
-          laneToAssign++;
-          continue;
-        }
-        
-        // Mark this lane as occupied for all affected days
-        for (const dayIndex of affectedDays) {
-          dayLaneMap[dayIndex][laneToAssign] = true;
-        }
-      }
-      
-      // Assign lane to reservation
-      weekLanes[reservation.id] = laneToAssign;
+      const lane = getPriorityValue(reservation);
+      weekLanes[reservation.id] = lane;
     });
     
     lanes[weekIndex] = weekLanes;
@@ -141,7 +82,7 @@ const getPriorityValue = (reservation: Reservation): number => {
 };
 
 /**
- * Improved block lanes calculation with better overlap detection and adjacency awareness
+ * Simplified block lanes calculation
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
@@ -177,73 +118,9 @@ export const calculateBlockLanes = (
       return normalizedStartDate <= normalizedLastDay && normalizedEndDate >= normalizedFirstDay;
     });
     
-    // Sort blocks by start date
-    weekBlocks.sort((a, b) => 
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-    );
-    
-    // Create a map to track occupied lanes for each day of the week
-    const dayLaneMap: Record<number, boolean[]> = {};
-    
-    // Initialize occupied lane tracking for each day
-    validDays.forEach((_, dayIndex) => {
-      dayLaneMap[dayIndex] = [];
-    });
-    
-    // Mejorado: Asignar lanes con detección de superposición y adyacencia
+    // All blocks get lane 0 in our simplified approach
     weekBlocks.forEach(block => {
-      const normalizedStartDate = normalizeDate(new Date(block.startDate));
-      const normalizedEndDate = normalizeDate(new Date(block.endDate));
-      
-      // Determinar días afectados
-      const affectedDays: number[] = [];
-      
-      // Encontrar qué días de la semana están ocupados por este bloque
-      for (let dayIndex = 0; dayIndex < validDays.length; dayIndex++) {
-        const currentDay = validDays[dayIndex];
-        if (!currentDay) continue;
-        
-        const normalizedCurrentDay = normalizeDate(new Date(currentDay));
-        
-        // Check if this day is within the block period
-        if (
-          normalizedCurrentDay >= normalizedStartDate && 
-          normalizedCurrentDay <= normalizedEndDate
-        ) {
-          affectedDays.push(dayIndex);
-        }
-      }
-      
-      if (affectedDays.length === 0) return;
-      
-      // Encontrar la primera lane disponible para todos los días afectados
-      let laneToAssign = 0;
-      let foundLane = false;
-      
-      while (!foundLane) {
-        foundLane = true;
-        
-        // Check if current lane is available for all affected days
-        for (const dayIndex of affectedDays) {
-          if (dayLaneMap[dayIndex][laneToAssign]) {
-            foundLane = false;
-            break;
-          }
-        }
-        
-        if (!foundLane) {
-          laneToAssign++;
-          continue;
-        }
-        
-        // Mark this lane as occupied for all affected days
-        for (const dayIndex of affectedDays) {
-          dayLaneMap[dayIndex][laneToAssign] = true;
-        }
-      }
-      
-      // Assign lane to block
-      weekLanes[block.id] = laneToAssign;
+      weekLanes[block.id] = 0;
     });
     
     lanes[weekIndex] = weekLanes;

@@ -1,16 +1,9 @@
 
-import { isSameDay, addDays } from "date-fns";
+import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 
-interface AdjacencyInfo {
-  endsAtStartOf?: string[]; // IDs of reservations that this one ends at the start of
-  startsAtEndOf?: string[]; // IDs of reservations that this one starts at the end of
-}
-
-type AdjacencyMap = Record<string, AdjacencyInfo>;
-
 /**
- * Calculate bar position and width with adjacency awareness
+ * Calculate bar position and width
  */
 export const calculateBarPositionAndStyle = (
   startPos: number,
@@ -20,9 +13,7 @@ export const calculateBarPositionAndStyle = (
   week: (Date | null)[],
   startDate: Date, 
   endDate: Date,
-  forceContinuous: boolean = false,
-  reservationId?: string,
-  adjacencyMap?: AdjacencyMap
+  forceContinuous: boolean = false
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
   // Debug current values
   console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
@@ -40,32 +31,16 @@ export const calculateBarPositionAndStyle = (
     console.log('Correcting invalid positions (startPos > endPos)');
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
-
-  // Check for adjacency relations if provided
-  let adjustLeftForAdjacency = false;
-  let adjustRightForAdjacency = false;
   
-  if (adjacencyMap && reservationId) {
-    const adjacencyInfo = adjacencyMap[reservationId];
-    if (adjacencyInfo) {
-      // If this reservation starts exactly where another one ends, adjust left border
-      if (adjacencyInfo.startsAtEndOf && adjacencyInfo.startsAtEndOf.length > 0) {
-        adjustLeftForAdjacency = true;
-        console.log(`Reservation ${reservationId} starts at the end of other reservation(s)`, adjacencyInfo.startsAtEndOf);
-      }
-      
-      // If this reservation ends exactly where another one starts, adjust right border
-      if (adjacencyInfo.endsAtStartOf && adjacencyInfo.endsAtStartOf.length > 0) {
-        adjustRightForAdjacency = true;
-        console.log(`Reservation ${reservationId} ends at the start of other reservation(s)`, adjacencyInfo.endsAtStartOf);
-      }
-    }
-  }
+  // Determine if this is a check-in or check-out day
+  // If forceContinuous is true, treat as part of continuous stay
+  const isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
+  const isCheckOutDay = forceContinuous ? false : !continuesToNext;
   
-  // Calculate cell width percentages with more precise offsets for visual transitions
-  // Fine-tuned offsets to create better visual continuity between adjacent blocks
-  const cellStartOffset = forceContinuous || adjustLeftForAdjacency ? 0 : (continuesFromPrevious ? 0 : 0.48);
-  const cellEndOffset = forceContinuous || adjustRightForAdjacency ? 1 : (continuesToNext ? 1 : 0.52);
+  // Calculate cell width percentages with room for check-in/out visual separation
+  // If forceContinuous is true, no offsets
+  const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
+  const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
   
   // Apply offsets
   const adjustedStartPos = startPos + cellStartOffset;
@@ -78,7 +53,7 @@ export const calculateBarPositionAndStyle = (
   console.log(`Adjusted positions: start=${adjustedStartPos}, end=${adjustedEndPos}`);
   console.log(`Bar styling: width=${barWidth}, left=${barLeft}`);
   
-  // Define border radius style with improved logic for transitions
+  // Define border radius style 
   let borderRadiusStyle = 'rounded-none';
   
   // If forceContinuous, always use no radius
@@ -92,9 +67,8 @@ export const calculateBarPositionAndStyle = (
     
     // Special handling for single day reservation (same day check-in and check-out)
     if (isSameDay(normalizedStartDate, normalizedEndDate)) {
-      borderRadiusStyle = adjustLeftForAdjacency || adjustRightForAdjacency ? 
-        'rounded-none' : 'rounded-full';
-      console.log('Single day reservation - using', borderRadiusStyle);
+      borderRadiusStyle = 'rounded-full';
+      console.log('Single day reservation - using rounded-full');
     } 
     // Special handling for reservation that spans one night (two days)
     else if (
@@ -102,24 +76,16 @@ export const calculateBarPositionAndStyle = (
       !continuesToNext && 
       (endPos - startPos === 1 || (startPos === endPos && !isSameDay(normalizedStartDate, normalizedEndDate)))
     ) {
-      if (adjustLeftForAdjacency && adjustRightForAdjacency) {
-        borderRadiusStyle = 'rounded-none';
-      } else if (adjustLeftForAdjacency) {
-        borderRadiusStyle = 'rounded-r-lg';
-      } else if (adjustRightForAdjacency) {
-        borderRadiusStyle = 'rounded-l-lg';
-      } else {
-        borderRadiusStyle = 'rounded-lg';
-      }
-      console.log('Two-day reservation - using', borderRadiusStyle);
+      borderRadiusStyle = 'rounded-lg';
+      console.log('Two-day reservation - using rounded-lg');
     }
     // Multiple day reservation
     else {
-      if (!continuesFromPrevious && !adjustLeftForAdjacency) {
+      if (!continuesFromPrevious) {
         borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
       }
       
-      if (!continuesToNext && !adjustRightForAdjacency) {
+      if (!continuesToNext) {
         borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
       }
       

@@ -19,7 +19,6 @@ interface RelationshipBlockBarProps {
   lane: number;
   laneHeight: number;
   baseOffset: number;
-  adjacencyMap?: Record<string, any>;
 }
 
 const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
@@ -28,8 +27,7 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
   weekIndex,
   lane,
   laneHeight,
-  baseOffset,
-  adjacencyMap = {}
+  baseOffset
 }) => {
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
@@ -49,10 +47,7 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
     continuesToNext,
     week,
     block.startDate,
-    block.endDate,
-    false, // Not forcing continuous
-    block.id,
-    adjacencyMap
+    block.endDate
   );
   
   // Calculate vertical position relative to the week

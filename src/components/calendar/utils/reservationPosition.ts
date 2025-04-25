@@ -1,6 +1,6 @@
 
 import { normalizeDate } from "./dateUtils";
-import { isSameDay, isAfter, isBefore, addDays, endOfDay, startOfDay } from "date-fns";
+import { isSameDay, isAfter, isBefore, addDays } from "date-fns";
 
 /**
  * Find positions for a reservation in a week
@@ -106,50 +106,4 @@ export const findReservationPositionInWeek = (
   console.log(`Final positions: startPos=${startPos}, endPos=${endPos}, continuesFromPrevious=${continuesFromPrevious}, continuesToNext=${continuesToNext}`);
   
   return { startPos, endPos, continuesFromPrevious, continuesToNext };
-};
-
-/**
- * Enhanced function to find adjacent reservations by comparing dates
- */
-export const findAdjacentReservations = (
-  reservations: Array<{ id: string; startDate: Date; endDate: Date; type?: string }>
-) => {
-  const adjacencyMap: Record<string, { 
-    endsAtStartOf: string[]; 
-    startsAtEndOf: string[];
-    type?: string;
-  }> = {};
-  
-  // Initialize adjacency map
-  reservations.forEach(res => {
-    adjacencyMap[res.id] = { 
-      endsAtStartOf: [], 
-      startsAtEndOf: [],
-      type: res.type
-    };
-  });
-  
-  // O(n^2) comparison, but typically reservation lists are small
-  for (let i = 0; i < reservations.length; i++) {
-    const res1 = reservations[i];
-    const normalizedEnd1 = normalizeDate(new Date(res1.endDate));
-    const normalizedStart1 = normalizeDate(new Date(res1.startDate));
-    
-    for (let j = 0; j < reservations.length; j++) {
-      if (i === j) continue; // Skip self-comparison
-      
-      const res2 = reservations[j];
-      const normalizedStart2 = normalizeDate(new Date(res2.startDate));
-      const normalizedEnd2 = normalizeDate(new Date(res2.endDate));
-      
-      // Check if res1 ends exactly when res2 starts
-      if (isSameDay(normalizedEnd1, normalizedStart2)) {
-        adjacencyMap[res1.id].endsAtStartOf.push(res2.id);
-        adjacencyMap[res2.id].startsAtEndOf.push(res1.id);
-        console.log(`Adjacency detected: ${res1.id} ends at the start of ${res2.id}`);
-      }
-    }
-  }
-  
-  return adjacencyMap;
 };

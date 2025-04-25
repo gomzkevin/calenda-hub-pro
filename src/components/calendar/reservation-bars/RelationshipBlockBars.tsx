@@ -10,7 +10,6 @@ interface RelationshipBlockBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
-  adjacencyMap?: Record<string, any>;
 }
 
 const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
@@ -19,8 +18,7 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
   weekRelationshipBlockLanes,
   laneHeight,
   baseOffset,
-  laneGap,
-  adjacencyMap = {}
+  laneGap
 }) => {
   // Early return if no blocks
   if (!relationshipBlocks || relationshipBlocks.length === 0) return null;
@@ -62,7 +60,7 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
               
               if (!hasIntersection) return null;
               
-              // Get lane assignment for this block in this week
+              // Always use lane 0 in our simplified approach
               const lane = weekRelationshipBlockLanes[weekIndex]?.[block.id] || 0;
               
               return (
@@ -74,7 +72,6 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
-                  adjacencyMap={adjacencyMap}
                 />
               );
             })}

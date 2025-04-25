@@ -14,7 +14,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ day, index }) => {
     <div 
       key={`header-${index}`}
       className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
-        isToday ? 'bg-blue-100 border-blue-500 border-2 text-blue-700' : ''
+        isToday ? 'bg-blue-50' : ''
       }`}
     >
       <span>{format(day, 'EEE')}</span>

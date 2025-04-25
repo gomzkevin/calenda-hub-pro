@@ -10,7 +10,6 @@ interface PropagatedBlockBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
-  adjacencyMap?: Record<string, any>;
 }
 
 const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
@@ -19,8 +18,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
   weekPropagatedBlockLanes,
   laneHeight,
   baseOffset,
-  laneGap,
-  adjacencyMap = {}
+  laneGap
 }) => {
   // Early return if no blocks
   if (!propagatedBlocks || propagatedBlocks.length === 0) return null;
@@ -62,7 +60,7 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
               
               if (!hasIntersection) return null;
               
-              // Get lane assignment for this block in this week
+              // Always use lane 0 in our simplified approach
               const lane = weekPropagatedBlockLanes[weekIndex]?.[block.id] || 0;
               
               return (
@@ -74,7 +72,6 @@ const PropagatedBlockBars: React.FC<PropagatedBlockBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
-                  adjacencyMap={adjacencyMap}
                 />
               );
             })}

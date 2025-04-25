@@ -10,7 +10,6 @@ interface RegularReservationBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
-  adjacencyMap?: Record<string, any>;
 }
 
 const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
@@ -19,8 +18,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   weekReservationLanes,
   laneHeight,
   baseOffset,
-  laneGap,
-  adjacencyMap = {}
+  laneGap
 }) => {
   return (
     <>
@@ -75,8 +73,6 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
-                  forceContinuous={false}
-                  adjacencyMap={adjacencyMap}
                 />
               );
             })}

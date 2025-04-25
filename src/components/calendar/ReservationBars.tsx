@@ -1,10 +1,9 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Reservation } from '@/types';
 import RegularReservationBars from './reservation-bars/RegularReservationBars';
 import RelationshipBlockBars from './reservation-bars/RelationshipBlockBars';
 import PropagatedBlockBars from './reservation-bars/PropagatedBlockBars';
-import { findAdjacentReservations } from './utils/reservationPosition';
 
 interface ReservationBarsProps {
   weeks: (Date | null)[][];
@@ -25,22 +24,15 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   weekRelationshipBlockLanes,
   weekPropagatedBlockLanes
 }) => {
-  // Adjusted constants for better vertical spacing and visual separation
-  const laneHeight = 26; // Height for each lane
-  const baseOffset = 28; // Base offset from the top
-  const laneGap = 2;    // Gap between different types of lanes
+  // Adjusted constants for better vertical spacing
+  const laneHeight = 26; // Increased height for better separation
+  const baseOffset = 28; // Adjusted base offset
+  const laneGap = 2;    // Gap between lanes
   
-  // Calculate adjacency information between all reservation types
-  const adjacencyMap = useMemo(() => {
-    // Combine all reservations and blocks for adjacency detection
-    const allItems = [
-      ...(filteredReservations || []).map(r => ({ ...r, type: 'regular' })),
-      ...(relationshipBlocks || []).map(r => ({ ...r, type: 'relationship' })),
-      ...(propagatedBlocks || []).map(r => ({ ...r, type: 'propagated' }))
-    ];
-    
-    return findAdjacentReservations(allItems);
-  }, [filteredReservations, relationshipBlocks, propagatedBlocks]);
+  // Debug outputs
+  console.log('ReservationBars - filteredReservations:', filteredReservations?.length);
+  console.log('ReservationBars - relationshipBlocks:', relationshipBlocks?.length);
+  console.log('ReservationBars - propagatedBlocks:', propagatedBlocks?.length);
   
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -52,7 +44,6 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
         laneHeight={laneHeight}
         baseOffset={baseOffset}
         laneGap={laneGap}
-        adjacencyMap={adjacencyMap}
       />
       
       {/* Relationship Block Bars (parent-child blocks) - MEDIUM PRIORITY */}
@@ -64,7 +55,6 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
           laneHeight={laneHeight}
           baseOffset={baseOffset + laneHeight + laneGap}
           laneGap={laneGap}
-          adjacencyMap={adjacencyMap}
         />
       )}
       
@@ -77,7 +67,6 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
           laneHeight={laneHeight}
           baseOffset={baseOffset + (2 * (laneHeight + laneGap))}
           laneGap={laneGap}
-          adjacencyMap={adjacencyMap}
         />
       )}
     </div>
