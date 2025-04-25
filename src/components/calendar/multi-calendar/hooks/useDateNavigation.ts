@@ -1,22 +1,22 @@
 
 import { useState, useMemo } from 'react';
-import { addDays } from 'date-fns';
+import { addDays, subDays } from 'date-fns';
 
-// Define the number of days to show in the multi-calendar view
 const DAYS_TO_SHOW = 15;
+const DAYS_BEFORE_TODAY = 4;
 
 export const useDateNavigation = () => {
-  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const today = new Date();
+    return subDays(today, DAYS_BEFORE_TODAY);
+  });
   
-  // Generate array of visible days
   const visibleDays = useMemo(() => 
     Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startDate, i)),
   [startDate]);
   
-  // Calculate end date
   const endDate = useMemo(() => addDays(startDate, DAYS_TO_SHOW - 1), [startDate]);
   
-  // Navigation handlers
   const goForward = () => {
     setStartDate(addDays(startDate, DAYS_TO_SHOW));
   };
