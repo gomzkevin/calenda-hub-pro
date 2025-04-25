@@ -13,7 +13,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ day, index }) => {
   return (
     <div 
       key={`header-${index}`}
-      className={`min-w-[80px] w-[80px] h-10 flex flex-col items-center justify-center font-medium text-xs border-r ${
+      className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
         isToday ? 'bg-blue-50' : ''
       }`}
     >
