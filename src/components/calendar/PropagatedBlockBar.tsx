@@ -65,7 +65,8 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
               top: `${verticalPosition}px`,
               left: barLeft,
               width: barWidth,
-              minWidth: '30px'
+              minWidth: '30px',
+              zIndex: 10 // Estableciendo un z-index más bajo para los bloques propagados
             }}
           >
             <Lock size={12} className="shrink-0" />
