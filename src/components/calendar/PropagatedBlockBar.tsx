@@ -19,6 +19,7 @@ interface PropagatedBlockBarProps {
   lane: number;
   laneHeight: number;
   baseOffset: number;
+  adjacencyMap?: Record<string, any>;
 }
 
 const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
@@ -27,7 +28,8 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
   weekIndex,
   lane,
   laneHeight,
-  baseOffset
+  baseOffset,
+  adjacencyMap = {}
 }) => {
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
@@ -47,7 +49,10 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
     continuesToNext,
     week,
     block.startDate,
-    block.endDate
+    block.endDate,
+    false, // Not forcing continuous
+    block.id,
+    adjacencyMap
   );
   
   // Calculate vertical position relative to the week

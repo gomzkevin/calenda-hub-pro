@@ -10,6 +10,7 @@ interface RegularReservationBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
+  adjacencyMap?: Record<string, any>;
 }
 
 const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
@@ -18,7 +19,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   weekReservationLanes,
   laneHeight,
   baseOffset,
-  laneGap
+  laneGap,
+  adjacencyMap = {}
 }) => {
   return (
     <>
@@ -64,9 +66,6 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
               // Get lane assignment for this reservation in this week
               const lane = weekReservationLanes[weekIndex]?.[reservation.id] || 0;
               
-              // Check adjacent weeks for continuity (for visual continuity with blocks)
-              const forceContinuous = false;
-              
               return (
                 <ReservationBar
                   key={`res-${weekIndex}-${reservation.id}`}
@@ -76,7 +75,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
                   lane={lane}
                   laneHeight={laneHeight}
                   baseOffset={baseOffset}
-                  forceContinuous={forceContinuous}
+                  forceContinuous={false}
+                  adjacencyMap={adjacencyMap}
                 />
               );
             })}

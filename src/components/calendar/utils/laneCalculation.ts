@@ -3,7 +3,7 @@ import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
 
 /**
- * Improved lane calculation with better week-specific filtering and priority lanes
+ * Unified lane calculation with better week-specific filtering and adjacency awareness
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -58,7 +58,7 @@ export const calculateReservationLanes = (
       dayLaneMap[dayIndex] = [];
     });
     
-    // Mejorado: Asignar lanes con un algoritmo de "mejor ajuste"
+    // Mejorado: Asignar lanes con un algoritmo de "mejor ajuste" y conciencia de adyacencia
     weekReservations.forEach(reservation => {
       const normalizedStartDate = normalizeDate(new Date(reservation.startDate));
       const normalizedEndDate = normalizeDate(new Date(reservation.endDate));
@@ -141,7 +141,7 @@ const getPriorityValue = (reservation: Reservation): number => {
 };
 
 /**
- * Improved block lanes calculation with better overlap detection
+ * Improved block lanes calculation with better overlap detection and adjacency awareness
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
@@ -190,7 +190,7 @@ export const calculateBlockLanes = (
       dayLaneMap[dayIndex] = [];
     });
     
-    // Mejorado: Asignar lanes con detección de superposición
+    // Mejorado: Asignar lanes con detección de superposición y adyacencia
     weekBlocks.forEach(block => {
       const normalizedStartDate = normalizeDate(new Date(block.startDate));
       const normalizedEndDate = normalizeDate(new Date(block.endDate));

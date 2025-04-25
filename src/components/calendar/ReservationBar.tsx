@@ -21,6 +21,7 @@ interface ReservationBarProps {
   laneHeight: number;
   baseOffset: number;
   forceContinuous?: boolean;
+  adjacencyMap?: Record<string, any>;
 }
 
 const ReservationBar: React.FC<ReservationBarProps> = ({
@@ -30,7 +31,8 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   lane,
   laneHeight,
   baseOffset,
-  forceContinuous = false
+  forceContinuous = false,
+  adjacencyMap = {}
 }) => {
   // Ensure dates are properly parsed and normalized
   const startDate = normalizeDate(new Date(reservation.startDate));
@@ -39,7 +41,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   console.log(`==== Processing reservation ${reservation.id} ====`);
   console.log(`Reservation dates: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
   console.log(`Week dates: ${week[0]?.toLocaleDateString() || 'null'} to ${week[6]?.toLocaleDateString() || 'null'}`);
-  console.log(`Force continuous: ${forceContinuous}`);
   
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
@@ -63,7 +64,9 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     week,
     startDate,
     endDate,
-    forceContinuous
+    forceContinuous,
+    reservation.id,
+    adjacencyMap
   );
   
   // Calculate vertical position relative to the week
