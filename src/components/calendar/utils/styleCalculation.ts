@@ -48,9 +48,26 @@ export const calculateBarPositionAndStyle = (
     isCheckInDay = true;
   }
   
-  // Calculate cell width percentages with room for check-in/out visual separation
-  const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
-  const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
+  // Calculate cell width percentages with adjustments for propagated and original blocks
+  let cellStartOffset = 0;
+  let cellEndOffset = 0;
+  
+  if (forceContinuous) {
+    cellStartOffset = 0;
+    cellEndOffset = 1;
+  } else if (isPropagatedBlock) {
+    // Propagated blocks should extend to the middle of the checkout date
+    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
+    cellEndOffset = continuesToNext ? 1 : 0.48; // End at the middle of the last day (48%)
+  } else if (isOriginalBlock) {
+    // Original blocks should start from the middle of the checkin date
+    cellStartOffset = continuesFromPrevious ? 0 : 0.52; // Start at the middle of the first day (52%)
+    cellEndOffset = continuesToNext ? 1 : 0.48;
+  } else {
+    // Regular reservations
+    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
+    cellEndOffset = continuesToNext ? 1 : 0.48;
+  }
   
   // Apply offsets
   const adjustedStartPos = startPos + cellStartOffset;
@@ -93,14 +110,14 @@ export const calculateBarPositionAndStyle = (
     else {
       // For propagated blocks: always round the end (right side)
       if (isPropagatedBlock) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+        borderRadiusStyle = ' rounded-r-lg';
         if (!continuesFromPrevious) {
           borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
         }
       }
       // For original blocks: always round the beginning (left side)
       else if (isOriginalBlock) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+        borderRadiusStyle = ' rounded-l-lg';
         if (!continuesToNext) {
           borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
         }
@@ -108,7 +125,7 @@ export const calculateBarPositionAndStyle = (
       // Regular processing for other elements
       else {
         if (!continuesFromPrevious) {
-          borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+          borderRadiusStyle = 'rounded-l-lg';
         }
         
         if (!continuesToNext) {
