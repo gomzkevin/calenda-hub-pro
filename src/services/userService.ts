@@ -96,7 +96,7 @@ export const createUser = async (
       throw new Error(profileError.message || "Error al obtener el perfil");
     }
 
-    // 3. If property IDs were provided, create access records
+    // 3. If property IDs were provided and current user is admin, create access records
     if (propertyIds.length > 0) {
       // Get the current user ID
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -129,7 +129,7 @@ export const createUser = async (
     };
   } catch (error) {
     console.error("Error completo al crear usuario:", error);
-    // Mapear errores conocidos de Supabase a mensajes más amigables
+    // Map known Supabase errors to friendly messages
     if (error instanceof Error) {
       if (error.message.includes('unique constraint')) {
         throw new Error('El email ya está registrado');
