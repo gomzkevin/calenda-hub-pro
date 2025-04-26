@@ -67,17 +67,25 @@ export const createUser = async (
   propertyIds: string[] = []
 ): Promise<User> => {
   // 1. Create the user in auth
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: true,
-    user_metadata: { name }
+    options: {
+      data: { name }
+    }
   });
 
   if (authError) {
     console.error("Error creating user:", authError);
     throw authError;
   }
+
+  if (!authData.user) {
+    throw new Error("No user returned from sign up");
+  }
+
+  // Sleep to ensure the trigger has time to create the profile
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // 2. Get the user profile that was automatically created by the trigger
   const { data: profile, error: profileError } = await supabase

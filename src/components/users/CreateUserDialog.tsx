@@ -46,8 +46,12 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       onOpenChange(false);
     },
     onError: (error) => {
-      toast.error('Error al crear el usuario');
       console.error('Error creating user:', error);
+      if (error.message.includes('User already registered')) {
+        toast.error('El email ya está registrado');
+      } else {
+        toast.error('Error al crear el usuario');
+      }
     }
   });
   

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserPropertyAccess, updateUserPropertyAccess } from '@/services/userService';
@@ -21,7 +21,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   onOpenChange,
 }) => {
   const queryClient = useQueryClient();
-  const [selectedProperties, setSelectedProperties] = React.useState<string[]>([]);
+  const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   
   const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
@@ -29,17 +29,18 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
     enabled: open
   });
   
-  const { data: userAccess = [] } = useQuery({
+  const { data: userAccess = [], isLoading: isLoadingAccess } = useQuery({
     queryKey: ['userAccess', user?.id],
     queryFn: () => getUserPropertyAccess(user?.id || ''),
     enabled: !!user && open
   });
   
+  // Update selected properties when userAccess changes, not on every render
   useEffect(() => {
-    if (userAccess) {
+    if (userAccess && !isLoadingAccess) {
       setSelectedProperties(userAccess);
     }
-  }, [userAccess]);
+  }, [userAccess, isLoadingAccess]);
   
   const updateAccessMutation = useMutation({
     mutationFn: () => updateUserPropertyAccess(user?.id || '', selectedProperties),
