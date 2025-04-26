@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Check, X } from 'lucide-react';
+import { Plus, Check, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,10 +26,18 @@ const UsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const queryClient = useQueryClient();
   
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, error, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers
   });
+  
+  // If there's an error, display it
+  React.useEffect(() => {
+    if (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Error al cargar usuarios");
+    }
+  }, [error]);
   
   const updateStatusMutation = useMutation({
     mutationFn: ({ userId, active }: { userId: string; active: boolean }) => 
@@ -71,12 +79,22 @@ const UsersPage: React.FC = () => {
       </div>
       
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Gestión de Usuarios</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refrescar"}
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-4">Cargando usuarios...</div>
+            <div className="text-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+              <p>Cargando usuarios...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-4 text-red-500">
+              Error al cargar usuarios. Intente nuevamente.
+            </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-4">No se encontraron usuarios</div>
           ) : (

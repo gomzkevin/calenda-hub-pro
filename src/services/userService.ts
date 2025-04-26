@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
 /**
- * Get all users with their profiles
+ * Get all users with their profiles based on operator_id
+ * Admin users can see all users in their operator
  */
 export const getUsers = async (): Promise<User[]> => {
   // Get the current user's operator_id first
@@ -12,10 +13,10 @@ export const getUsers = async (): Promise<User[]> => {
     throw new Error("No authenticated user found");
   }
 
-  // Get the current user's profile to find their operator_id
+  // Get the current user's profile to find their operator_id and role
   const { data: currentProfile, error: profileError } = await supabase
     .from("profiles")
-    .select("operator_id")
+    .select("operator_id, role")
     .eq("id", currentUserData.user.id)
     .single();
 
@@ -25,6 +26,9 @@ export const getUsers = async (): Promise<User[]> => {
   }
 
   const operatorId = currentProfile.operator_id;
+  
+  console.log("Current user operator ID:", operatorId);
+  console.log("Current user role:", currentProfile.role);
 
   // Now get all profiles that belong to the same operator
   const { data: profiles, error } = await supabase
@@ -37,6 +41,9 @@ export const getUsers = async (): Promise<User[]> => {
     console.error("Error fetching users:", error);
     throw error;
   }
+
+  console.log("Fetched profiles count:", profiles.length);
+  console.log("Sample profiles:", profiles.slice(0, 2));
   
   return profiles.map((profile) => ({
     id: profile.id,
@@ -108,6 +115,7 @@ export const createUser = async (
     }
     
     const operatorId = currentProfile.operator_id;
+    console.log("Creating user with operator_id:", operatorId);
 
     // 1. Create the user in auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -116,7 +124,7 @@ export const createUser = async (
       options: {
         data: { 
           name,
-          operator_id: operatorId // Pass operator_id to trigger
+          operator_id: operatorId
         }
       }
     });
@@ -130,7 +138,7 @@ export const createUser = async (
       throw new Error("No user returned from sign up");
     }
 
-    // 2. Get the user profile that was automatically created by the trigger
+    // 2. Get the user profile that was created
     const { data: profile, error: newProfileError } = await supabase
       .from("profiles")
       .select("*")
@@ -181,7 +189,6 @@ export const createUser = async (
     };
   } catch (error) {
     console.error("Error completo al crear usuario:", error);
-    // Map known Supabase errors to friendly messages
     if (error instanceof Error) {
       if (error.message.includes('unique constraint')) {
         throw new Error('El email ya está registrado');
