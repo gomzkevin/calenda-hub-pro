@@ -11,6 +11,14 @@ import CreateUserDialog from '@/components/users/CreateUserDialog';
 import UserPropertiesDialog from '@/components/users/UserPropertiesDialog';
 import { toast } from 'sonner';
 import { User } from '@/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const UsersPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -73,36 +81,36 @@ const UsersPage: React.FC = () => {
             <div className="text-center py-4">No se encontraron usuarios</div>
           ) : (
             <div className="relative overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3">Nombre</th>
-                    <th scope="col" className="px-6 py-3">Email</th>
-                    <th scope="col" className="px-6 py-3">Rol</th>
-                    <th scope="col" className="px-6 py-3">Estado</th>
-                    <th scope="col" className="px-6 py-3">Creado</th>
-                    <th scope="col" className="px-6 py-3">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Creado</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="bg-white border-b">
-                      <td className="px-6 py-4 font-medium">{user.name}</td>
-                      <td className="px-6 py-4">{user.email}</td>
-                      <td className="px-6 py-4">
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
                         <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
                           {user.role === 'admin' ? 'Admin' : 'Usuario'}
                         </Badge>
-                      </td>
-                      <td className="px-6 py-4">
+                      </TableCell>
+                      <TableCell>
                         {user.active ? (
                           <Check className="w-5 h-5 text-green-500" />
                         ) : (
                           <X className="w-5 h-5 text-red-500" />
                         )}
-                      </td>
-                      <td className="px-6 py-4">{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4">
+                      </TableCell>
+                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
                         <div className="flex space-x-2">
                           <Button 
                             variant="ghost" 
@@ -126,11 +134,11 @@ const UsersPage: React.FC = () => {
                             {user.active ? 'Desactivar' : 'Activar'}
                           </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

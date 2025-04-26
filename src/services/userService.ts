@@ -6,9 +6,31 @@ import { User } from "@/types";
  * Get all users with their profiles
  */
 export const getUsers = async (): Promise<User[]> => {
+  // Get the current user's operator_id first
+  const { data: currentUserData } = await supabase.auth.getUser();
+  if (!currentUserData.user) {
+    throw new Error("No authenticated user found");
+  }
+
+  // Get the current user's profile to find their operator_id
+  const { data: currentProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("operator_id")
+    .eq("id", currentUserData.user.id)
+    .single();
+
+  if (profileError) {
+    console.error("Error fetching current user profile:", profileError);
+    throw profileError;
+  }
+
+  const operatorId = currentProfile.operator_id;
+
+  // Now get all profiles that belong to the same operator
   const { data: profiles, error } = await supabase
     .from("profiles")
     .select("*")
+    .eq("operator_id", operatorId)
     .order("created_at", { ascending: false });
   
   if (error) {
@@ -67,12 +89,35 @@ export const createUser = async (
   propertyIds: string[] = []
 ): Promise<User> => {
   try {
+    // Get the current user to determine operator_id
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      throw new Error("No authenticated user found");
+    }
+    
+    // Get current user's operator_id
+    const { data: currentProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("operator_id")
+      .eq("id", currentUser.id)
+      .single();
+      
+    if (profileError) {
+      console.error("Error fetching current user profile:", profileError);
+      throw profileError;
+    }
+    
+    const operatorId = currentProfile.operator_id;
+
     // 1. Create the user in auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name }
+        data: { 
+          name,
+          operator_id: operatorId // Pass operator_id to trigger
+        }
       }
     });
 
@@ -86,30 +131,36 @@ export const createUser = async (
     }
 
     // 2. Get the user profile that was automatically created by the trigger
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: newProfileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", authData.user.id)
       .single();
 
-    if (profileError) {
-      console.error("Error fetching created profile:", profileError);
-      throw new Error(profileError.message || "Error al obtener el perfil");
+    if (newProfileError) {
+      console.error("Error fetching created profile:", newProfileError);
+      throw new Error(newProfileError.message || "Error al obtener el perfil");
+    }
+    
+    // Ensure the profile has the correct operator_id
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ operator_id: operatorId })
+      .eq("id", authData.user.id);
+      
+    if (updateError) {
+      console.error("Error updating profile operator_id:", updateError);
     }
 
-    // 3. If property IDs were provided and current user is admin, create access records
+    // 3. If property IDs were provided, create access records
     if (propertyIds.length > 0) {
-      // Get the current user ID
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const currentUserId = currentUser?.id;
-      
       const { error: accessError } = await supabase
         .from("user_property_access")
         .insert(
           propertyIds.map(propertyId => ({
             user_id: authData.user.id,
             property_id: propertyId,
-            created_by: currentUserId
+            created_by: currentUser.id
           }))
         );
 
@@ -121,7 +172,7 @@ export const createUser = async (
 
     return {
       id: profile.id,
-      operatorId: profile.operator_id || '',
+      operatorId: profile.operator_id || operatorId,
       name: profile.name,
       email: profile.email,
       role: profile.role as 'admin' | 'user',
@@ -217,7 +268,7 @@ export const updateUserPropertyAccess = async (
 
   // 2. Create new access records if properties were provided
   if (propertyIds.length > 0) {
-    // Obtener el usuario actual de manera async
+    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user?.id;
     

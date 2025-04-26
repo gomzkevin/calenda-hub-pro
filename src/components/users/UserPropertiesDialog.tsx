@@ -24,13 +24,13 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { data: properties = [] } = useQuery({
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties,
     enabled: open
   });
   
-  const { data: userAccess = [], isLoading: isLoadingAccess } = useQuery({
+  const { data: userAccess = [], isLoading: isLoadingAccess, refetch } = useQuery({
     queryKey: ['userAccess', user?.id],
     queryFn: () => getUserPropertyAccess(user?.id || ''),
     enabled: !!user && open
@@ -43,12 +43,20 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
       setIsLoading(false);
     }
   }, [userAccess, isLoadingAccess]);
+
+  // Reset loading state when dialog opens with a new user
+  useEffect(() => {
+    if (open && user) {
+      setIsLoading(true);
+      refetch();
+    }
+  }, [open, user, refetch]);
   
   const updateAccessMutation = useMutation({
     mutationFn: () => updateUserPropertyAccess(user?.id || '', selectedProperties),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userAccess'] });
-      // Invalidar la consulta de propiedades para actualizar la vista de propiedades en tiempo real
+      // Invalidate properties query to update property views in real-time
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       toast.success('Accesos actualizados exitosamente');
       onOpenChange(false);
@@ -74,7 +82,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
           <DialogTitle>Propiedades - {user.name}</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          {isLoading || isLoadingAccess ? (
+          {isLoading || isLoadingAccess || isLoadingProperties ? (
             <div className="text-center py-4">Cargando accesos...</div>
           ) : (
             <div className="space-y-4">
