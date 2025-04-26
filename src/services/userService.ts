@@ -28,6 +28,36 @@ export const getUsers = async (): Promise<User[]> => {
 };
 
 /**
+ * Get current logged in user with profile data
+ */
+export const getCurrentUser = async (): Promise<User | null> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return null;
+  
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+  
+  if (error || !profile) {
+    console.error("Error fetching user profile:", error);
+    return null;
+  }
+  
+  return {
+    id: profile.id,
+    operatorId: profile.operator_id || '',
+    name: profile.name,
+    email: profile.email,
+    role: profile.role as 'admin' | 'user',
+    active: profile.active,
+    createdAt: new Date(profile.created_at)
+  };
+};
+
+/**
  * Create a new user with specified properties access
  */
 export const createUser = async (
@@ -63,13 +93,17 @@ export const createUser = async (
 
   // 3. If property IDs were provided, create access records
   if (propertyIds.length > 0) {
+    // Obtener el usuario actual de manera async
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id;
+    
     const { error: accessError } = await supabase
       .from("user_property_access")
       .insert(
         propertyIds.map(propertyId => ({
           user_id: authData.user.id,
           property_id: propertyId,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: currentUserId
         }))
       );
 
@@ -110,13 +144,17 @@ export const updateUserPropertyAccess = async (
 
   // 2. Create new access records if properties were provided
   if (propertyIds.length > 0) {
+    // Obtener el usuario actual de manera async
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id;
+    
     const { error: insertError } = await supabase
       .from("user_property_access")
       .insert(
         propertyIds.map(propertyId => ({
           user_id: userId,
           property_id: propertyId,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: currentUserId
         }))
       );
 
