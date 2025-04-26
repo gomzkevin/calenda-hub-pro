@@ -65,70 +65,78 @@ export const createUser = async (
   name: string,
   propertyIds: string[] = []
 ): Promise<User> => {
-  // 1. Create the user in auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name }
+  try {
+    // 1. Create the user in auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name }
+      }
+    });
+
+    if (authError) {
+      console.error("Error detallado al crear usuario:", authError);
+      throw new Error(authError.message || "Error al crear el usuario");
     }
-  });
 
-  if (authError) {
-    console.error("Error creating user:", authError);
-    throw authError;
-  }
-
-  if (!authData.user) {
-    throw new Error("No user returned from sign up");
-  }
-
-  // Sleep to ensure the trigger has time to create the profile
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // 2. Get the user profile that was automatically created by the trigger
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", authData.user.id)
-    .single();
-
-  if (profileError) {
-    console.error("Error fetching created profile:", profileError);
-    throw profileError;
-  }
-
-  // 3. If property IDs were provided, create access records
-  if (propertyIds.length > 0) {
-    // Get the current user ID
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUserId = user?.id;
-    
-    const { error: accessError } = await supabase
-      .from("user_property_access")
-      .insert(
-        propertyIds.map(propertyId => ({
-          user_id: authData.user.id,
-          property_id: propertyId,
-          created_by: currentUserId
-        }))
-      );
-
-    if (accessError) {
-      console.error("Error creating property access:", accessError);
-      throw accessError;
+    if (!authData.user) {
+      throw new Error("No user returned from sign up");
     }
-  }
 
-  return {
-    id: profile.id,
-    operatorId: profile.operator_id || '',
-    name: profile.name,
-    email: profile.email,
-    role: profile.role as 'admin' | 'user',
-    active: profile.active,
-    createdAt: new Date(profile.created_at)
-  };
+    // 2. Get the user profile that was automatically created by the trigger
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Error fetching created profile:", profileError);
+      throw new Error(profileError.message || "Error al obtener el perfil");
+    }
+
+    // 3. If property IDs were provided, create access records
+    if (propertyIds.length > 0) {
+      // Get the current user ID
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const currentUserId = currentUser?.id;
+      
+      const { error: accessError } = await supabase
+        .from("user_property_access")
+        .insert(
+          propertyIds.map(propertyId => ({
+            user_id: authData.user.id,
+            property_id: propertyId,
+            created_by: currentUserId
+          }))
+        );
+
+      if (accessError) {
+        console.error("Error creating property access:", accessError);
+        throw new Error(accessError.message || "Error al crear accesos a propiedades");
+      }
+    }
+
+    return {
+      id: profile.id,
+      operatorId: profile.operator_id || '',
+      name: profile.name,
+      email: profile.email,
+      role: profile.role as 'admin' | 'user',
+      active: profile.active,
+      createdAt: new Date(profile.created_at)
+    };
+  } catch (error) {
+    console.error("Error completo al crear usuario:", error);
+    // Mapear errores conocidos de Supabase a mensajes más amigables
+    if (error instanceof Error) {
+      if (error.message.includes('unique constraint')) {
+        throw new Error('El email ya está registrado');
+      }
+    }
+    throw error;
+  }
 };
 
 /**
