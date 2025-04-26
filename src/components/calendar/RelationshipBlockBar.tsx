@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
@@ -67,7 +66,7 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
               left: barLeft,
               width: barWidth,
               minWidth: '30px',
-              zIndex: 12 // Estableciendo un z-index más alto para los bloques originales
+              zIndex: 10
             }}
           >
             <Lock size={12} className="shrink-0" />

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { Reservation } from '@/types';
@@ -91,7 +90,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
               left: barLeft,
               width: barWidth,
               minWidth: '30px',
-              zIndex: 20
+              zIndex: 15
             }}
           >
             <span className="truncate">{displayLabel}</span>

@@ -34,28 +34,26 @@ export const calculateBarPositionAndStyle = (
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
 
-  // Calculate cell width percentages with fixed offsets based on exact type
+  // Calculate cell width percentages with adjusted offsets
   let cellStartOffset = 0;
   let cellEndOffset = 0;
   
-  // Force continuous takes precedence over everything else
+  // Force continuous takes precedence
   if (forceContinuous) {
     cellStartOffset = 0;
     cellEndOffset = 1;
   } 
-  // Propagated blocks always end exactly at half-cell
+  // Propagated blocks end at 45%
   else if (isPropagatedBlock) {
-    // Always start at 0% and end at exactly 50%
     cellStartOffset = 0;
-    cellEndOffset = 0.5;
+    cellEndOffset = 0.45;
   } 
-  // Original blocks always start exactly at half-cell
+  // Original blocks start at 55%
   else if (isOriginalBlock) {
-    // Always start at exactly 50% and end at 100%
-    cellStartOffset = 0.5;
+    cellStartOffset = 0.55;
     cellEndOffset = 1;
   } 
-  // Regular blocks with default behavior
+  // Regular blocks
   else {
     cellStartOffset = continuesFromPrevious ? 0 : 0.52;
     cellEndOffset = continuesToNext ? 1 : 0.48;
@@ -65,7 +63,7 @@ export const calculateBarPositionAndStyle = (
   const adjustedStartPos = startPos + cellStartOffset;
   const adjustedEndPos = endPos + cellEndOffset;
   
-  // Calculate percentage values for positioning
+  // Calculate percentage values
   const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
   const barLeft = `${(adjustedStartPos / 7) * 100}%`;
   
@@ -75,56 +73,43 @@ export const calculateBarPositionAndStyle = (
   // Define border radius style
   let borderRadiusStyle = '';
 
-  // If forceContinuous, always use no radius
   if (forceContinuous) {
     borderRadiusStyle = 'rounded-none';
-    console.log('Forced continuous segment - using no rounding');
   } else {
     // Normalize dates for comparison
     const normalizedStartDate = normalizeDate(new Date(startDate));
     const normalizedEndDate = normalizeDate(new Date(endDate));
     
-    // Special handling for single day reservation
+    // Single day reservation
     if (isSameDay(normalizedStartDate, normalizedEndDate)) {
       borderRadiusStyle = 'rounded-full';
-      console.log('Single day reservation - using rounded-full');
     } 
-    // Special handling for one night stays
+    // One night stays
     else if (
       !continuesFromPrevious && 
       !continuesToNext && 
       (endPos - startPos === 1 || (startPos === endPos && !isSameDay(normalizedStartDate, normalizedEndDate)))
     ) {
       borderRadiusStyle = 'rounded-lg';
-      console.log('Two-day reservation - using rounded-lg');
     }
     // Multiple day reservation
     else {
       if (isPropagatedBlock) {
-        // Propagated blocks should ALWAYS have right rounded corner
-        // and only have left rounded corner if it's the beginning
         borderRadiusStyle = 'rounded-r-lg';
         if (!continuesFromPrevious) {
           borderRadiusStyle = `${borderRadiusStyle} rounded-l-lg`;
         }
       }
       else if (isOriginalBlock) {
-        // Original blocks should ALWAYS have left rounded corner
-        // and only have right rounded corner if it's the end
         borderRadiusStyle = 'rounded-l-lg';
         if (!continuesToNext) {
           borderRadiusStyle = `${borderRadiusStyle} rounded-r-lg`;
         }
       }
       else {
-        // Regular blocks
-        let roundings = [];
-        if (!continuesFromPrevious) roundings.push('rounded-l-lg');
-        if (!continuesToNext) roundings.push('rounded-r-lg');
-        borderRadiusStyle = roundings.join(' ');
+        if (!continuesFromPrevious) borderRadiusStyle += ' rounded-l-lg';
+        if (!continuesToNext) borderRadiusStyle += ' rounded-r-lg';
       }
-      
-      console.log(`Multiple day reservation - using ${borderRadiusStyle}`);
     }
   }
   
