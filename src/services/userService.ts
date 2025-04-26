@@ -65,78 +65,70 @@ export const createUser = async (
   name: string,
   propertyIds: string[] = []
 ): Promise<User> => {
-  try {
-    // Primero, intentamos obtener el usuario actual para verificar sus permisos
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser) {
-      throw new Error("No hay usuario autenticado");
+  // 1. Create the user in auth
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name }
     }
+  });
 
-    console.log("Usuario actual:", currentUser);
-    console.log("Email del usuario actual:", currentUser.email);
-
-    // 1. Crear el usuario usando el método admin
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { name }
-    });
-
-    if (authError) {
-      console.error("Error detallado al crear usuario:", authError);
-      throw authError;
-    }
-
-    if (!authData.user) {
-      throw new Error("No se devolvió ningún usuario al crear");
-    }
-
-    // 2. Obtener el perfil que fue creado automáticamente por el trigger
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", authData.user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error al obtener el perfil:", profileError);
-      throw profileError;
-    }
-
-    // 3. Si se proporcionaron IDs de propiedades, crear registros de acceso
-    if (propertyIds.length > 0) {
-      const { error: accessError } = await supabase
-        .from("user_property_access")
-        .insert(
-          propertyIds.map(propertyId => ({
-            user_id: authData.user.id,
-            property_id: propertyId,
-            created_by: currentUser.id
-          }))
-        );
-
-      if (accessError) {
-        console.error("Error al crear accesos a propiedades:", accessError);
-        throw accessError;
-      }
-    }
-
-    return {
-      id: profile.id,
-      operatorId: profile.operator_id || '',
-      name: profile.name,
-      email: profile.email,
-      role: profile.role as 'admin' | 'user',
-      active: profile.active,
-      createdAt: new Date(profile.created_at)
-    };
-
-  } catch (error) {
-    console.error("Error completo al crear usuario:", error);
-    throw error;
+  if (authError) {
+    console.error("Error creating user:", authError);
+    throw authError;
   }
+
+  if (!authData.user) {
+    throw new Error("No user returned from sign up");
+  }
+
+  // Sleep to ensure the trigger has time to create the profile
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 2. Get the user profile that was automatically created by the trigger
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", authData.user.id)
+    .single();
+
+  if (profileError) {
+    console.error("Error fetching created profile:", profileError);
+    throw profileError;
+  }
+
+  // 3. If property IDs were provided, create access records
+  if (propertyIds.length > 0) {
+    // Get the current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id;
+    
+    const { error: accessError } = await supabase
+      .from("user_property_access")
+      .insert(
+        propertyIds.map(propertyId => ({
+          user_id: authData.user.id,
+          property_id: propertyId,
+          created_by: currentUserId
+        }))
+      );
+
+    if (accessError) {
+      console.error("Error creating property access:", accessError);
+      throw accessError;
+    }
+  }
+
+  return {
+    id: profile.id,
+    operatorId: profile.operator_id || '',
+    name: profile.name,
+    email: profile.email,
+    role: profile.role as 'admin' | 'user',
+    active: profile.active,
+    createdAt: new Date(profile.created_at)
+  };
 };
 
 /**

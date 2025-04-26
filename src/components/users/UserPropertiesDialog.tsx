@@ -35,7 +35,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
     enabled: !!user && open
   });
   
-  // Update selected properties when userAccess changes, not on every render
+  // Update selected properties when userAccess changes and component is mounted
   useEffect(() => {
     if (userAccess && !isLoadingAccess) {
       setSelectedProperties(userAccess);
