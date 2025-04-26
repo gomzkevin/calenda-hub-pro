@@ -22,6 +22,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
@@ -39,6 +40,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   useEffect(() => {
     if (userAccess && !isLoadingAccess) {
       setSelectedProperties(userAccess);
+      setIsLoading(false);
     }
   }, [userAccess, isLoadingAccess]);
   
@@ -46,6 +48,8 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
     mutationFn: () => updateUserPropertyAccess(user?.id || '', selectedProperties),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userAccess'] });
+      // Invalidar la consulta de propiedades para actualizar la vista de propiedades en tiempo real
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
       toast.success('Accesos actualizados exitosamente');
       onOpenChange(false);
     },
@@ -70,36 +74,40 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
           <DialogTitle>Propiedades - {user.name}</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <div className="space-y-4">
-            {properties.map((property) => (
-              <div key={property.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={property.id}
-                  checked={selectedProperties.includes(property.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedProperties([...selectedProperties, property.id]);
-                    } else {
-                      setSelectedProperties(
-                        selectedProperties.filter((id) => id !== property.id)
-                      );
-                    }
-                  }}
-                />
-                <label
-                  htmlFor={property.id}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {property.name}
-                </label>
-              </div>
-            ))}
-          </div>
+          {isLoading || isLoadingAccess ? (
+            <div className="text-center py-4">Cargando accesos...</div>
+          ) : (
+            <div className="space-y-4">
+              {properties.map((property) => (
+                <div key={property.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={property.id}
+                    checked={selectedProperties.includes(property.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedProperties([...selectedProperties, property.id]);
+                      } else {
+                        setSelectedProperties(
+                          selectedProperties.filter((id) => id !== property.id)
+                        );
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor={property.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {property.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button 
             onClick={handleSave}
-            disabled={updateAccessMutation.isPending}
+            disabled={updateAccessMutation.isPending || isLoading}
           >
             {updateAccessMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
