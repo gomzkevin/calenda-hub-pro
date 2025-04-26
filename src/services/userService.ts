@@ -140,6 +140,63 @@ export const createUser = async (
 };
 
 /**
+ * Update user profile information
+ */
+export const updateUserProfile = async (
+  userId: string,
+  data: { name: string; email: string }
+): Promise<User> => {
+  // Update auth email if changed
+  if (data.email) {
+    const { error: authError } = await supabase.auth.updateUser({
+      email: data.email,
+    });
+
+    if (authError) {
+      console.error("Error updating auth email:", authError);
+      throw new Error(authError.message);
+    }
+  }
+
+  // Update profile data
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .update({ name: data.name, email: data.email })
+    .eq("id", userId)
+    .select()
+    .single();
+
+  if (profileError) {
+    console.error("Error updating profile:", profileError);
+    throw new Error(profileError.message);
+  }
+
+  return {
+    id: profile.id,
+    operatorId: profile.operator_id || '',
+    name: profile.name,
+    email: profile.email,
+    role: profile.role as 'admin' | 'user',
+    active: profile.active,
+    createdAt: new Date(profile.created_at)
+  };
+};
+
+/**
+ * Update user password
+ */
+export const updateUserPassword = async (password: string): Promise<void> => {
+  const { error } = await supabase.auth.updateUser({
+    password: password,
+  });
+
+  if (error) {
+    console.error("Error updating password:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
  * Update user property access
  */
 export const updateUserPropertyAccess = async (

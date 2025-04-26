@@ -1,96 +1,175 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { sampleOperator } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { getCurrentUser, updateUserProfile, updateUserPassword } from '@/services/userService';
+import { toast } from 'sonner';
+import { User } from '@/types';
 
 const SettingsPage: React.FC = () => {
-  const operator = sampleOperator;
-  
+  const { user: authUser } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    currentPassword: '',
+    newPassword: '',
+  });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (authUser) {
+        const userData = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+          setFormData(prev => ({
+            ...prev,
+            name: userData.name,
+            email: userData.email,
+          }));
+        }
+      }
+    };
+    fetchUser();
+  }, [authUser]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const updatedUser = await updateUserProfile(user.id, {
+        name: formData.name,
+        email: formData.email,
+      });
+      setUser(updatedUser);
+      toast.success('Perfil actualizado exitosamente');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar el perfil');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.currentPassword || !formData.newPassword) {
+      toast.error('Por favor complete todos los campos');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateUserPassword(formData.newPassword);
+      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
+      toast.success('Contraseña actualizada exitosamente');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar la contraseña');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  if (!user) return null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">Configuración</h1>
       </div>
       
-      <Tabs defaultValue="operator">
+      <Tabs defaultValue="account">
         <TabsList>
-          <TabsTrigger value="operator">Operator</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="account">Cuenta</TabsTrigger>
+          <TabsTrigger value="password">Contraseña</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="operator">
-          <Card>
-            <CardHeader>
-              <CardTitle>Operator Settings</CardTitle>
-              <CardDescription>
-                Manage your company information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="company-name">Company Name</Label>
-                <Input id="company-name" defaultValue={operator.name} />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="company-slug">Company Slug</Label>
-                <Input id="company-slug" defaultValue={operator.slug} />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="company-logo">Logo URL</Label>
-                <Input id="company-logo" defaultValue={operator.logoUrl || ''} />
-              </div>
-              
-              <Button>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
         
         <TabsContent value="account">
           <Card>
             <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
+              <CardTitle>Información de la cuenta</CardTitle>
               <CardDescription>
-                Manage your account information
+                Administra tu información personal
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" defaultValue="Admin User" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="admin@example.com" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" value="********" />
-              </div>
-              
-              <Button>Update Account</Button>
+            <CardContent>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="notifications">
+        <TabsContent value="password">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
+              <CardTitle>Cambiar contraseña</CardTitle>
               <CardDescription>
-                Manage your notification preferences
+                Actualiza tu contraseña
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Notification settings coming in a future update.</p>
+              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Contraseña actual</Label>
+                  <Input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    value={formData.currentPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nueva contraseña</Label>
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    value={formData.newPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Actualizando...' : 'Actualizar contraseña'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
