@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserPropertyAccess, updateUserPropertyAccess } from '@/services/userService';
@@ -21,44 +21,30 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   onOpenChange,
 }) => {
   const queryClient = useQueryClient();
-  const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedProperties, setSelectedProperties] = React.useState<string[]>([]);
   
-  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
+  const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties,
     enabled: open
   });
   
-  const { data: userAccess = [], isLoading: isLoadingAccess, refetch } = useQuery({
+  const { data: userAccess = [] } = useQuery({
     queryKey: ['userAccess', user?.id],
     queryFn: () => getUserPropertyAccess(user?.id || ''),
     enabled: !!user && open
   });
   
-  // Update selected properties when userAccess changes and component is mounted
   useEffect(() => {
-    if (userAccess && !isLoadingAccess) {
-      console.log("User access loaded for user:", user?.id, userAccess);
+    if (userAccess) {
       setSelectedProperties(userAccess);
-      setIsLoading(false);
     }
-  }, [userAccess, isLoadingAccess, user?.id]);
-
-  // Reset loading state when dialog opens with a new user
-  useEffect(() => {
-    if (open && user) {
-      setIsLoading(true);
-      refetch();
-    }
-  }, [open, user, refetch]);
+  }, [userAccess]);
   
   const updateAccessMutation = useMutation({
     mutationFn: () => updateUserPropertyAccess(user?.id || '', selectedProperties),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userAccess'] });
-      queryClient.invalidateQueries({ queryKey: ['properties'] });
-      queryClient.invalidateQueries({ queryKey: ['users'] }); // Also invalidate users to refresh any UI related to access
       toast.success('Accesos actualizados exitosamente');
       onOpenChange(false);
     },
@@ -70,7 +56,6 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   
   const handleSave = () => {
     if (user) {
-      console.log("Saving properties access for user:", user.id, selectedProperties);
       updateAccessMutation.mutate();
     }
   };
@@ -84,46 +69,36 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
           <DialogTitle>Propiedades - {user.name}</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          {isLoading || isLoadingAccess || isLoadingProperties ? (
-            <div className="text-center py-4">Cargando accesos...</div>
-          ) : (
-            <div className="space-y-4">
-              {properties.length === 0 ? (
-                <div className="text-center text-muted-foreground py-2">
-                  No hay propiedades disponibles
-                </div>
-              ) : (
-                properties.map((property) => (
-                  <div key={property.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={property.id}
-                      checked={selectedProperties.includes(property.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedProperties([...selectedProperties, property.id]);
-                        } else {
-                          setSelectedProperties(
-                            selectedProperties.filter((id) => id !== property.id)
-                          );
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor={property.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {property.name}
-                    </label>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+          <div className="space-y-4">
+            {properties.map((property) => (
+              <div key={property.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={property.id}
+                  checked={selectedProperties.includes(property.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedProperties([...selectedProperties, property.id]);
+                    } else {
+                      setSelectedProperties(
+                        selectedProperties.filter((id) => id !== property.id)
+                      );
+                    }
+                  }}
+                />
+                <label
+                  htmlFor={property.id}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {property.name}
+                </label>
+              </div>
+            ))}
+          </div>
         </div>
         <DialogFooter>
           <Button 
             onClick={handleSave}
-            disabled={updateAccessMutation.isPending || isLoading}
+            disabled={updateAccessMutation.isPending}
           >
             {updateAccessMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
