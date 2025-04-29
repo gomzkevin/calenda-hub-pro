@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Reservation } from '@/types';
@@ -62,9 +63,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     week,
     startDate,
     endDate,
-    forceContinuous,
-    false, // isPropagatedBlock
-    false  // isOriginalBlock 
+    forceContinuous
   );
   
   // Calculate vertical position relative to the week
@@ -90,7 +89,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
               left: barLeft,
               width: barWidth,
               minWidth: '30px',
-              zIndex: 15
+              zIndex: 20
             }}
           >
             <span className="truncate">{displayLabel}</span>
