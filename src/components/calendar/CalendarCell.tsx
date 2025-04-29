@@ -51,7 +51,7 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
   return (
     <div 
       className={`calendar-day border relative ${bgColorClass}`}
-      style={{ height: `${cellWidth}px` }}
+      style={{ height: `${cellHeight}px` }}
     >
       <div className={`text-sm p-1 ${isToday ? 'font-bold text-blue-700' : 'font-medium'}`}>
         {day.getDate()}

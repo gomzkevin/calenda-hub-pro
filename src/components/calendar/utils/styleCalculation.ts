@@ -13,12 +13,14 @@ export const calculateBarPositionAndStyle = (
   week: (Date | null)[],
   startDate: Date, 
   endDate: Date,
-  forceContinuous: boolean = false
+  forceContinuous: boolean = false,
+  isPropagatedBlock: boolean = false,
+  isOriginalBlock: boolean = false
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
   // Debug current values
   console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
   console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
-  console.log(`forceContinuous=${forceContinuous}`);
+  console.log(`forceContinuous=${forceContinuous}, isPropagatedBlock=${isPropagatedBlock}, isOriginalBlock=${isOriginalBlock}`);
   
   // Ensure positions are valid
   if (startPos === -1 || endPos === -1) {
@@ -31,16 +33,33 @@ export const calculateBarPositionAndStyle = (
     console.log('Correcting invalid positions (startPos > endPos)');
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
+
+  // Calculate cell width percentages with fixed offsets based on exact type
+  let cellStartOffset = 0;
+  let cellEndOffset = 0;
   
-  // Determine if this is a check-in or check-out day
-  // If forceContinuous is true, treat as part of continuous stay
-  const isCheckInDay = forceContinuous ? false : !continuesFromPrevious;
-  const isCheckOutDay = forceContinuous ? false : !continuesToNext;
-  
-  // Calculate cell width percentages with room for check-in/out visual separation
-  // If forceContinuous is true, no offsets
-  const cellStartOffset = forceContinuous ? 0 : (continuesFromPrevious ? 0 : 0.52);
-  const cellEndOffset = forceContinuous ? 1 : (continuesToNext ? 1 : 0.48);
+  // Force continuous takes precedence over everything else
+  if (forceContinuous) {
+    cellStartOffset = 0;
+    cellEndOffset = 1;
+  } 
+  // Propagated blocks always end exactly at half-cell
+  else if (isPropagatedBlock) {
+    // Always start at 0% and end at exactly 50%
+    cellStartOffset = 0;
+    cellEndOffset = 0.5;
+  } 
+  // Original blocks always start exactly at half-cell
+  else if (isOriginalBlock) {
+    // Always start at exactly 50% and end at 100%
+    cellStartOffset = 0.5;
+    cellEndOffset = 1;
+  } 
+  // Regular blocks with default behavior
+  else {
+    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
+    cellEndOffset = continuesToNext ? 1 : 0.48;
+  }
   
   // Apply offsets
   const adjustedStartPos = startPos + cellStartOffset;
@@ -53,9 +72,9 @@ export const calculateBarPositionAndStyle = (
   console.log(`Adjusted positions: start=${adjustedStartPos}, end=${adjustedEndPos}`);
   console.log(`Bar styling: width=${barWidth}, left=${barLeft}`);
   
-  // Define border radius style 
-  let borderRadiusStyle = 'rounded-none';
-  
+  // Define border radius style
+  let borderRadiusStyle = '';
+
   // If forceContinuous, always use no radius
   if (forceContinuous) {
     borderRadiusStyle = 'rounded-none';
@@ -65,12 +84,12 @@ export const calculateBarPositionAndStyle = (
     const normalizedStartDate = normalizeDate(new Date(startDate));
     const normalizedEndDate = normalizeDate(new Date(endDate));
     
-    // Special handling for single day reservation (same day check-in and check-out)
+    // Special handling for single day reservation
     if (isSameDay(normalizedStartDate, normalizedEndDate)) {
       borderRadiusStyle = 'rounded-full';
       console.log('Single day reservation - using rounded-full');
     } 
-    // Special handling for reservation that spans one night (two days)
+    // Special handling for one night stays
     else if (
       !continuesFromPrevious && 
       !continuesToNext && 
@@ -81,20 +100,28 @@ export const calculateBarPositionAndStyle = (
     }
     // Multiple day reservation
     else {
-      if (!continuesFromPrevious) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-l-lg';
+      if (isPropagatedBlock) {
+        // Propagated blocks should ALWAYS have right rounded corner
+        // and only have left rounded corner if it's the beginning
+        borderRadiusStyle = 'rounded-r-lg';
+        if (!continuesFromPrevious) {
+          borderRadiusStyle = `${borderRadiusStyle} rounded-l-lg`;
+        }
       }
-      
-      if (!continuesToNext) {
-        borderRadiusStyle = borderRadiusStyle + ' rounded-r-lg';
+      else if (isOriginalBlock) {
+        // Original blocks should ALWAYS have left rounded corner
+        // and only have right rounded corner if it's the end
+        borderRadiusStyle = 'rounded-l-lg';
+        if (!continuesToNext) {
+          borderRadiusStyle = `${borderRadiusStyle} rounded-r-lg`;
+        }
       }
-      
-      // Clean up the style if needed
-      borderRadiusStyle = borderRadiusStyle.trim();
-      if (borderRadiusStyle === 'rounded-none rounded-l-lg rounded-r-lg') {
-        borderRadiusStyle = 'rounded-lg';
-      } else if (borderRadiusStyle === 'rounded-none') {
-        borderRadiusStyle = '';
+      else {
+        // Regular blocks
+        let roundings = [];
+        if (!continuesFromPrevious) roundings.push('rounded-l-lg');
+        if (!continuesToNext) roundings.push('rounded-r-lg');
+        borderRadiusStyle = roundings.join(' ');
       }
       
       console.log(`Multiple day reservation - using ${borderRadiusStyle}`);
