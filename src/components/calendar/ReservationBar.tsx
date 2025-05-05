@@ -63,9 +63,7 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
     week,
     startDate,
     endDate,
-    forceContinuous,
-    false, // isPropagatedBlock
-    false  // isOriginalBlock 
+    forceContinuous
   );
   
   // Calculate vertical position relative to the week

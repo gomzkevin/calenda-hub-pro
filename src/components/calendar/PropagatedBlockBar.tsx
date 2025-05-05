@@ -47,9 +47,7 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
     continuesToNext,
     week,
     block.startDate,
-    block.endDate,
-    false, // forceContinuous
-    true   // isPropagatedBlock - always true for this component
+    block.endDate
   );
   
   // Calculate vertical position relative to the week
@@ -65,8 +63,7 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
               top: `${verticalPosition}px`,
               left: barLeft,
               width: barWidth,
-              minWidth: '30px',
-              zIndex: 10 // Estableciendo un z-index más bajo para los bloques propagados
+              minWidth: '30px'
             }}
           >
             <Lock size={12} className="shrink-0" />
