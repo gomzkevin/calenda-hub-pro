@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
@@ -47,7 +46,10 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
     continuesToNext,
     week,
     block.startDate,
-    block.endDate
+    block.endDate,
+    false,  // forceContinuous
+    false,  // isPropagatedBlock
+    true    // isOriginalBlock - always true for this component
   );
   
   // Calculate vertical position relative to the week
@@ -58,12 +60,13 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs z-10 pointer-events-auto cursor-pointer overflow-hidden`}
+            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs pointer-events-auto cursor-pointer overflow-hidden`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
               width: barWidth,
-              minWidth: '30px'
+              minWidth: '30px',
+              zIndex: 10
             }}
           >
             <Lock size={12} className="shrink-0" />

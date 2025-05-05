@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { isSameMonth } from 'date-fns';
+import { isSameMonth, isSameDay } from 'date-fns';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { Reservation } from '@/types';
 import { normalizeDate } from './utils/dateUtils';
@@ -27,29 +27,25 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
     );
   }
 
-  // Identify relationship blocks for this day to visually mark the cell
   const normalizedDay = normalizeDate(day);
-  
-  // Filter relationship blocks for this specific day
   const dayRelationshipBlocks = relationshipBlocks.filter(block => 
     normalizedDay <= block.endDate && normalizedDay >= block.startDate
   );
   
   const hasRelationshipBlock = dayRelationshipBlocks.length > 0;
-  
-  // Check if we have a child-to-parent block (useful for different styling)
   const hasChildToParentBlock = dayRelationshipBlocks.some(block => 
     block.notes?.includes('child property reservation')
   );
-  
   const isCurrentMonth = isSameMonth(day, currentMonth);
+  const isToday = isSameDay(day, new Date());
   
-  // Determine appropriate background color based on block type
   let bgColorClass = '';
-  if (hasRelationshipBlock) {
+  if (isToday) {
+    bgColorClass = 'bg-blue-100 border-blue-500 border-2';
+  } else if (hasRelationshipBlock) {
     bgColorClass = hasChildToParentBlock ? 'bg-amber-50' : 'bg-gray-100';
-  } else {
-    bgColorClass = !isCurrentMonth ? 'bg-gray-50' : '';
+  } else if (!isCurrentMonth) {
+    bgColorClass = 'bg-gray-50';
   }
   
   return (
@@ -57,11 +53,10 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
       className={`calendar-day border relative ${bgColorClass}`}
       style={{ height: `${cellHeight}px` }}
     >
-      <div className="text-sm font-medium p-1">
+      <div className={`text-sm p-1 ${isToday ? 'font-bold text-blue-700' : 'font-medium'}`}>
         {day.getDate()}
       </div>
       
-      {/* Day indicator for relationship blocks */}
       {hasRelationshipBlock && (
         <div className="absolute top-1 right-1">
           {hasChildToParentBlock ? (
