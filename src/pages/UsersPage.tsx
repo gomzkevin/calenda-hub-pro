@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
-import { Plus, Check, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Check, X, Loader2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUsers, updateUserStatus, getCurrentUser } from '@/services/userService';
+import { getUsers, updateUserStatus, getCurrentUser, getUserPropertyAccess } from '@/services/userService';
+import { getProperties } from '@/services/propertyService';
 import CreateUserDialog from '@/components/users/CreateUserDialog';
 import UserPropertiesDialog from '@/components/users/UserPropertiesDialog';
 import { toast } from 'sonner';
@@ -24,12 +25,29 @@ const UsersPage: React.FC = () => {
     queryFn: getCurrentUser
   });
   
+  // Obtener todas las propiedades
+  const { data: properties = [] } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties,
+    enabled: !isLoadingCurrentUser && !!currentUser && currentUser.role === 'admin'
+  });
+  
   // Obtener todos los usuarios
-  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: users = [], isLoading: isLoadingUsers, error: usersError } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
     enabled: !isLoadingCurrentUser
   });
+  
+  useEffect(() => {
+    // Depuración
+    console.log("Current user:", currentUser);
+    console.log("Users fetched:", users);
+    console.log("Properties count:", properties.length);
+    if (usersError) {
+      console.error("Error fetching users:", usersError);
+    }
+  }, [currentUser, users, properties, usersError]);
   
   const isAdmin = currentUser?.role === 'admin';
   
@@ -88,7 +106,12 @@ const UsersPage: React.FC = () => {
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              No se encontraron usuarios
+              {search ? 'No se encontraron usuarios que coincidan con la búsqueda' : 'No se encontraron usuarios'}
+              {usersError && (
+                <div className="text-red-500 mt-2">
+                  Error al cargar usuarios. Por favor, intente nuevamente.
+                </div>
+              )}
             </div>
           ) : (
             <div className="relative overflow-x-auto">
@@ -130,6 +153,7 @@ const UsersPage: React.FC = () => {
                                 size="sm"
                                 onClick={() => setSelectedUser(user)}
                               >
+                                <Building2 className="w-4 h-4 mr-1" />
                                 Propiedades
                               </Button>
                               <Button 

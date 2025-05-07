@@ -14,6 +14,8 @@ export const getUsers = async (): Promise<User[]> => {
     return [];
   }
 
+  console.log("Current user ID:", currentUser.id);
+
   // Obtenemos el perfil del usuario actual para verificar si es admin
   const { data: currentProfile, error: profileError } = await supabase
     .from("profiles")
@@ -26,14 +28,20 @@ export const getUsers = async (): Promise<User[]> => {
     return [];
   }
 
+  console.log("Current user profile:", currentProfile);
+  console.log("Is admin?", currentProfile.role === 'admin');
+  console.log("Operator ID:", currentProfile.operator_id);
+
   let query = supabase.from("profiles").select("*");
   
   // Si el usuario es admin, obtener todos los usuarios de su mismo operator_id
   // Si no es admin, solo obtener su propio perfil
   if (currentProfile.role === 'admin') {
     query = query.eq("operator_id", currentProfile.operator_id);
+    console.log("Admin query: Fetching all users with operator_id =", currentProfile.operator_id);
   } else {
     query = query.eq("id", currentUser.id);
+    console.log("Non-admin query: Only fetching current user profile");
   }
   
   const { data: profiles, error } = await query.order("created_at", { ascending: false });
@@ -42,6 +50,8 @@ export const getUsers = async (): Promise<User[]> => {
     console.error("Error fetching users:", error);
     throw error;
   }
+
+  console.log(`Found ${profiles?.length || 0} profiles:`, profiles);
   
   return profiles.map((profile) => ({
     id: profile.id,

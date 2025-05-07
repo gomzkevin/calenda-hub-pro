@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -41,15 +41,25 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   });
   
   // Obtener propiedades para asignar al nuevo usuario
-  const { data: properties = [] } = useQuery({
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties,
     enabled: open
   });
   
+  // Obtener el usuario actual para depuración
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: getCurrentUser,
+    enabled: open
+  });
+  
   const createUserMutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => 
-      createUser(values.email, values.password, values.name, selectedPropertyIds),
+    mutationFn: (values: z.infer<typeof formSchema>) => {
+      console.log("Creating user with properties:", selectedPropertyIds);
+      console.log("Current user (creating):", currentUser);
+      return createUser(values.email, values.password, values.name, selectedPropertyIds);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('Usuario creado exitosamente');
@@ -77,11 +87,24 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     });
   };
   
+  const handleSelectAll = () => {
+    if (properties.length === selectedPropertyIds.length) {
+      setSelectedPropertyIds([]);
+    } else {
+      setSelectedPropertyIds(properties.map(prop => prop.id));
+    }
+  };
+  
+  const allSelected = properties.length > 0 && selectedPropertyIds.length === properties.length;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+          <DialogDescription>
+            Complete los datos para crear un nuevo usuario en el sistema
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -127,8 +150,26 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
             <div>
               <FormLabel className="block mb-2">Acceso a propiedades</FormLabel>
+              <div className="flex items-center space-x-2 mb-3">
+                <Checkbox 
+                  id="select-all-properties"
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                />
+                <label 
+                  htmlFor="select-all-properties"
+                  className="text-sm font-medium leading-none cursor-pointer"
+                >
+                  Seleccionar todas
+                </label>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto border p-2 rounded-md">
-                {properties.length === 0 ? (
+                {isLoadingProperties ? (
+                  <div className="flex items-center justify-center p-4 col-span-2">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span>Cargando propiedades...</span>
+                  </div>
+                ) : properties.length === 0 ? (
                   <p className="text-muted-foreground text-sm">No hay propiedades disponibles</p>
                 ) : (
                   properties.map((property) => (
