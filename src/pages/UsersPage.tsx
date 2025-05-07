@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
-import { Plus, Check, X } from 'lucide-react';
+import { Plus, Check, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUsers, updateUserStatus } from '@/services/userService';
+import { getUsers, updateUserStatus, getCurrentUser } from '@/services/userService';
 import CreateUserDialog from '@/components/users/CreateUserDialog';
 import UserPropertiesDialog from '@/components/users/UserPropertiesDialog';
 import { toast } from 'sonner';
@@ -18,10 +18,20 @@ const UsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const queryClient = useQueryClient();
   
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: getUsers
+  // Obtener el usuario actual para verificar permisos
+  const { data: currentUser, isLoading: isLoadingCurrentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: getCurrentUser
   });
+  
+  // Obtener todos los usuarios
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    enabled: !isLoadingCurrentUser
+  });
+  
+  const isAdmin = currentUser?.role === 'admin';
   
   const updateStatusMutation = useMutation({
     mutationFn: ({ userId, active }: { userId: string; active: boolean }) => 
@@ -41,6 +51,8 @@ const UsersPage: React.FC = () => {
     user.email.toLowerCase().includes(search.toLowerCase())
   );
   
+  const isLoading = isLoadingCurrentUser || isLoadingUsers;
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -55,10 +67,12 @@ const UsersPage: React.FC = () => {
               className="w-full"
             />
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Agregar Usuario
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Usuario
+            </Button>
+          )}
         </div>
       </div>
       
@@ -67,78 +81,98 @@ const UsersPage: React.FC = () => {
           <CardTitle>Gestión de Usuarios</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3">Nombre</th>
-                  <th scope="col" className="px-6 py-3">Email</th>
-                  <th scope="col" className="px-6 py-3">Rol</th>
-                  <th scope="col" className="px-6 py-3">Estado</th>
-                  <th scope="col" className="px-6 py-3">Creado</th>
-                  <th scope="col" className="px-6 py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="bg-white border-b">
-                    <td className="px-6 py-4 font-medium">{user.name}</td>
-                    <td className="px-6 py-4">{user.email}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
-                        {user.role === 'admin' ? 'Admin' : 'Usuario'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.active ? (
-                        <Check className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <X className="w-5 h-5 text-red-500" />
-                      )}
-                    </td>
-                    <td className="px-6 py-4">{new Date(user.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setSelectedUser(user)}
-                        >
-                          Propiedades
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            updateStatusMutation.mutate({
-                              userId: user.id,
-                              active: !user.active
-                            });
-                          }}
-                          className={user.active ? "text-red-500" : "text-green-500"}
-                        >
-                          {user.active ? 'Desactivar' : 'Activar'}
-                        </Button>
-                      </div>
-                    </td>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <span className="ml-2 text-xl">Cargando usuarios...</span>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              No se encontraron usuarios
+            </div>
+          ) : (
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">Nombre</th>
+                    <th scope="col" className="px-6 py-3">Email</th>
+                    <th scope="col" className="px-6 py-3">Rol</th>
+                    <th scope="col" className="px-6 py-3">Estado</th>
+                    <th scope="col" className="px-6 py-3">Creado</th>
+                    <th scope="col" className="px-6 py-3">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="bg-white border-b">
+                      <td className="px-6 py-4 font-medium">{user.name}</td>
+                      <td className="px-6 py-4">{user.email}</td>
+                      <td className="px-6 py-4">
+                        <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
+                          {user.role === 'admin' ? 'Admin' : 'Usuario'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.active ? (
+                          <Check className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <X className="w-5 h-5 text-red-500" />
+                        )}
+                      </td>
+                      <td className="px-6 py-4">{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex space-x-2">
+                          {isAdmin && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setSelectedUser(user)}
+                              >
+                                Propiedades
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  updateStatusMutation.mutate({
+                                    userId: user.id,
+                                    active: !user.active
+                                  });
+                                }}
+                                className={user.active ? "text-red-500" : "text-green-500"}
+                                disabled={user.id === currentUser?.id}
+                              >
+                                {user.active ? 'Desactivar' : 'Activar'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <CreateUserDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-      />
+      {isAdmin && (
+        <>
+          <CreateUserDialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          />
 
-      <UserPropertiesDialog
-        user={selectedUser}
-        open={selectedUser !== null}
-        onOpenChange={(open) => !open && setSelectedUser(null)}
-      />
+          <UserPropertiesDialog
+            user={selectedUser}
+            open={selectedUser !== null}
+            onOpenChange={(open) => !open && setSelectedUser(null)}
+          />
+        </>
+      )}
     </div>
   );
 };
