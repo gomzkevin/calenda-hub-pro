@@ -19,7 +19,7 @@ const DayHeader: React.FC<DayHeaderProps> = ({ day, dayIndex }) => {
         ${isToday ? 'font-bold' : ''}
       `}
     >
-      <div className="text-xs uppercase text-gray-500">
+      <div className={`text-xs uppercase text-gray-500`}>
         {format(day, 'EEE')}
       </div>
       <div className={`text-sm ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>

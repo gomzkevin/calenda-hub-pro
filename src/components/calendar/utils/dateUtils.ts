@@ -20,13 +20,14 @@ export const normalizeDate = (date: Date): Date => {
 
 // Check if two dates are the same
 export const isSameDate = (date1: Date, date2: Date): boolean => {
+  if (!date1 || !date2) return false;
   return isSameDay(normalizeDate(date1), normalizeDate(date2));
 };
 
 // Sort reservations by start date
 export const sortReservationsByStartDate = (resA: Reservation, resB: Reservation): number => {
   // First compare start dates
-  const startDiff = resA.startDate.getTime() - resB.startDate.getTime();
+  const startDiff = new Date(resA.startDate).getTime() - new Date(resB.startDate).getTime();
   if (startDiff !== 0) return startDiff;
   
   // If same start date, compare platforms

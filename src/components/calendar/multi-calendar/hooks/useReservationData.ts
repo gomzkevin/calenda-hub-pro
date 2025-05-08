@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
-import { Reservation, Property } from '@/types';
+import { Reservation } from '@/types';
 import { addDays, format, subDays, getMonth, getYear } from 'date-fns';
 
 interface MonthInfo {

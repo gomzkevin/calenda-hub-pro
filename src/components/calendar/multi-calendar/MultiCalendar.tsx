@@ -14,6 +14,8 @@ import {
   isSameDate,
   sortReservationsByStartDate
 } from '../utils/dateUtils';
+import { useQuery } from '@tanstack/react-query';
+import { getProperties } from '@/services/propertyService';
 
 interface MultiCalendarProps {
   onPropertySelect?: (propertyId: string) => void;
@@ -22,28 +24,23 @@ interface MultiCalendarProps {
 const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
   // Custom hooks for data and navigation
   const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
-  const { reservations, isLoading } = useReservationData(startDate, endDate);
+  const { reservations, isLoading: isLoadingReservations } = useReservationData(startDate, endDate);
   const { parentToChildren, childToParent, siblingGroups } = usePropertyRelationships(reservations);
+  
+  // Fetch properties data
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false
+  });
   
   // Extract month and year from the first visible day
   const currentMonth = useMemo(() => visibleDays[7]?.getMonth() + 1 || new Date().getMonth() + 1, [visibleDays]);
   const currentYear = useMemo(() => visibleDays[7]?.getFullYear() || new Date().getFullYear(), [visibleDays]);
   
-  // Extract properties from reservations
-  const properties = useMemo(() => {
-    if (!reservations || reservations.length === 0) return [];
-    
-    // Create a map to avoid duplicates
-    const propertiesMap = new Map<string, Property>();
-    
-    reservations.forEach(reservation => {
-      if (reservation.property && !propertiesMap.has(reservation.property.id)) {
-        propertiesMap.set(reservation.property.id, reservation.property);
-      }
-    });
-    
-    return Array.from(propertiesMap.values());
-  }, [reservations]);
+  // Determine if loading
+  const isLoading = isLoadingReservations || isLoadingProperties;
   
   // Create helper function to get source reservation info 
   const getSourceReservationInfo = (reservation: any) => {
