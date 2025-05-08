@@ -1,25 +1,67 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Search, Loader2, MapPin, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import PropertyCard from '@/components/properties/PropertyCard';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
 import { toast } from '@/hooks/use-toast';
+import { Property } from '@/types';
 
 const PropertiesPage = () => {
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
   
   const { data: properties, isLoading, error } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties
   });
   
+  // Filtrar propiedades según la búsqueda
+  const filteredProperties = React.useMemo(() => {
+    if (!properties) return [];
+    
+    const searchTerm = search.toLowerCase().trim();
+    if (!searchTerm) return properties;
+    
+    return properties.filter(
+      (property) => 
+        property.name.toLowerCase().includes(searchTerm) ||
+        property.address.toLowerCase().includes(searchTerm) ||
+        property.internalCode.toLowerCase().includes(searchTerm)
+    );
+  }, [properties, search]);
+  
+  // Determinar el color del badge según el tipo de propiedad
+  const getTypeColor = (type: string | undefined) => {
+    switch (type) {
+      case 'parent':
+        return 'bg-blue-100 text-blue-800';
+      case 'child':
+        return 'bg-purple-100 text-purple-800';
+      case 'Villa':
+        return 'bg-amber-100 text-amber-800';
+      case 'Apartment':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -40,22 +82,93 @@ const PropertiesPage = () => {
   
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Propiedades</h1>
-        <Button
-          onClick={() => navigate('/properties/new')}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Añadir Propiedad</span>
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Input
+              placeholder="Buscar propiedades..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full"
+            />
+            <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground opacity-70" />
+          </div>
+          <Button
+            onClick={() => navigate('/properties/new')}
+            className="whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Añadir Propiedad</span>
+            <span className="sm:hidden">Añadir</span>
+          </Button>
+        </div>
       </div>
       
       {properties && properties.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {properties.map((property) => (
-            <PropertyCard key={property.id} property={property} />
-          ))}
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Dirección</TableHead>
+                <TableHead>Código</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-center">Habitaciones</TableHead>
+                <TableHead className="text-center">Baños</TableHead>
+                <TableHead className="text-center">Capacidad</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProperties.map((property) => (
+                <TableRow key={property.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center">
+                      {property.imageUrl ? (
+                        <div className="w-8 h-8 rounded overflow-hidden mr-2 flex-shrink-0">
+                          <img 
+                            src={property.imageUrl} 
+                            alt={property.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <Building2 className="w-5 h-5 mr-2 text-muted-foreground" />
+                      )}
+                      <span className="truncate max-w-[200px]">{property.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+                      <span className="truncate max-w-[200px]">{property.address}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{property.internalCode}</TableCell>
+                  <TableCell>
+                    {property.type && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(property.type)}`}>
+                        {property.type}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">{property.bedrooms}</TableCell>
+                  <TableCell className="text-center">{property.bathrooms}</TableCell>
+                  <TableCell className="text-center">{property.capacity}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/properties/${property.id}`)}
+                    >
+                      Ver Detalles
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
