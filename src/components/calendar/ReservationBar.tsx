@@ -18,8 +18,8 @@ interface ReservationBarProps {
   week: (Date | null)[];
   weekIndex: number;
   lane: number;
-  laneHeight: number;
-  baseOffset: number;
+  barHeight: number;
+  verticalPosition: number;
   forceContinuous?: boolean;
 }
 
@@ -29,8 +29,8 @@ const ReservationBar: React.FC<ReservationBarProps> = memo(({
   week,
   weekIndex,
   lane,
-  laneHeight,
-  baseOffset,
+  barHeight,
+  verticalPosition,
   forceContinuous = false
 }) => {
   // Ensure dates are properly parsed and normalized
@@ -63,12 +63,6 @@ const ReservationBar: React.FC<ReservationBarProps> = memo(({
     false  // isOriginalBlock 
   );
   
-  // Fixed height for all reservation bars
-  const barHeight = 28;
-  
-  // Calculate vertical position to center the bar in the cell
-  const verticalPosition = baseOffset + (lane * laneHeight);
-  
   // Determine text size based on bar width - smaller text for short reservations
   const isShortReservation = (endPos - startPos) < 1;
   
@@ -82,7 +76,7 @@ const ReservationBar: React.FC<ReservationBarProps> = memo(({
           <div 
             className={`absolute ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md hover:brightness-95 hover:scale-[1.02] hover:z-30`}
             style={{
-              top: `${verticalPosition}px`,
+              top: `${verticalPosition}px`, // Posición vertical fija para todas las reservaciones
               left: barLeft,
               width: barWidth,
               height: `${barHeight}px`,

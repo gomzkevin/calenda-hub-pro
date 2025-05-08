@@ -3,7 +3,7 @@ import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
 
 /**
- * Improved lane calculation with consistent lane assignment across weeks
+ * Simplified lane calculation with consistent lane assignment across weeks
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -11,37 +11,15 @@ export const calculateReservationLanes = (
 ): Record<number, Record<string, number>> => {
   const lanes: Record<number, Record<string, number>> = {};
   
-  // First, identify all unique reservation IDs that appear across all weeks
-  const allReservationIds = new Set<string>();
-  reservations.forEach(res => allReservationIds.add(res.id));
-  
-  // Create a global lane assignment for consistency across weeks
+  // Global lane assignment (doesn't affect vertical positioning anymore)
   const globalLaneAssignment: Record<string, number> = {};
   
-  // Pre-assign lanes to all reservations based on priority
-  const sortedReservations = [...reservations].sort((a, b) => {
-    // First compare by priority type
-    const aPriority = getPriorityValue(a);
-    const bPriority = getPriorityValue(b);
-    
-    if (aPriority !== bPriority) {
-      return aPriority - bPriority;
-    }
-    
-    // If same priority, sort by start date
-    return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+  // Assign global lanes to all reservations
+  reservations.forEach((res, index) => {
+    globalLaneAssignment[res.id] = 0; // All reservations use lane 0 for consistent vertical centering
   });
   
-  // Simplified lane assignment algorithm - assign lanes sequentially
-  let nextLane = 0;
-  sortedReservations.forEach(res => {
-    if (!globalLaneAssignment[res.id]) {
-      globalLaneAssignment[res.id] = nextLane;
-      nextLane++;
-    }
-  });
-  
-  // Now process each week using the global lane assignments
+  // Process each week
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
     
@@ -78,28 +56,8 @@ export const calculateReservationLanes = (
   return lanes;
 };
 
-// Helper function to determine reservation priority
-const getPriorityValue = (reservation: Reservation): number => {
-  // Regular reservations get top priority (lane 0)
-  if (!reservation.sourceReservationId && !reservation.isBlocking) {
-    return 0;
-  }
-  
-  // Parent-child relationship blocks get second priority (lane 1)
-  if (reservation.isRelationshipBlock) {
-    return 1;
-  }
-  
-  // Propagated blocks get lowest priority (lane 2)
-  if (reservation.sourceReservationId || reservation.isBlocking) {
-    return 2;
-  }
-  
-  return 0; // Default to top priority if unknown
-};
-
 /**
- * Simplified block lanes calculation with consistent global lane assignment
+ * Simplified block lanes calculation
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
@@ -110,21 +68,12 @@ export const calculateBlockLanes = (
   // Early return if blocks is undefined or empty
   if (!blocks || blocks.length === 0) return lanes;
   
-  // Create a global lane assignment for consistency across weeks
+  // Create a global lane assignment
   const globalLaneAssignment: Record<string, number> = {};
   
-  // Pre-assign lanes to all blocks - sort by start date for consistent assignment
-  const sortedBlocks = [...blocks].sort((a, b) => 
-    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-  );
-  
-  // Assign global lanes sequentially
-  let nextLane = 0;
-  sortedBlocks.forEach(block => {
-    if (!globalLaneAssignment[block.id]) {
-      globalLaneAssignment[block.id] = nextLane;
-      nextLane++;
-    }
+  // Pre-assign lanes to all blocks - all blocks get lane 0 for consistent vertical alignment
+  blocks.forEach(block => {
+    globalLaneAssignment[block.id] = 0;
   });
   
   weeks.forEach((week, weekIndex) => {

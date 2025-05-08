@@ -7,9 +7,8 @@ interface RegularReservationBarsProps {
   weeks: (Date | null)[][];
   filteredReservations: Reservation[];
   weekReservationLanes: Record<number, Record<string, number>>;
-  laneHeight: number;
-  baseOffset: number;
-  laneGap: number;
+  barHeight: number;
+  baseVerticalPosition: number;
   cellHeight: number;
 }
 
@@ -17,9 +16,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   weeks,
   filteredReservations,
   weekReservationLanes,
-  laneHeight,
-  baseOffset,
-  laneGap,
+  barHeight,
+  baseVerticalPosition,
   cellHeight
 }) => {
   return (
@@ -66,18 +64,16 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
               
               if (!hasIntersection) return null;
               
-              // Get lane assignment for this reservation in this week
-              const lane = weekReservationLanes[weekIndex]?.[reservation.id] || 0;
-              
+              // Siempre usa la misma posición vertical para todas las reservaciones
               return (
                 <ReservationBar
                   key={`res-${weekIndex}-${reservation.id}`}
                   reservation={reservation}
                   week={week}
                   weekIndex={weekIndex}
-                  lane={lane}
-                  laneHeight={laneHeight}
-                  baseOffset={baseOffset}
+                  lane={0} // Lane no afecta la posición vertical
+                  barHeight={barHeight}
+                  verticalPosition={baseVerticalPosition}
                 />
               );
             })}
