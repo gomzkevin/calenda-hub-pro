@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -64,7 +65,10 @@ const NewPropertyPage = () => {
   
   const onSubmit = async (values: z.infer<typeof propertyFormSchema>) => {
     if (!profile) {
-      toast.error("No se encontró perfil de usuario");
+      toast({
+        variant: "destructive",
+        description: "No se encontró perfil de usuario"
+      });
       return;
     }
     

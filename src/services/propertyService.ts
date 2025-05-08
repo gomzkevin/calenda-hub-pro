@@ -174,6 +174,47 @@ export const generateICalToken = async (propertyId: string): Promise<Property> =
   return mapPropertyFromDatabase(data);
 };
 
+/**
+ * Create a new property
+ */
+export const createProperty = async (propertyData: any): Promise<{success: boolean; data?: any; message?: string}> => {
+  try {
+    // Transform the data to match the database schema
+    const propertyToInsert = {
+      operator_id: propertyData.operatorId,
+      name: propertyData.name,
+      address: propertyData.address,
+      internal_code: propertyData.internalCode,
+      bedrooms: propertyData.bedrooms,
+      bathrooms: propertyData.bathrooms,
+      capacity: propertyData.capacity,
+      type: propertyData.type,
+      description: propertyData.description,
+      notes: propertyData.notes,
+      parent_id: propertyData.parentId || null,
+    };
+    
+    const { data, error } = await supabase
+      .from("properties")
+      .insert(propertyToInsert)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating property:", error);
+      return { success: false, message: error.message };
+    }
+    
+    return {
+      success: true,
+      data: mapPropertyFromDatabase(data)
+    };
+  } catch (error: any) {
+    console.error("Unexpected error creating property:", error);
+    return { success: false, message: error.message || "Error inesperado al crear la propiedad" };
+  }
+};
+
 const mapPropertyFromDatabase = (prop: any): Property => ({
   id: prop.id,
   operatorId: prop.operator_id,
