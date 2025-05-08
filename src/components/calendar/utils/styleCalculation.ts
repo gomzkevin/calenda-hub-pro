@@ -1,4 +1,3 @@
-
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
@@ -32,25 +31,14 @@ export const calculateBarPositionAndStyle = (
   let cellStartOffset = 0;
   let cellEndOffset = 0;
   
+  // Regular bars for all types
+  cellStartOffset = continuesFromPrevious ? 0 : 0.52;
+  cellEndOffset = continuesToNext ? 1 : 0.48;
+  
   // Force continuous takes precedence
   if (forceContinuous) {
     cellStartOffset = 0;
     cellEndOffset = 1;
-  } 
-  // Propagated blocks end at 45%
-  else if (isPropagatedBlock) {
-    cellStartOffset = 0;
-    cellEndOffset = 0.45;
-  } 
-  // Original blocks start at 55%
-  else if (isOriginalBlock) {
-    cellStartOffset = 0.55;
-    cellEndOffset = 1;
-  } 
-  // Regular blocks
-  else {
-    cellStartOffset = continuesFromPrevious ? 0 : 0.52;
-    cellEndOffset = continuesToNext ? 1 : 0.48;
   }
   
   // Apply offsets
@@ -85,22 +73,8 @@ export const calculateBarPositionAndStyle = (
     }
     // Multiple day reservation
     else {
-      if (isPropagatedBlock) {
-        borderRadiusStyle = 'rounded-r-lg';
-        if (!continuesFromPrevious) {
-          borderRadiusStyle = `${borderRadiusStyle} rounded-l-lg`;
-        }
-      }
-      else if (isOriginalBlock) {
-        borderRadiusStyle = 'rounded-l-lg';
-        if (!continuesToNext) {
-          borderRadiusStyle = `${borderRadiusStyle} rounded-r-lg`;
-        }
-      }
-      else {
-        if (!continuesFromPrevious) borderRadiusStyle += ' rounded-l-lg';
-        if (!continuesToNext) borderRadiusStyle += ' rounded-r-lg';
-      }
+      if (!continuesFromPrevious) borderRadiusStyle += ' rounded-l-lg';
+      if (!continuesToNext) borderRadiusStyle += ' rounded-r-lg';
     }
   }
   

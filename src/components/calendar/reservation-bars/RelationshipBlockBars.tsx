@@ -26,7 +26,7 @@ const RelationshipBlockBars: React.FC<RelationshipBlockBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`relationship-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
+        <div key={`relationship-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 120}px`, height: '120px' }}>
           <div className="col-span-7 relative h-full w-full">
             {relationshipBlocks.map((block) => {
               // Verificar si el bloque intersecta con esta semana

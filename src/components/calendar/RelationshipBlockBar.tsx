@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/tooltip';
 import { findReservationPositionInWeek } from './utils/reservationPosition';
 import { calculateBarPositionAndStyle } from './utils/styleCalculation';
+import { normalizeDate } from './utils/dateUtils';
 
 // Added memoization to prevent unnecessary re-renders
 const RelationshipBlockBar: React.FC<{
@@ -28,11 +29,15 @@ const RelationshipBlockBar: React.FC<{
   laneHeight,
   baseOffset
 }) => {
+  // Normalize dates for consistent comparison
+  const startDate = normalizeDate(new Date(block.startDate));
+  const endDate = normalizeDate(new Date(block.endDate));
+  
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
     week,
-    block.startDate,
-    block.endDate
+    startDate,
+    endDate
   );
   
   // If not in this week, don't render
@@ -45,15 +50,15 @@ const RelationshipBlockBar: React.FC<{
     continuesFromPrevious,
     continuesToNext,
     week,
-    block.startDate,
-    block.endDate,
+    startDate,
+    endDate,
     false,  // forceContinuous
     false,  // isPropagatedBlock
-    true    // isOriginalBlock - always true for this component
+    false   // isOriginalBlock - set to false to use standard rendering
   );
   
-  // Calculate vertical position relative to the week
-  const verticalPosition = baseOffset + (lane * laneHeight);
+  // Calculate vertical position relative to the week - use the same calculation as in ReservationBar
+  const verticalPosition = baseOffset;
   
   return (
     <TooltipProvider key={`rel-${weekIndex}-${block.id}`}>
