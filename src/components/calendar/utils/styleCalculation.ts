@@ -17,20 +17,13 @@ export const calculateBarPositionAndStyle = (
   isPropagatedBlock: boolean = false,
   isOriginalBlock: boolean = false
 ): { barLeft: string, barWidth: string, borderRadiusStyle: string } => {
-  // Debug current values
-  console.log(`Style calculation for positions: startPos=${startPos}, endPos=${endPos}`);
-  console.log(`continuesToNext=${continuesToNext}, continuesFromPrevious=${continuesFromPrevious}`);
-  console.log(`forceContinuous=${forceContinuous}, isPropagatedBlock=${isPropagatedBlock}, isOriginalBlock=${isOriginalBlock}`);
-  
   // Ensure positions are valid
   if (startPos === -1 || endPos === -1) {
-    console.log('Invalid positions for bar calculation');
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
   
   // For cases where startPos > endPos, adjust to ensure proper rendering
   if (startPos > endPos) {
-    console.log('Correcting invalid positions (startPos > endPos)');
     return { barLeft: '0%', barWidth: '0%', borderRadiusStyle: '' };
   }
 
@@ -66,9 +59,6 @@ export const calculateBarPositionAndStyle = (
   // Calculate percentage values
   const barWidth = `${((adjustedEndPos - adjustedStartPos) / 7) * 100}%`;
   const barLeft = `${(adjustedStartPos / 7) * 100}%`;
-  
-  console.log(`Adjusted positions: start=${adjustedStartPos}, end=${adjustedEndPos}`);
-  console.log(`Bar styling: width=${barWidth}, left=${barLeft}`);
   
   // Define border radius style
   let borderRadiusStyle = '';

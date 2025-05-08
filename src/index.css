@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -132,22 +133,31 @@
   }
 
   .calendar-header {
-    @apply text-center py-2 font-medium text-gray-600 border-b;
+    @apply text-center py-2 font-medium text-gray-700 border-b;
   }
   
   .calendar-day {
-    @apply p-1 border h-24 overflow-hidden;
+    @apply p-1 h-24 overflow-hidden transition-colors duration-200;
   }
   
   .reservation-bar {
-    @apply rounded-full transition-all;
+    @apply rounded-md shadow-sm transition-all duration-200 text-xs font-medium cursor-pointer;
   }
   
   .reservation-bar:hover {
-    @apply brightness-90 shadow-md;
+    @apply brightness-95 shadow-md scale-[1.02] z-10;
   }
   
   .reservation-secondary {
-    @apply bg-gray-400 text-white border border-dashed border-white;
+    @apply bg-gray-400 text-white border border-white/20;
+  }
+  
+  /* Estilos mejorados para el calendario multi-propiedad */
+  .multi-calendar-container .calendar-day {
+    @apply border-gray-200;
+  }
+  
+  .multi-calendar-container thead th {
+    @apply sticky top-0 z-10 bg-white shadow-sm;
   }
 }

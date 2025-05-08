@@ -30,17 +30,13 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
               const startDate = new Date(reservation.startDate);
               const endDate = new Date(reservation.endDate);
               
-              // Verificar si al menos un día de la semana está entre las fechas de la reserva
-              const anyDayInWeek = week.find(day => day !== null);
-              if (!anyDayInWeek) return null;
-              
               // Verificar si la semana intersecta con la reserva
               const weekStart = week.find(day => day !== null);
               const weekEnd = [...week].reverse().find(day => day !== null);
               
               if (!weekStart || !weekEnd) return null;
               
-              // Normalizar fechas para comparación (mediodía para evitar problemas de zona horaria)
+              // Normalizar fechas para comparación
               const normalizedWeekStart = new Date(weekStart);
               normalizedWeekStart.setHours(12, 0, 0, 0);
               
@@ -53,7 +49,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
               const normalizedEndDate = new Date(endDate);
               normalizedEndDate.setHours(12, 0, 0, 0);
               
-              // Comprobar si hay intersección entre la reserva y la semana
+              // Comprobar si hay intersección
               const reservationStartsBeforeWeekEnds = normalizedStartDate <= normalizedWeekEnd;
               const reservationEndsAfterWeekStarts = normalizedEndDate >= normalizedWeekStart;
               
