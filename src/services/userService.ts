@@ -41,11 +41,18 @@ export const getCurrentUser = async (): Promise<Profile | null> => {
 
 export const getUsers = async (): Promise<Profile[]> => {
   try {
+    // This will now retrieve all users for admins based on the RLS policy
+    // and only their own profile for regular users
     const { data, error } = await supabase
       .from('profiles')
       .select('*');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+    
+    console.log('Fetched users:', data); // Debug to see what's being returned
     
     // Transform dates and map operator_id to operatorId for frontend consistency
     return data.map(profile => ({

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Check, X, Loader2, RefreshCw, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,9 +50,21 @@ const UsersPage: React.FC = () => {
     queryFn: getUsers,
     retry: 1,
     enabled: !isLoadingCurrentUser && !!currentUser,
-    staleTime: 5000  // Considerar datos frescos por 5 segundos
+    staleTime: 1000  // Reduced to 1 second for more frequent updates
   });
   
+  useEffect(() => {
+    // Log data for debugging
+    if (currentUser) {
+      console.log('Current user:', currentUser);
+      console.log('User role:', currentUser.role);
+      console.log('User operator:', currentUser.operator_id);
+    }
+    if (users.length > 0) {
+      console.log('Fetched users:', users.length);
+    }
+  }, [currentUser, users]);
+
   const isAdmin = currentUser?.role === 'admin';
   
   const updateStatusMutation = useMutation({
