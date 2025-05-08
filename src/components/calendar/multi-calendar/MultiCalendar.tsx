@@ -1,11 +1,11 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CalendarLegend from '../CalendarLegend';
 
-// Import hooks
+// Import hooks with optimized implementations
 import { useReservations } from './hooks/useReservations';
 import { useDateNavigation } from './hooks/useDateNavigation';
 import { usePropertyRelationships } from './hooks/usePropertyRelationships';
@@ -20,41 +20,45 @@ import PropertyRow from './PropertyRow';
 import { 
   normalizeDate, 
   sortReservations, 
-  getReservationStyle,
   calculatePropertyLanes
 } from './utils';
+import { getReservationStyle } from '../utils/styleCalculation';
 
 interface MultiCalendarProps {
   onPropertySelect?: (propertyId: string) => void;
 }
 
 const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
-  // Set up date navigation
+  // Set up date navigation with optimized date range
   const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
   
-  // Fetch reservations for the visible date range
+  // Fetch reservations for the visible date range with optimized query
   const { reservations, isLoading: isLoadingReservations } = useReservations(startDate, endDate);
   
-  // Fetch properties
+  // Fetch properties with improved caching
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
     queryKey: ['properties'],
-    queryFn: getProperties
+    queryFn: getProperties,
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes - properties change infrequently
+    refetchOnWindowFocus: false
   });
   
-  // Create property relationship maps
+  // Create property relationship maps with memoization
   const propertyRelationships = usePropertyRelationships(properties);
 
-  // Set up reservation-related functions
+  // Set up reservation-related functions with optimized implementation
   const { 
     getReservationsForProperty, 
     getSourceReservationInfo, 
     getDayReservationStatus 
   } = useReservationData(reservations, properties, propertyRelationships);
 
-  // Calculate property lanes for positioning reservations
-  const propertyLanes = React.useMemo(() => 
+  // Calculate property lanes for positioning reservations with memoization
+  // to prevent recalculation unless dependencies change
+  const propertyLanes = useMemo(() => 
     calculatePropertyLanes(properties, getReservationsForProperty),
-  [properties, getReservationsForProperty]);
+    [properties, getReservationsForProperty]
+  );
 
   const isLoading = isLoadingReservations || isLoadingProperties;
 
