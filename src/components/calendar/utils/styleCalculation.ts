@@ -105,24 +105,3 @@ export const calculateBarPositionAndStyle = (
   
   return { barLeft, barWidth, borderRadiusStyle };
 };
-
-/**
- * Helper function to determine reservation style based on its type
- */
-export const getReservationStyle = (reservation: any, isIndirect: boolean = false): string => {
-  // Default style for regular reservations
-  let baseStyle = 'bg-blue-500 text-white';
-  
-  // Handle blocked reservations
-  if (reservation.status === 'Blocked' || reservation.notes === 'Blocked') {
-    // Use a striped pattern for blocked periods
-    baseStyle = 'bg-gray-500 bg-opacity-70 text-white';
-  }
-  
-  // Handle indirect reservations (e.g. from linked properties)
-  if (isIndirect) {
-    baseStyle = 'bg-amber-400 text-amber-900 border border-amber-600';
-  }
-  
-  return baseStyle;
-};

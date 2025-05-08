@@ -1,8 +1,10 @@
 
 import React from 'react';
-import { isSameDay, addDays, subDays, isValid } from 'date-fns';
+import { isSameDay, addDays, subDays } from 'date-fns';
 import { Property } from '@/types';
 import ReservationTooltip from './ReservationTooltip';
+import { findReservationPositionInWeek } from '../utils/reservationPosition';
+import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
 interface DayCellProps {
   day: Date;
@@ -31,11 +33,6 @@ const DayCell: React.FC<DayCellProps> = ({
   getSourceReservationInfo,
   normalizeDate
 }) => {
-  // Validación básica
-  if (!day || !isValid(day) || !property) {
-    return <div className="border-[0.5px] border-gray-100/70 min-h-[4rem] h-16"></div>;
-  }
-  
   const isToday = isSameDay(day, new Date());
   const normalizedDay = normalizeDate(day);
   

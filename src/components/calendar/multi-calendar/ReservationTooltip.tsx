@@ -1,12 +1,19 @@
 
 import React from 'react';
-import { format, differenceInCalendarDays, isValid } from 'date-fns';
-import { Property } from '@/types';
+import { format } from 'date-fns';
+import { Property, Reservation } from '@/types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import { normalizeDate } from '../utils/dateUtils';
 
 interface ReservationTooltipProps {
-  reservation: any;
+  reservation: Reservation;
   property: Property;
-  sourceInfo: { property?: Property; reservation?: any };
+  sourceInfo: { property?: Property; reservation?: Reservation };
   style: string;
   topPosition: number;
   isStartDay: boolean;
@@ -24,54 +31,113 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   isEndDay,
   forceDisplayAsMiddle = false
 }) => {
-  // Validación segura de fechas
-  const startDate = new Date(reservation.startDate);
-  const endDate = new Date(reservation.endDate);
+  // Ensure dates are properly normalized for display
+  const startDate = normalizeDate(new Date(reservation.startDate));
+  const endDate = normalizeDate(new Date(reservation.endDate));
   
-  if (!isValid(startDate) || !isValid(endDate)) {
-    console.error("Invalid dates in reservation", { 
-      id: reservation.id, 
-      startDate: reservation.startDate,
-      endDate: reservation.endDate
-    });
-    return null;
-  }
-
-  const nights = differenceInCalendarDays(endDate, startDate);
-  const isBlocked = reservation.status === 'Blocked' || reservation.notes === 'Blocked';
+  // Determine the background color/styling class
+  const bgClass = style || 'bg-gray-500';
   
-  let borderRadius = '';
+  // Determine positioning based on if it's a check-in or check-out day
+  let positionStyle: React.CSSProperties = {
+    top: `${topPosition}px`,
+    height: '20px'
+  };
+  
+  // Special case for parent properties with continuous occupation
   if (forceDisplayAsMiddle) {
-    borderRadius = 'rounded-none';
+    // Override normal positioning logic - show as a full bar segment
+    positionStyle = {
+      ...positionStyle,
+      left: '0',
+      width: '100%',
+      borderRadius: '0' // No rounding
+    };
+  } else if (isEndDay && !isStartDay) {
+    // Check-out only - position at the left edge, full width
+    positionStyle = {
+      ...positionStyle,
+      left: '0',
+      width: '43%',
+      borderRadius: '0 9999px 9999px 0' // Rounded on right side
+    };
+  } else if (isStartDay && !isEndDay) {
+    // Check-in only - position at the right edge, full width
+    positionStyle = {
+      ...positionStyle,
+      left: '57%',
+      width: '43%',
+      borderRadius: '9999px 0 0 9999px' // Rounded on left side
+    };
   } else if (isStartDay && isEndDay) {
-    borderRadius = 'rounded-full';
-  } else if (isStartDay) {
-    borderRadius = 'rounded-l-md';
-  } else if (isEndDay) {
-    borderRadius = 'rounded-r-md';
+    // Both check-in and check-out (1-day stay)
+    positionStyle = {
+      ...positionStyle,
+      left: '25%',
+      width: '50%',
+      borderRadius: '9999px' // Fully rounded
+    };
   } else {
-    borderRadius = 'rounded-none';
+    // Middle of a stay
+    positionStyle = {
+      ...positionStyle,
+      left: '0',
+      width: '100%',
+      borderRadius: '0' // No rounding
+    };
   }
+  
+  // Display status if it's a blocked reservation
+  const isBlocked = reservation.status === 'Blocked';
+  const displayLabel = 
+    isBlocked ? 'Blocked' : 
+    reservation.platform === 'Other' ? 'Manual' : reservation.platform;
 
-  return (
-    <div 
-      className={`absolute z-20 h-6 ${style} ${borderRadius} flex items-center overflow-hidden`}
-      style={{ top: `${topPosition}px`, left: 0, right: 0 }}
-    >
-      <div className="px-1 truncate text-xs">
-        {!isBlocked && (
-          <span className="font-medium">
-            {reservation.guestName || 'Sin nombre'}
-          </span>
-        )}
-        {isBlocked && (
-          <span className="font-medium">
-            {sourceInfo.property ? `Bloqueado por ${sourceInfo.property.name}` : 'Bloqueado'}
-          </span>
-        )}
-      </div>
+  // Create tooltip content
+  let tooltipContent = (
+    <div className="text-xs space-y-1.5">
+      <p className="font-semibold text-sm">{reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
+      <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
+      <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
+      {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
+      {sourceInfo.property && (
+        <p><strong>Source Property:</strong> {sourceInfo.property.name}</p>
+      )}
+      {reservation.guestName && <p><strong>Guest:</strong> {reservation.guestName}</p>}
     </div>
   );
+
+  // Only show tooltip for check-in days (including single-day reservations)
+  // or when forced to display as middle
+  if (isStartDay || forceDisplayAsMiddle) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className={`absolute flex items-center justify-center text-white text-xs font-medium cursor-pointer ${bgClass} shadow-sm transition-all duration-200 hover:shadow-md hover:brightness-95 hover:scale-[1.02]`}
+              style={positionStyle}
+            >
+              <span className="truncate px-1">{forceDisplayAsMiddle ? '' : displayLabel}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 rounded-lg p-3 z-50">
+            {tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  } else {
+    // For non-check-in days, just render the bar without a label
+    return (
+      <div 
+        className={`absolute flex items-center justify-center text-white text-xs font-medium ${bgClass} shadow-sm`}
+        style={positionStyle}
+      >
+        <span className="truncate px-1"></span>
+      </div>
+    );
+  }
 };
 
 export default ReservationTooltip;
