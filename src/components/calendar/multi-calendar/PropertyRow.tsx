@@ -28,9 +28,15 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   getSourceReservationInfo,
   normalizeDate
 }) => {
-  const typeIndicator = 
-    property.type === 'parent' ? 'Alojamiento principal' : 
-    property.type === 'child' ? 'Habitación' : '';
+  // Determinar el tipo de indicador según el tipo de propiedad
+  let typeIndicator = '';
+  if (property.type === 'parent') {
+    typeIndicator = 'Alojamiento principal';
+  } else if (property.type === 'child') {
+    typeIndicator = 'Habitación';
+  } else if (property.type === 'standalone' || !property.type) {
+    typeIndicator = 'Casa';
+  }
 
   // Group days into weeks for reservation bar rendering
   const weeks = useMemo(() => {
@@ -41,10 +47,15 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
     return result;
   }, [visibleDays]);
 
-  // Apply different background colors based on property type
-  const propertyTypeStyles = 
-    property.type === 'parent' ? 'bg-blue-50/40 border-l-4 border-l-blue-400' : 
-    property.type === 'child' ? 'bg-amber-50/40 border-l-2 border-l-amber-400' : '';
+  // Apply different background colors and border styles based on property type
+  let propertyTypeStyles = '';
+  if (property.type === 'parent') {
+    propertyTypeStyles = 'bg-blue-50/40 border-l-4 border-l-blue-400';
+  } else if (property.type === 'child') {
+    propertyTypeStyles = 'bg-amber-50/40 border-l-2 border-l-amber-400';
+  } else if (property.type === 'standalone' || !property.type) {
+    propertyTypeStyles = 'bg-purple-50/40 border-l-3 border-l-purple-400';
+  }
 
   return (
     <React.Fragment>

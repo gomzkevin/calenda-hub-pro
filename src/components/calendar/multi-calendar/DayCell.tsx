@@ -62,9 +62,14 @@ const DayCell: React.FC<DayCellProps> = ({
   });
   
   // Add property type specific styling
-  const propertyTypeStyles = 
-    property.type === 'parent' ? 'hover:bg-blue-50/70' : 
-    property.type === 'child' ? 'hover:bg-amber-50/70' : '';
+  let propertyTypeStyles = '';
+  if (property.type === 'parent') {
+    propertyTypeStyles = 'hover:bg-blue-50/70';
+  } else if (property.type === 'child') {
+    propertyTypeStyles = 'hover:bg-amber-50/70';
+  } else if (property.type === 'standalone' || !property.type) {
+    propertyTypeStyles = 'hover:bg-purple-50/70';
+  }
 
   let bgColorClass = isToday ? 'bg-blue-50' : '';
   

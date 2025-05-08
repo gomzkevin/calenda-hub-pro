@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -87,6 +88,11 @@
 }
 
 @layer components {
+  /* Agregar border-l-3 como nuevo estilo de utilidad */
+  .border-l-3 {
+    border-left-width: 3px;
+  }
+  
   .booking-event {
     @apply text-xs px-1 py-0.5 mb-1 rounded truncate;
   }
