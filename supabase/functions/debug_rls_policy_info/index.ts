@@ -37,17 +37,48 @@ serve(async (req) => {
         pg_policies
       WHERE 
         tablename = '${table_name}'
+      ORDER BY 
+        policyname
     `
 
-    // Run the query
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', { query })
+    // Query to get current user information for debugging
+    const userQuery = `
+      SELECT 
+        current_user, 
+        current_setting('request.jwt.claims', true)::json->>'sub' as auth_user_id
+    `
 
-    if (error) throw error
+    // Run the queries
+    const { data: policiesData, error: policiesError } = await supabaseAdmin.rpc('exec_sql', { query })
+    const { data: userData, error: userError } = await supabaseAdmin.rpc('exec_sql', { query: userQuery })
+
+    if (policiesError) throw policiesError
+    if (userError) throw userError
+
+    // Get the list of users with access to properties
+    const accessQuery = `
+      SELECT 
+        upa.user_id, 
+        p.name as user_name,
+        COUNT(upa.property_id) as access_count
+      FROM 
+        user_property_access upa
+      JOIN
+        profiles p ON p.id = upa.user_id
+      GROUP BY 
+        upa.user_id, p.name
+    `
+    
+    const { data: accessData, error: accessError } = await supabaseAdmin.rpc('exec_sql', { query: accessQuery })
+    
+    if (accessError) throw accessError
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        policies: data
+        policies: policiesData,
+        user: userData,
+        userAccess: accessData,
       }),
       {
         headers: { 

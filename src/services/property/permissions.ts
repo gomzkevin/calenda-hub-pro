@@ -18,7 +18,18 @@ export const refreshPermissions = async (): Promise<boolean> => {
       return false;
     }
     
-    console.log("Session refreshed successfully");
+    // 2. Verificamos que la sesión tenga un token válido
+    if (!session?.session?.access_token) {
+      console.error("No valid access token in the refreshed session");
+      return false;
+    }
+    
+    // 3. Log para debuggear
+    console.log("Session refreshed successfully with new token");
+    
+    // 4. Pequeña pausa para permitir que el token se propague
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     return true;
   } catch (error) {
     console.error("Error refreshing permissions:", error);
@@ -65,11 +76,13 @@ export const ensurePropertyAccessPermissions = async (userId: string): Promise<{
     }
     
     // Forzamos una actualización de la sesión para que RLS funcione correctamente
-    await refreshPermissions();
+    const refreshed = await refreshPermissions();
     
     return { 
-      success: true,
-      message: `Usuario tiene acceso a ${accessData.length} propiedades` 
+      success: refreshed,
+      message: refreshed 
+        ? `Usuario tiene acceso a ${accessData.length} propiedades` 
+        : "Error al actualizar permisos"
     };
   } catch (error: any) {
     console.error("Error ensuring property access:", error);

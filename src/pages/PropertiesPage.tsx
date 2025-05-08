@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Loader2, MapPin, Building2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Loader2, MapPin, Building2, AlertCircle, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,25 +32,51 @@ const PropertiesPage = () => {
     queryFn: getCurrentUser
   });
   
-  // On component mount, refresh permissions to ensure RLS is applied correctly
+  // Forzar refresco de permisos al cargar la página o cambiar de usuario
   useEffect(() => {
     const refreshUserPermissions = async () => {
       setRefreshingPermissions(true);
+      console.log("Initial permission refresh on page load");
       await refreshPermissions();
       setRefreshingPermissions(false);
     };
     
     refreshUserPermissions();
-  }, []);
+  }, [currentUser?.id]);
   
+  // Usar la consulta que respeta RLS y asegurarse de refrescar cuando cambie el usuario
   const { data: properties, isLoading, error, isRefetching, refetch } = useQuery({
-    queryKey: ['properties'],
-    queryFn: getUserAccessibleProperties, // Use the function that respects RLS
-    refetchOnWindowFocus: true,
-    enabled: !refreshingPermissions // Only run the query after permissions have been refreshed
+    queryKey: ['accessible-properties', currentUser?.id],
+    queryFn: getUserAccessibleProperties,
+    refetchOnWindowFocus: false,
+    enabled: !refreshingPermissions
   });
   
   const isAdmin = currentUser?.role === 'admin';
+  
+  // Función para forzar el refresco de permisos y propiedades
+  const handleForceRefresh = async () => {
+    setRefreshingPermissions(true);
+    toast.info("Refrescando permisos y propiedades...");
+    
+    try {
+      // Forzar refresco de sesión para actualizar RLS
+      await refreshPermissions();
+      
+      // Esperar un momento para que los permisos se apliquen
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refrescar datos
+      await refetch();
+      
+      toast.success("Permisos y propiedades actualizados");
+    } catch (error) {
+      toast.error("Error al refrescar permisos");
+      console.error("Error refreshing:", error);
+    } finally {
+      setRefreshingPermissions(false);
+    }
+  };
   
   // Filtrar propiedades según la búsqueda
   const filteredProperties = React.useMemo(() => {
@@ -109,6 +135,16 @@ const PropertiesPage = () => {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Propiedades</h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleForceRefresh}
+            disabled={isRefetching || refreshingPermissions}
+            className="mr-2"
+            title="Refrescar permisos y propiedades"
+          >
+            <RefreshCcw className={`h-4 w-4 ${isRefetching || refreshingPermissions ? 'animate-spin' : ''}`} />
+          </Button>
           <div className="relative w-full sm:w-64">
             <Input
               placeholder="Buscar propiedades..."

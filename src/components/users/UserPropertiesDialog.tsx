@@ -67,20 +67,24 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
     mutationFn: async () => {
       setUpdateError(null);
       console.log("Updating access for user", user?.id, "with properties:", selectedProperties);
+      
+      // Update the user's property access
       const result = await updateUserPropertyAccess(user?.id || '', selectedProperties);
       
-      // After updating access, refresh permissions to ensure RLS changes take effect
       if (result.success) {
+        // After updating access, refresh permissions to ensure RLS changes take effect immediately
         await refreshPermissions();
+        
+        // Add a slight delay to ensure the session refresh has propagated
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       
       return result;
     },
     onSuccess: () => {
+      // Invalidate all relevant queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['userAccess'] });
-      // También invalidamos la consulta de usuarios para refrescar la lista
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      // Invalidate properties query to ensure the UI reflects the new permissions
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       
       toast.success('Accesos actualizados exitosamente');

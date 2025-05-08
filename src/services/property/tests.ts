@@ -59,15 +59,15 @@ export const debugPropertyAccess = async (userId: string): Promise<{
 };
 
 /**
- * Función para depurar SQL de la política RLS
+ * Función para depurar SQL de la política RLS usando una edge function
  */
 export const getRlsPolicyDebugInfo = async () => {
   try {
-    // En producción, esta función requeriría permisos de admin
-    // Note: Using rpc for a custom database function that would need to be created
-    const { data, error } = await supabase
-      .rpc('debug_rls_policy_info', { table_name: 'properties' });
-      
+    // Llamar a la edge function en vez de usar RPC directamente
+    const { data, error } = await supabase.functions.invoke('debug_rls_policy_info', {
+      body: { table_name: 'properties' }
+    });
+    
     if (error) {
       console.error("Error debugging RLS policy:", error);
       return { success: false, error: error.message };
