@@ -2,31 +2,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 
-// Define CORS headers for browser access
+// Define CORS headers para acceso desde el navegador
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Handle function invocation
+// Manejar la invocación de la función
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Manejar solicitudes CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
   
   try {
-    // Get Supabase connection from environment variables
+    // Obtener la conexión Supabase desde variables de entorno
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Parse the request body
+    // Parsear el cuerpo de la solicitud
     const { email, password, name, propertyIds, requestingUserId } = await req.json();
     
-    console.log(`Creating user: ${email}, requested by: ${requestingUserId}`);
+    console.log(`Creando usuario: ${email}, solicitado por: ${requestingUserId}`);
     
-    // Verify that the requesting user exists and is an admin
+    // Verificar que el usuario solicitante existe y es un administrador
     const { data: requestingUserProfile, error: profileError } = await supabase
       .from("profiles")
       .select("role, operator_id")
@@ -34,32 +34,32 @@ serve(async (req) => {
       .single();
       
     if (profileError || !requestingUserProfile) {
-      console.error("Error fetching requesting user profile:", profileError);
+      console.error("Error obteniendo perfil del usuario solicitante:", profileError);
       return new Response(
-        JSON.stringify({ success: false, error: "Not authorized to create users" }), 
+        JSON.stringify({ success: false, error: "No autorizado para crear usuarios" }), 
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     if (requestingUserProfile.role !== 'admin') {
-      console.error("Non-admin user tried to create a user");
+      console.error("Usuario no-admin intentó crear un usuario");
       return new Response(
-        JSON.stringify({ success: false, error: "Only admins can create users" }), 
+        JSON.stringify({ success: false, error: "Solo los administradores pueden crear usuarios" }), 
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // Log the operator ID we will use
-    console.log(`Using operator_id from requesting admin: ${requestingUserProfile.operator_id}`);
+    // Verificar que el admin tenga operator_id asignado
+    console.log(`Usando operator_id del admin solicitante: ${requestingUserProfile.operator_id}`);
     if (!requestingUserProfile.operator_id) {
-      console.error("Admin user has no operator_id - this is an error");
+      console.error("Usuario admin sin operator_id - esto es un error");
       return new Response(
-        JSON.stringify({ success: false, error: "Admin user has no operator_id" }), 
+        JSON.stringify({ success: false, error: "Usuario admin sin operator_id" }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 1. Create the user in auth
+    // 1. Crear el usuario en auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -68,38 +68,38 @@ serve(async (req) => {
     });
 
     if (authError) {
-      console.error("Error creating user:", authError);
+      console.error("Error creando usuario:", authError);
       return new Response(
         JSON.stringify({ success: false, error: authError.message }), 
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log(`User created with ID: ${authData.user.id}`);
+    console.log(`Usuario creado con ID: ${authData.user.id}`);
 
-    // 2. Update the profile with the operator_id from the requesting admin
+    // 2. Actualizar el perfil con el operator_id del admin solicitante
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ 
         name,
         operator_id: requestingUserProfile.operator_id,
-        role: 'user' // Default all new users to 'user' role
+        role: 'user' // Por defecto, todos los nuevos usuarios tienen rol 'user'
       })
       .eq("id", authData.user.id);
 
     if (updateError) {
-      console.error("Error updating profile:", updateError);
+      console.error("Error actualizando perfil:", updateError);
       return new Response(
         JSON.stringify({ success: false, error: updateError.message }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Profile updated with operator_id: ${requestingUserProfile.operator_id}`);
+    console.log(`Perfil actualizado con operator_id: ${requestingUserProfile.operator_id}`);
 
-    // 3. If property IDs were provided, create access records
+    // 3. Si se proporcionaron IDs de propiedades, crear registros de acceso
     if (propertyIds && propertyIds.length > 0) {
-      console.log(`Creating access for properties: ${propertyIds.join(", ")}`);
+      console.log(`Creando acceso para propiedades: ${propertyIds.join(", ")}`);
       
       const accessRecords = propertyIds.map(propertyId => ({
         user_id: authData.user.id,
@@ -112,12 +112,12 @@ serve(async (req) => {
         .insert(accessRecords);
 
       if (accessError) {
-        console.error("Error creating property access:", accessError);
-        // Continue despite this error, the user is still created
+        console.error("Error creando acceso a propiedades:", accessError);
+        // Continuar a pesar de este error, el usuario sigue creado
       }
     }
 
-    // 4. Get the updated profile
+    // 4. Obtener el perfil actualizado
     const { data: profile, error: profileFetchError } = await supabase
       .from("profiles")
       .select("*")
@@ -125,20 +125,25 @@ serve(async (req) => {
       .single();
 
     if (profileFetchError) {
-      console.error("Error fetching created profile:", profileFetchError);
+      console.error("Error obteniendo perfil creado:", profileFetchError);
       return new Response(
         JSON.stringify({ 
           success: true, 
           user: { 
             id: authData.user.id,
             email: authData.user.email,
+            name: name,
+            role: 'user',
+            active: true,
+            operatorId: requestingUserProfile.operator_id,
+            createdAt: new Date()
           } 
         }), 
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Return the created user profile
+    // Devolver el perfil de usuario creado
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -156,9 +161,9 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error("Error inesperado:", error);
     return new Response(
-      JSON.stringify({ success: false, error: "An unexpected error occurred" }), 
+      JSON.stringify({ success: false, error: "Ocurrió un error inesperado" }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

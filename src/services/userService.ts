@@ -4,92 +4,113 @@ import { User } from "@/types";
 
 /**
  * Get all users with their profiles
+ * Los administradores pueden ver a todos los usuarios de su operador
+ * Los usuarios normales solo ven su propio perfil
  */
 export const getUsers = async (): Promise<User[]> => {
-  // Obtener el usuario actual primero
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
-  
-  if (!currentUser) {
-    console.log("No user is logged in");
+  try {
+    // Obtener el usuario autenticado actual
+    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !currentUser) {
+      console.error("Error obteniendo usuario autenticado:", authError);
+      return [];
+    }
+
+    // Obtener el perfil del usuario actual para saber su rol y operador_id
+    const { data: currentProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, operator_id")
+      .eq("id", currentUser.id)
+      .single();
+
+    if (profileError || !currentProfile) {
+      console.error("Error obteniendo perfil del usuario actual:", profileError);
+      return [];
+    }
+
+    console.log("Perfil del usuario actual:", currentProfile);
+
+    // Consulta base para perfiles
+    let query = supabase.from("profiles").select("*");
+    
+    if (currentProfile.role === 'admin') {
+      // Los administradores pueden ver todos los usuarios de su operador
+      if (currentProfile.operator_id) {
+        query = query.eq("operator_id", currentProfile.operator_id);
+        console.log(`Admin: Buscando usuarios con operator_id=${currentProfile.operator_id}`);
+      } else {
+        console.error("Error: Admin sin operator_id asignado");
+      }
+    } else {
+      // Los usuarios normales solo pueden ver su propio perfil
+      query = query.eq("id", currentUser.id);
+      console.log("Usuario regular: Mostrando solo su perfil");
+    }
+
+    // Ejecutar la consulta
+    const { data: profiles, error: fetchError } = await query;
+    
+    if (fetchError) {
+      console.error("Error obteniendo perfiles:", fetchError);
+      return [];
+    }
+    
+    console.log(`Encontrados ${profiles?.length || 0} perfiles de usuario`);
+    
+    if (profiles && profiles.length > 0) {
+      console.log("Primer perfil encontrado:", profiles[0]);
+    }
+    
+    // Transformar los perfiles al formato User
+    return (profiles || []).map((profile) => ({
+      id: profile.id,
+      operatorId: profile.operator_id || '',
+      name: profile.name,
+      email: profile.email,
+      role: profile.role as 'admin' | 'user',
+      active: profile.active,
+      createdAt: new Date(profile.created_at)
+    }));
+  } catch (error) {
+    console.error("Error inesperado en getUsers:", error);
     return [];
   }
-
-  // Obtener el perfil del usuario actual
-  const { data: currentProfile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, operator_id")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (profileError) {
-    console.error("Error getting current user profile:", profileError);
-    return [];
-  }
-
-  // Construir la consulta basada en el rol del usuario
-  let query = supabase.from("profiles").select("*");
-  
-  // Si es admin, obtener todos los usuarios de su operador
-  // Si es usuario normal, sólo obtener su propio perfil
-  if (currentProfile.role === 'admin') {
-    // Los administradores ven a todos los usuarios de su mismo operador
-    query = query.eq("operator_id", currentProfile.operator_id);
-    console.log(`Admin user fetching all users with operator_id: ${currentProfile.operator_id}`);
-  } else {
-    // Los usuarios normales solo ven su propio perfil
-    query = query.eq("id", currentUser.id);
-    console.log("Regular user fetching only their own profile");
-  }
-
-  const { data: profiles, error } = await query;
-  
-  if (error) {
-    console.error("Error fetching user profiles:", error);
-    return [];
-  }
-  
-  console.log(`Found ${profiles?.length || 0} user profiles`);
-  
-  // Convertir los perfiles a nuestro formato de usuario
-  return (profiles || []).map((profile) => ({
-    id: profile.id,
-    operatorId: profile.operator_id || '',
-    name: profile.name,
-    email: profile.email,
-    role: profile.role as 'admin' | 'user',
-    active: profile.active,
-    createdAt: new Date(profile.created_at)
-  }));
 };
 
 /**
  * Get current logged in user with profile data
  */
 export const getCurrentUser = async (): Promise<User | null> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return null;
-  
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-  
-  if (error || !profile) {
-    console.error("Error fetching user profile:", error);
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return null;
+    
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    
+    if (error || !profile) {
+      console.error("Error obteniendo perfil de usuario:", error);
+      return null;
+    }
+    
+    return {
+      id: profile.id,
+      operatorId: profile.operator_id || '',
+      name: profile.name,
+      email: profile.email,
+      role: profile.role as 'admin' | 'user',
+      active: profile.active,
+      createdAt: new Date(profile.created_at)
+    };
+  } catch (error) {
+    console.error("Error en getCurrentUser:", error);
     return null;
   }
-  
-  return {
-    id: profile.id,
-    operatorId: profile.operator_id || '',
-    name: profile.name,
-    email: profile.email,
-    role: profile.role as 'admin' | 'user',
-    active: profile.active,
-    createdAt: new Date(profile.created_at)
-  };
 };
 
 /**
@@ -108,9 +129,9 @@ export const createUser = async (
     throw new Error("Usuario no autenticado");
   }
   
-  console.log("Calling create-user edge function with selected properties:", propertyIds);
+  console.log("Llamando a create-user con propiedades seleccionadas:", propertyIds);
   
-  // Call the Edge Function to create the user
+  // Llamar a la función Edge para crear el usuario
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: {
       email,
@@ -122,16 +143,16 @@ export const createUser = async (
   });
   
   if (error) {
-    console.error("Error from create-user function:", error);
+    console.error("Error de la función create-user:", error);
     throw new Error(`Error al crear usuario: ${error.message}`);
   }
   
   if (!data.success) {
-    console.error("Error creating user:", data.error);
+    console.error("Error creando usuario:", data.error);
     throw new Error(`Error al crear usuario: ${data.error}`);
   }
   
-  console.log("User created successfully:", data.user);
+  console.log("Usuario creado exitosamente:", data.user);
   
   return data.user;
 };
@@ -150,33 +171,38 @@ export const updateUserPropertyAccess = async (
     throw new Error("Usuario no autenticado");
   }
 
-  // 1. Delete all existing access records for the user
-  const { error: deleteError } = await supabase
-    .from("user_property_access")
-    .delete()
-    .eq("user_id", userId);
-
-  if (deleteError) {
-    console.error("Error deleting property access:", deleteError);
-    throw deleteError;
-  }
-
-  // 2. Create new access records if properties were provided
-  if (propertyIds.length > 0) {
-    const { error: insertError } = await supabase
+  try {
+    // 1. Eliminar todos los accesos existentes para el usuario
+    const { error: deleteError } = await supabase
       .from("user_property_access")
-      .insert(
-        propertyIds.map(propertyId => ({
-          user_id: userId,
-          property_id: propertyId,
-          created_by: currentUser.id
-        }))
-      );
+      .delete()
+      .eq("user_id", userId);
 
-    if (insertError) {
-      console.error("Error creating property access:", insertError);
-      throw insertError;
+    if (deleteError) {
+      console.error("Error eliminando accesos a propiedades:", deleteError);
+      throw deleteError;
     }
+
+    // 2. Crear nuevos accesos si se proporcionaron propiedades
+    if (propertyIds.length > 0) {
+      const { error: insertError } = await supabase
+        .from("user_property_access")
+        .insert(
+          propertyIds.map(propertyId => ({
+            user_id: userId,
+            property_id: propertyId,
+            created_by: currentUser.id
+          }))
+        );
+
+      if (insertError) {
+        console.error("Error creando accesos a propiedades:", insertError);
+        throw insertError;
+      }
+    }
+  } catch (error) {
+    console.error("Error en updateUserPropertyAccess:", error);
+    throw error;
   }
 };
 
@@ -184,30 +210,40 @@ export const updateUserPropertyAccess = async (
  * Get property access for a user
  */
 export const getUserPropertyAccess = async (userId: string): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from("user_property_access")
-    .select("property_id")
-    .eq("user_id", userId);
+  try {
+    const { data, error } = await supabase
+      .from("user_property_access")
+      .select("property_id")
+      .eq("user_id", userId);
 
-  if (error) {
-    console.error("Error fetching user property access:", error);
-    throw error;
+    if (error) {
+      console.error("Error obteniendo accesos a propiedades:", error);
+      throw error;
+    }
+
+    return data.map(access => access.property_id);
+  } catch (error) {
+    console.error("Error en getUserPropertyAccess:", error);
+    return [];
   }
-
-  return data.map(access => access.property_id);
 };
 
 /**
  * Update user active status
  */
 export const updateUserStatus = async (userId: string, active: boolean): Promise<void> => {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ active })
-    .eq("id", userId);
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ active })
+      .eq("id", userId);
 
-  if (error) {
-    console.error("Error updating user status:", error);
+    if (error) {
+      console.error("Error actualizando estado del usuario:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error en updateUserStatus:", error);
     throw error;
   }
 };

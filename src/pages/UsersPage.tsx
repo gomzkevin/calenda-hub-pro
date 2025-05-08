@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Check, X, Loader2, Building2 } from 'lucide-react';
+import { Plus, Check, X, Loader2, RefreshCw, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +33,7 @@ const UsersPage: React.FC = () => {
     queryFn: getCurrentUser
   });
   
-  // Obtener todas las propiedades
+  // Obtener todas las propiedades si el usuario es admin
   const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties,
@@ -41,11 +41,18 @@ const UsersPage: React.FC = () => {
   });
   
   // Obtener todos los usuarios
-  const { data: users = [], isLoading: isLoadingUsers, error: usersError, refetch: refetchUsers } = useQuery({
+  const { 
+    data: users = [], 
+    isLoading: isLoadingUsers, 
+    error: usersError, 
+    refetch: refetchUsers,
+    isRefetching
+  } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
     retry: 1,
-    enabled: !isLoadingCurrentUser && !!currentUser
+    enabled: !isLoadingCurrentUser && !!currentUser,
+    staleTime: 30000  // Considerar datos frescos por 30 segundos
   });
   
   const isAdmin = currentUser?.role === 'admin';
@@ -63,16 +70,20 @@ const UsersPage: React.FC = () => {
     }
   });
   
+  // Filtrar usuarios por búsqueda
   const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
+    user.name?.toLowerCase().includes(search.toLowerCase()) ||
+    user.email?.toLowerCase().includes(search.toLowerCase())
   );
   
   const isLoading = isLoadingCurrentUser || isLoadingUsers;
+  const isRefreshing = isRefetching;
 
+  // Manejar actualización de la lista de usuarios
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['users'] });
     refetchUsers();
+    toast.info('Actualizando lista de usuarios...');
   };
   
   return (
@@ -91,7 +102,16 @@ const UsersPage: React.FC = () => {
           </div>
           {isAdmin && (
             <>
-              <Button variant="outline" onClick={handleRefresh}>
+              <Button 
+                variant="outline" 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
                 Actualizar
               </Button>
               <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -105,7 +125,12 @@ const UsersPage: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Gestión de Usuarios ({users.length} usuarios encontrados)</CardTitle>
+          <CardTitle>
+            Gestión de Usuarios 
+            <Badge variant="outline" className="ml-2">
+              {users.length} usuarios
+            </Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -118,7 +143,7 @@ const UsersPage: React.FC = () => {
               {search ? 'No se encontraron usuarios que coincidan con la búsqueda' : 'No se encontraron usuarios'}
               {usersError && (
                 <div className="text-red-500 mt-2">
-                  Error al cargar usuarios: {usersError.message || "Ocurrió un error desconocido"}
+                  Error al cargar usuarios: {usersError instanceof Error ? usersError.message : "Ocurrió un error desconocido"}
                   <Button 
                     variant="outline" 
                     className="mt-2" 
