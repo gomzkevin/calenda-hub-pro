@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { getOperators } from './operatorService';
 
 export interface Profile {
   id: string;
@@ -8,6 +9,7 @@ export interface Profile {
   role: string;
   active: boolean;
   operator_id: string;
+  operatorName?: string; // Añadido para almacenar el nombre del operador
   createdAt?: Date;
 }
 
@@ -54,9 +56,14 @@ export const getUsers = async (): Promise<Profile[]> => {
     
     console.log('Fetched users:', data); // Debug to see what's being returned
     
+    // Get operators to map operator_id to operator names
+    const operators = await getOperators();
+    const operatorMap = new Map(operators.map(op => [op.id, op.name]));
+    
     // Transform dates and map operator_id to operatorId for frontend consistency
     return data.map(profile => ({
       ...profile,
+      operatorName: operatorMap.get(profile.operator_id) || 'Desconocido',
       createdAt: profile.created_at ? new Date(profile.created_at) : undefined
     })) as Profile[];
   } catch (error) {

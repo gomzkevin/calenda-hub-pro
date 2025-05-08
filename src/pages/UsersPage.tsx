@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Check, X, Loader2, RefreshCw, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUsers, updateUserStatus, getCurrentUser, Profile } from '@/services/userService';
 import { getProperties } from '@/services/propertyService';
+import { getOperators } from '@/services/operatorService';
 import CreateUserDialog from '@/components/users/CreateUserDialog';
 import UserPropertiesDialog from '@/components/users/UserPropertiesDialog';
 import { toast } from 'sonner';
@@ -29,6 +31,13 @@ const UsersPage: React.FC = () => {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: getCurrentUser
+  });
+  
+  // Obtener los operadores para mostrar nombres en lugar de IDs
+  const { data: operators = [] } = useQuery({
+    queryKey: ['operators'],
+    queryFn: getOperators,
+    enabled: !isLoadingCurrentUser && !!currentUser
   });
   
   // Obtener todas las propiedades si el usuario es admin
@@ -64,6 +73,13 @@ const UsersPage: React.FC = () => {
       console.log('Fetched users:', users.length);
     }
   }, [currentUser, users]);
+
+  // Encontrar el nombre del operador del usuario actual
+  const currentOperatorName = React.useMemo(() => {
+    if (!currentUser?.operator_id || !operators.length) return 'Operador';
+    const operator = operators.find(op => op.id === currentUser.operator_id);
+    return operator?.name || 'Operador';
+  }, [currentUser, operators]);
 
   const isAdmin = currentUser?.role === 'admin';
   
@@ -144,7 +160,7 @@ const UsersPage: React.FC = () => {
             </div>
             {isAdmin && currentUser?.operator_id && (
               <Badge variant="secondary" className="text-xs">
-                Operador: {currentUser.operator_id}
+                Operador: {currentOperatorName}
               </Badge>
             )}
           </CardTitle>
@@ -180,7 +196,7 @@ const UsersPage: React.FC = () => {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Rol</TableHead>
-                    <TableHead>OperadorID</TableHead>
+                    <TableHead>Operador</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Creado</TableHead>
                     <TableHead>Acciones</TableHead>
@@ -196,7 +212,7 @@ const UsersPage: React.FC = () => {
                           {user.role === 'admin' ? 'Admin' : 'Usuario'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{user.operator_id}</TableCell>
+                      <TableCell>{user.operatorName || 'Desconocido'}</TableCell>
                       <TableCell>
                         {user.active ? (
                           <Check className="w-5 h-5 text-green-500" />
