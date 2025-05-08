@@ -44,7 +44,8 @@ const UsersPage: React.FC = () => {
   const { data: users = [], isLoading: isLoadingUsers, error: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
-    enabled: !isLoadingCurrentUser
+    retry: 1,
+    enabled: !isLoadingCurrentUser && !!currentUser
   });
   
   const isAdmin = currentUser?.role === 'admin';
@@ -68,6 +69,11 @@ const UsersPage: React.FC = () => {
   );
   
   const isLoading = isLoadingCurrentUser || isLoadingUsers;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+    refetchUsers();
+  };
   
   return (
     <div className="space-y-6">
@@ -84,10 +90,15 @@ const UsersPage: React.FC = () => {
             />
           </div>
           {isAdmin && (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Usuario
-            </Button>
+            <>
+              <Button variant="outline" onClick={handleRefresh}>
+                Actualizar
+              </Button>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Usuario
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -107,11 +118,11 @@ const UsersPage: React.FC = () => {
               {search ? 'No se encontraron usuarios que coincidan con la búsqueda' : 'No se encontraron usuarios'}
               {usersError && (
                 <div className="text-red-500 mt-2">
-                  Error al cargar usuarios. Por favor, intente nuevamente.
+                  Error al cargar usuarios: {usersError.message || "Ocurrió un error desconocido"}
                   <Button 
                     variant="outline" 
                     className="mt-2" 
-                    onClick={() => refetchUsers()}
+                    onClick={handleRefresh}
                   >
                     Reintentar
                   </Button>

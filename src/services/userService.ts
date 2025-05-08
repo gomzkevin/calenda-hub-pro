@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
@@ -5,15 +6,15 @@ import { User } from "@/types";
  * Get all users with their profiles
  */
 export const getUsers = async (): Promise<User[]> => {
-  // Primero obtenemos el perfil del usuario actual
+  // Obtener el usuario actual primero
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   
   if (!currentUser) {
-    console.log("No current user found");
+    console.log("No user is logged in");
     return [];
   }
 
-  // Obtenemos el perfil del usuario actual
+  // Obtener el perfil del usuario actual
   const { data: currentProfile, error: profileError } = await supabase
     .from("profiles")
     .select("role, operator_id")
@@ -21,31 +22,35 @@ export const getUsers = async (): Promise<User[]> => {
     .single();
 
   if (profileError) {
-    console.error("Error fetching current user profile:", profileError);
+    console.error("Error getting current user profile:", profileError);
     return [];
   }
 
-  // Si el usuario es admin, obtener todos los usuarios de su mismo operator_id
-  // Si no es admin, solo obtener su propio perfil
+  // Construir la consulta basada en el rol del usuario
   let query = supabase.from("profiles").select("*");
   
+  // Si es admin, obtener todos los usuarios de su operador
+  // Si es usuario normal, sólo obtener su propio perfil
   if (currentProfile.role === 'admin') {
+    // Los administradores ven a todos los usuarios de su mismo operador
     query = query.eq("operator_id", currentProfile.operator_id);
-    console.log(`Fetching users with operator_id: ${currentProfile.operator_id}`);
+    console.log(`Admin user fetching all users with operator_id: ${currentProfile.operator_id}`);
   } else {
+    // Los usuarios normales solo ven su propio perfil
     query = query.eq("id", currentUser.id);
-    console.log("Non-admin, only fetching current user");
+    console.log("Regular user fetching only their own profile");
   }
-  
-  const { data: profiles, error } = await query.order("created_at", { ascending: false });
+
+  const { data: profiles, error } = await query;
   
   if (error) {
-    console.error("Error fetching users:", error);
+    console.error("Error fetching user profiles:", error);
     return [];
   }
   
-  console.log(`Found ${profiles?.length || 0} profiles`);
+  console.log(`Found ${profiles?.length || 0} user profiles`);
   
+  // Convertir los perfiles a nuestro formato de usuario
   return (profiles || []).map((profile) => ({
     id: profile.id,
     operatorId: profile.operator_id || '',

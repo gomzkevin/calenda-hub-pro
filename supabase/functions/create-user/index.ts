@@ -25,7 +25,6 @@ serve(async (req) => {
     const { email, password, name, propertyIds, requestingUserId } = await req.json();
     
     console.log(`Creating user: ${email}, requested by: ${requestingUserId}`);
-    console.log(`Selected property IDs: ${propertyIds ? propertyIds.length : 0} properties selected`);
     
     // Verify that the requesting user exists and is an admin
     const { data: requestingUserProfile, error: profileError } = await supabase
@@ -37,7 +36,7 @@ serve(async (req) => {
     if (profileError || !requestingUserProfile) {
       console.error("Error fetching requesting user profile:", profileError);
       return new Response(
-        JSON.stringify({ error: "Not authorized to create users" }), 
+        JSON.stringify({ success: false, error: "Not authorized to create users" }), 
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -45,11 +44,21 @@ serve(async (req) => {
     if (requestingUserProfile.role !== 'admin') {
       console.error("Non-admin user tried to create a user");
       return new Response(
-        JSON.stringify({ error: "Only admins can create users" }), 
+        JSON.stringify({ success: false, error: "Only admins can create users" }), 
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    // Log the operator ID we will use
+    console.log(`Using operator_id from requesting admin: ${requestingUserProfile.operator_id}`);
+    if (!requestingUserProfile.operator_id) {
+      console.error("Admin user has no operator_id - this is an error");
+      return new Response(
+        JSON.stringify({ success: false, error: "Admin user has no operator_id" }), 
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // 1. Create the user in auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
@@ -61,14 +70,14 @@ serve(async (req) => {
     if (authError) {
       console.error("Error creating user:", authError);
       return new Response(
-        JSON.stringify({ error: authError.message }), 
+        JSON.stringify({ success: false, error: authError.message }), 
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     console.log(`User created with ID: ${authData.user.id}`);
 
-    // 2. Update the profile that's automatically created to include the operator_id
+    // 2. Update the profile with the operator_id from the requesting admin
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ 
@@ -81,12 +90,12 @@ serve(async (req) => {
     if (updateError) {
       console.error("Error updating profile:", updateError);
       return new Response(
-        JSON.stringify({ error: updateError.message }), 
+        JSON.stringify({ success: false, error: updateError.message }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Profile updated for user: ${authData.user.id} with operator_id: ${requestingUserProfile.operator_id}`);
+    console.log(`Profile updated with operator_id: ${requestingUserProfile.operator_id}`);
 
     // 3. If property IDs were provided, create access records
     if (propertyIds && propertyIds.length > 0) {
@@ -104,11 +113,8 @@ serve(async (req) => {
 
       if (accessError) {
         console.error("Error creating property access:", accessError);
-      } else {
-        console.log(`Created ${propertyIds.length} property access records`);
+        // Continue despite this error, the user is still created
       }
-    } else {
-      console.log("No properties selected, skipping property access creation");
     }
 
     // 4. Get the updated profile
@@ -120,13 +126,12 @@ serve(async (req) => {
 
     if (profileFetchError) {
       console.error("Error fetching created profile:", profileFetchError);
-      // Return success anyway, but without the full profile
       return new Response(
         JSON.stringify({ 
           success: true, 
           user: { 
             id: authData.user.id,
-            email: authData.user.email 
+            email: authData.user.email,
           } 
         }), 
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -153,7 +158,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: "An unexpected error occurred" }), 
+      JSON.stringify({ success: false, error: "An unexpected error occurred" }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
