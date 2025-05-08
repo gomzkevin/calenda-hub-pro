@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { Property, Reservation } from '@/types';
 import DayCell from './DayCell';
 
@@ -19,7 +19,8 @@ interface PropertyRowProps {
   onClick?: () => void;
 }
 
-const PropertyRow: React.FC<PropertyRowProps> = ({
+// Add memoization to prevent unnecessary re-renders
+const PropertyRow: React.FC<PropertyRowProps> = memo(({
   property,
   visibleDays,
   getDayReservationStatus,
@@ -30,17 +31,14 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   normalizeDate,
   onClick
 }) => {
-  // Determinar el tipo de indicador según el tipo de propiedad
-  let typeIndicator = '';
-  if (property.type === 'parent') {
-    typeIndicator = 'Alojamiento principal';
-  } else if (property.type === 'child') {
-    typeIndicator = 'Habitación';
-  } else if (property.type === 'standalone' || !property.type) {
-    typeIndicator = 'Casa';
-  }
+  // Determine type indicator based on property type - memoized to prevent recalculation
+  const typeIndicator = useMemo(() => {
+    if (property.type === 'parent') return 'Alojamiento principal';
+    if (property.type === 'child') return 'Habitación';
+    return 'Casa'; // Default for 'standalone' or undefined type
+  }, [property.type]);
 
-  // Group days into weeks for reservation bar rendering
+  // Group days into weeks for reservation bar rendering - memoized for performance
   const weeks = useMemo(() => {
     const result: Date[][] = [];
     for (let i = 0; i < visibleDays.length; i += 7) {
@@ -49,18 +47,42 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
     return result;
   }, [visibleDays]);
 
-  // Apply different background colors and border styles based on property type
-  let propertyTypeStyles = '';
-  if (property.type === 'parent') {
-    propertyTypeStyles = 'bg-blue-50/40 border-l-4 border-l-blue-400';
-  } else if (property.type === 'child') {
-    propertyTypeStyles = 'bg-amber-50/40 border-l-2 border-l-amber-400';
-  } else if (property.type === 'standalone' || !property.type) {
-    propertyTypeStyles = 'bg-purple-50/40 border-l-3 border-l-purple-400';
-  }
+  // Apply different background colors and border styles based on property type - memoized
+  const propertyTypeStyles = useMemo(() => {
+    if (property.type === 'parent') return 'bg-blue-50/40 border-l-4 border-l-blue-400';
+    if (property.type === 'child') return 'bg-amber-50/40 border-l-2 border-l-amber-400';
+    return 'bg-purple-50/40 border-l-3 border-l-purple-400'; // Default for 'standalone' or undefined type
+  }, [property.type]);
 
   // Add cursor-pointer if onClick is provided
   const cursorStyle = onClick ? 'cursor-pointer hover:bg-gray-50' : '';
+
+  // Memoize day cells to prevent unnecessary re-renders
+  const dayCells = useMemo(() => {
+    return visibleDays.map((day, dayIndex) => (
+      <DayCell
+        key={`day-${property.id}-${dayIndex}`}
+        day={day}
+        property={property}
+        dayIndex={dayIndex}
+        getDayReservationStatus={getDayReservationStatus}
+        sortReservations={sortReservations}
+        propertyLanes={propertyLanes}
+        getReservationStyle={getReservationStyle}
+        getSourceReservationInfo={getSourceReservationInfo}
+        normalizeDate={normalizeDate}
+      />
+    ));
+  }, [
+    visibleDays, 
+    property, 
+    getDayReservationStatus, 
+    sortReservations, 
+    propertyLanes, 
+    getReservationStyle, 
+    getSourceReservationInfo, 
+    normalizeDate
+  ]);
 
   return (
     <React.Fragment>
@@ -80,22 +102,9 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
         </div>
       </div>
       
-      {visibleDays.map((day, dayIndex) => (
-        <DayCell
-          key={`day-${property.id}-${dayIndex}`}
-          day={day}
-          property={property}
-          dayIndex={dayIndex}
-          getDayReservationStatus={getDayReservationStatus}
-          sortReservations={sortReservations}
-          propertyLanes={propertyLanes}
-          getReservationStyle={getReservationStyle}
-          getSourceReservationInfo={getSourceReservationInfo}
-          normalizeDate={normalizeDate}
-        />
-      ))}
+      {dayCells}
     </React.Fragment>
   );
-};
+});
 
 export default PropertyRow;

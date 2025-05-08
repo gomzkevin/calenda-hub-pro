@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,17 +32,18 @@ const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertyClick }) => {
   // Set up date navigation
   const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
   
-  // Fetch reservations for the visible date range
+  // Fetch reservations for the visible date range with optimized parameters
   const { reservations, isLoading: isLoadingReservations } = useReservations(startDate, endDate);
   
-  // Fetch properties with caching
+  // Fetch properties with improved caching
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
     queryKey: ['properties'],
     queryFn: getProperties,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: false // Don't refetch on window focus
   });
   
-  // Create property relationship maps
+  // Create property relationship maps - now memoized 
   const propertyRelationships = usePropertyRelationships(properties);
 
   // Set up reservation-related functions
@@ -52,12 +53,49 @@ const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertyClick }) => {
     getDayReservationStatus 
   } = useReservationData(reservations, properties, propertyRelationships);
 
-  // Calculate property lanes for positioning reservations
-  const propertyLanes = React.useMemo(() => 
+  // Calculate property lanes for positioning reservations - memoized for performance
+  const propertyLanes = useMemo(() => 
     calculatePropertyLanes(properties, getReservationsForProperty),
-  [properties, getReservationsForProperty]);
+    [properties, getReservationsForProperty]
+  );
 
+  // Combined loading state
   const isLoading = isLoadingReservations || isLoadingProperties;
+
+  // Memoize the property rows to prevent unnecessary re-renders
+  const propertyRows = useMemo(() => {
+    if (isLoading) return null;
+    
+    return properties.map((property) => (
+      <PropertyRow
+        key={property.id}
+        property={property}
+        visibleDays={visibleDays}
+        getDayReservationStatus={getDayReservationStatus}
+        sortReservations={sortReservations}
+        propertyLanes={propertyLanes}
+        getReservationStyle={getReservationStyle}
+        getSourceReservationInfo={getSourceReservationInfo}
+        normalizeDate={normalizeDate}
+        onClick={onPropertyClick ? () => onPropertyClick(property.id) : undefined}
+      />
+    ));
+  }, [
+    properties, 
+    visibleDays, 
+    getDayReservationStatus, 
+    propertyLanes, 
+    getSourceReservationInfo,
+    onPropertyClick,
+    isLoading
+  ]);
+
+  // Memoize the day headers to prevent unnecessary re-renders
+  const dayHeaders = useMemo(() => {
+    return visibleDays.map((day, index) => (
+      <DayHeader key={index} day={day} index={index} />
+    ));
+  }, [visibleDays]);
 
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden multi-calendar-container">
@@ -83,25 +121,10 @@ const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertyClick }) => {
                 </div>
                 
                 {/* Day header cells */}
-                {visibleDays.map((day, index) => (
-                  <DayHeader key={index} day={day} index={index} />
-                ))}
+                {dayHeaders}
                 
                 {/* Property rows with day cells */}
-                {properties.map((property) => (
-                  <PropertyRow
-                    key={property.id}
-                    property={property}
-                    visibleDays={visibleDays}
-                    getDayReservationStatus={getDayReservationStatus}
-                    sortReservations={sortReservations}
-                    propertyLanes={propertyLanes}
-                    getReservationStyle={getReservationStyle}
-                    getSourceReservationInfo={getSourceReservationInfo}
-                    normalizeDate={normalizeDate}
-                    onClick={onPropertyClick ? () => onPropertyClick(property.id) : undefined}
-                  />
-                ))}
+                {propertyRows}
               </div>
             </div>
           </ScrollArea>

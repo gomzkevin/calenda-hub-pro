@@ -2,7 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
 import { Reservation } from '@/types';
-import { addDays, format, subDays, getMonth, getYear } from 'date-fns';
+import { addDays, format, subDays, getMonth, getYear, isSameMonth } from 'date-fns';
+import { useMemo } from 'react';
 
 interface MonthInfo {
   month: number;
@@ -10,36 +11,37 @@ interface MonthInfo {
 }
 
 export const useReservations = (startDate: Date, endDate: Date) => {
-  // Determine which months to fetch - including padding for better reservation visibility
-  const paddedStartDate = subDays(startDate, 7); // Fetch 1 week before
-  const paddedEndDate = addDays(endDate, 7);     // Fetch 1 week after
+  // Optimize the date range - fetch only what's needed (reduce from 7 days to 3)
+  const paddedStartDate = subDays(startDate, 3); // Reduced from 7 to 3 days before
+  const paddedEndDate = addDays(endDate, 3);     // Reduced from 7 to 3 days after
   
-  const startMonth = paddedStartDate.getMonth() + 1;
-  const startYear = paddedStartDate.getFullYear();
-  const endMonth = paddedEndDate.getMonth() + 1;
-  const endYear = paddedEndDate.getFullYear();
-  
-  console.log(`Fetching reservations from ${format(paddedStartDate, 'yyyy-MM-dd')} to ${format(paddedEndDate, 'yyyy-MM-dd')}`);
-  
-  // Generate array of all months to fetch
-  const monthsToFetch: MonthInfo[] = [];
-  
-  let currentDate = new Date(startYear, startMonth - 1, 1);
-  const finalDate = new Date(endYear, endMonth - 1, 1);
-  
-  while (currentDate <= finalDate) {
-    monthsToFetch.push({
-      month: getMonth(currentDate) + 1,
-      year: getYear(currentDate)
-    });
+  // Generate array of all months to fetch - now memoized to prevent recalculation
+  const monthsToFetch: MonthInfo[] = useMemo(() => {
+    const months: MonthInfo[] = [];
     
-    // Move to next month
-    currentDate.setMonth(currentDate.getMonth() + 1);
-  }
+    // Only add start month if it's different from end month
+    const startMonth = paddedStartDate.getMonth() + 1;
+    const startYear = paddedStartDate.getFullYear();
+    const endMonth = paddedEndDate.getMonth() + 1;
+    const endYear = paddedEndDate.getFullYear();
+    
+    let currentDate = new Date(startYear, startMonth - 1, 1);
+    const finalDate = new Date(endYear, endMonth - 1, 1);
+    
+    while (currentDate <= finalDate) {
+      months.push({
+        month: getMonth(currentDate) + 1,
+        year: getYear(currentDate)
+      });
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    
+    return months;
+  }, [paddedStartDate, paddedEndDate]);
   
-  console.log(`Months to fetch: ${monthsToFetch.map(m => `${m.year}-${m.month}`).join(', ')}`);
-  
-  // Fetch reservations for all months in range
+  // Fetch reservations for all months in range with optimized caching
   const { data: reservations = [], isLoading } = useQuery({
     queryKey: ['reservations', 'multi', monthsToFetch],
     queryFn: async () => {
@@ -47,93 +49,92 @@ export const useReservations = (startDate: Date, endDate: Date) => {
         getReservationsForMonth(month, year)
       );
       const results = await Promise.all(promises);
-      return results.flat();
-    }
+      
+      // Deduplicate reservations (in case they span multiple months)
+      const reservationMap = new Map<string, Reservation>();
+      results.flat().forEach(res => {
+        reservationMap.set(res.id, res);
+      });
+      
+      return Array.from(reservationMap.values());
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false // Prevent refetching on window focus
   });
   
-  console.log(`Fetched ${reservations.length} reservations across ${monthsToFetch.length} months`);
-  
-  // Create a map to identify parent-child relationships between properties
-  // This will help us filter out sibling blocks
-  const propertyRelationships = new Map<string, { parentId: string | null, childIds: string[] }>();
-  
-  // Build relationship mapping
-  reservations.forEach(res => {
-    if (res.sourceReservationId) {
-      // Find the source reservation
-      const sourceRes = reservations.find(r => r.id === res.sourceReservationId);
-      if (sourceRes) {
-        // Initialize structure if needed
-        if (!propertyRelationships.has(sourceRes.propertyId)) {
-          propertyRelationships.set(sourceRes.propertyId, { parentId: null, childIds: [] });
-        }
-        
-        // Store the relationship
-        const propertyRelation = propertyRelationships.get(sourceRes.propertyId);
-        if (propertyRelation) {
-          // If source is adding a child
-          propertyRelation.childIds.push(res.propertyId);
+  // Build relationship mapping - now memoized
+  const propertyRelationships = useMemo(() => {
+    const relationships = new Map<string, { parentId: string | null, childIds: string[] }>();
+    
+    reservations.forEach(res => {
+      if (res.sourceReservationId) {
+        // Find the source reservation
+        const sourceRes = reservations.find(r => r.id === res.sourceReservationId);
+        if (sourceRes) {
+          // Initialize structure if needed
+          if (!relationships.has(sourceRes.propertyId)) {
+            relationships.set(sourceRes.propertyId, { parentId: null, childIds: [] });
+          }
           
-          // Initialize the child's structure if needed
-          if (!propertyRelationships.has(res.propertyId)) {
-            propertyRelationships.set(res.propertyId, { parentId: sourceRes.propertyId, childIds: [] });
-          } else {
-            // Update the parent reference
-            const childRelation = propertyRelationships.get(res.propertyId);
-            if (childRelation) {
-              childRelation.parentId = sourceRes.propertyId;
+          // Store the relationship
+          const propertyRelation = relationships.get(sourceRes.propertyId);
+          if (propertyRelation) {
+            // If source is adding a child
+            propertyRelation.childIds.push(res.propertyId);
+            
+            // Initialize the child's structure if needed
+            if (!relationships.has(res.propertyId)) {
+              relationships.set(res.propertyId, { parentId: sourceRes.propertyId, childIds: [] });
+            } else {
+              // Update the parent reference
+              const childRelation = relationships.get(res.propertyId);
+              if (childRelation) {
+                childRelation.parentId = sourceRes.propertyId;
+              }
             }
           }
         }
       }
-    }
-  });
-  
-  console.log('Property relationships map built:', 
-    Array.from(propertyRelationships.entries())
-      .map(([id, { parentId, childIds }]) => 
-        `${id} => Parent: ${parentId || 'none'}, Children: [${childIds.join(', ')}]`
-      ).join('\n')
-  );
-  
-  // Filter reservations
-  const filteredReservations = (reservations || []).filter(res => {
-    // First apply basic filters (same as before)
-    if (res.notes !== 'Blocked' && res.status !== 'Blocked') return true;
+    });
     
-    // Special handling for blocks
-    if (res.sourceReservationId) {
-      // Find source reservation
-      const sourceRes = reservations.find(r => r.id === res.sourceReservationId);
-      if (!sourceRes) return false; // Source not found, skip
+    return relationships;
+  }, [reservations]);
+  
+  // Filter reservations - now memoized
+  const filteredReservations = useMemo(() => {
+    return (reservations || []).filter(res => {
+      // First apply basic filters (same as before)
+      if (res.notes !== 'Blocked' && res.status !== 'Blocked') return true;
       
-      // Check if this is a sibling block (two children of the same parent)
-      // We need to find this reservation's parent property
-      const currentPropertyRelation = propertyRelationships.get(res.propertyId);
-      
-      if (currentPropertyRelation && currentPropertyRelation.parentId) {
-        // This is a child property - see if the source property is a sibling
-        const sourcePropertyRelation = propertyRelationships.get(sourceRes.propertyId);
+      // Special handling for blocks
+      if (res.sourceReservationId) {
+        // Find source reservation
+        const sourceRes = reservations.find(r => r.id === res.sourceReservationId);
+        if (!sourceRes) return false; // Source not found, skip
         
-        if (sourcePropertyRelation && sourcePropertyRelation.parentId === currentPropertyRelation.parentId) {
-          // Both properties have the same parent - they are siblings
-          // In this case, we should NOT show the block (filter it out)
-          console.log(`Filtering out sibling block: ${res.id} from property ${res.propertyId} blocked by sibling ${sourceRes.propertyId}`);
-          return false;
+        // Check if this is a sibling block (two children of the same parent)
+        // We need to find this reservation's parent property
+        const currentPropertyRelation = propertyRelationships.get(res.propertyId);
+        
+        if (currentPropertyRelation && currentPropertyRelation.parentId) {
+          // This is a child property - see if the source property is a sibling
+          const sourcePropertyRelation = propertyRelationships.get(sourceRes.propertyId);
+          
+          if (sourcePropertyRelation && sourcePropertyRelation.parentId === currentPropertyRelation.parentId) {
+            // Both properties have the same parent - they are siblings
+            // In this case, we should NOT show the block (filter it out)
+            return false;
+          }
         }
+        
+        // If we reach here, it's a valid parent-child block
+        return true;
       }
       
-      // If we reach here, it's a valid parent-child block
-      return true;
-    }
-    
-    // Include manually created blocks
-    if (res.isBlocking) return true;
-    
-    return false;
-  });
-  
-  console.log(`After filtering: ${filteredReservations.length} reservations remain`);
+      // Include manually created blocks
+      return res.isBlocking;
+    });
+  }, [reservations, propertyRelationships]);
   
   return {
     reservations: filteredReservations,

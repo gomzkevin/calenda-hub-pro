@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,34 +16,41 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const initialPropertyId = queryParams.get('property') || '';
-  const initialView = queryParams.get('view') || 'multi'; // Cambiado de 'monthly' a 'multi'
+  // Set 'multi' as the default view
+  const initialView = queryParams.get('view') || 'multi';
   
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
   const [activeView, setActiveView] = useState<string>(initialView);
   
+  // Optimize property data fetching with improved caching
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
-    queryFn: getProperties
+    queryFn: getProperties,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false // Don't refetch on window focus
   });
   
+  // Use useEffect for property selection when Monthly view is active but no property selected
   useEffect(() => {
     if (properties.length > 0 && !selectedPropertyId && activeView === 'monthly') {
-      // Solo configuramos una propiedad predeterminada si estamos en la vista mensual
       const firstPropertyId = properties[0]?.id || '';
       setSelectedPropertyId(firstPropertyId);
       updateUrlParams(firstPropertyId, activeView);
     }
   }, [properties, selectedPropertyId, activeView]);
   
-  const updateUrlParams = (propertyId: string, view: string) => {
-    const params = new URLSearchParams(location.search);
-    if (propertyId) params.set('property', propertyId);
-    params.set('view', view);
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
-  };
+  // Memoize the URL params update function to prevent unnecessary recreations
+  const updateUrlParams = useMemo(() => {
+    return (propertyId: string, view: string) => {
+      const params = new URLSearchParams(location.search);
+      if (propertyId) params.set('property', propertyId);
+      params.set('view', view);
+      navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+    };
+  }, [location.search, location.pathname, navigate]);
   
   const handlePropertyChange = (propertyId: string) => {
-    if (!propertyId) return; // Added check to prevent empty property IDs
+    if (!propertyId) return;
     setSelectedPropertyId(propertyId);
     updateUrlParams(propertyId, activeView);
   };
@@ -59,8 +66,11 @@ const CalendarPage: React.FC = () => {
     updateUrlParams(propertyId, 'monthly');
   };
   
-  // Find the selected property name for display
-  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
+  // Memoize the selected property to prevent unnecessary lookups
+  const selectedProperty = useMemo(() => 
+    properties.find(p => p.id === selectedPropertyId),
+    [properties, selectedPropertyId]
+  );
   
   return (
     <div className="space-y-6 w-full max-w-full h-full flex flex-col">

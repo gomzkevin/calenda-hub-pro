@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
 import { Reservation } from '@/types';
@@ -12,16 +12,15 @@ import {
 import { findReservationPositionInWeek } from './utils/reservationPosition';
 import { calculateBarPositionAndStyle } from './utils/styleCalculation';
 
-interface RelationshipBlockBarProps {
+// Added memoization to prevent unnecessary re-renders
+const RelationshipBlockBar: React.FC<{
   block: Reservation;
   week: (Date | null)[];
   weekIndex: number;
   lane: number;
   laneHeight: number;
   baseOffset: number;
-}
-
-const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
+}> = memo(({
   block,
   week,
   weekIndex,
@@ -92,6 +91,6 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
       </Tooltip>
     </TooltipProvider>
   );
-};
+});
 
 export default RelationshipBlockBar;

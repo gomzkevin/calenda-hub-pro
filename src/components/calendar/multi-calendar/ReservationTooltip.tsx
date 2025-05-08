@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Property, Reservation } from '@/types';
 import {
@@ -21,7 +21,8 @@ interface ReservationTooltipProps {
   forceDisplayAsMiddle?: boolean;
 }
 
-const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
+// Added memoization to prevent unnecessary re-renders
+const ReservationTooltip: React.FC<ReservationTooltipProps> = memo(({
   reservation,
   property,
   sourceInfo,
@@ -38,54 +39,58 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
   // Determine the background color/styling class
   const bgClass = style || 'bg-gray-500';
   
-  // Determine positioning based on if it's a check-in or check-out day
-  let positionStyle: React.CSSProperties = {
-    top: `${topPosition}px`,
-    height: '20px'
-  };
-  
-  // Special case for parent properties with continuous occupation
-  if (forceDisplayAsMiddle) {
-    // Override normal positioning logic - show as a full bar segment
-    positionStyle = {
-      ...positionStyle,
+  // Calculate positioning based on day type - now memoized
+  const positionStyle = useMemo(() => {
+    let style: React.CSSProperties = {
+      top: `${topPosition}px`,
+      height: '20px'
+    };
+    
+    // Special case for parent properties with continuous occupation
+    if (forceDisplayAsMiddle) {
+      return {
+        ...style,
+        left: '0',
+        width: '100%',
+        borderRadius: '0' // No rounding
+      };
+    } 
+    
+    if (isEndDay && !isStartDay) {
+      return {
+        ...style,
+        left: '0',
+        width: '43%',
+        borderRadius: '0 9999px 9999px 0' // Rounded on right side
+      };
+    } 
+    
+    if (isStartDay && !isEndDay) {
+      return {
+        ...style,
+        left: '57%',
+        width: '43%',
+        borderRadius: '9999px 0 0 9999px' // Rounded on left side
+      };
+    } 
+    
+    if (isStartDay && isEndDay) {
+      return {
+        ...style,
+        left: '25%',
+        width: '50%',
+        borderRadius: '9999px' // Fully rounded
+      };
+    }
+    
+    // Default: middle of stay
+    return {
+      ...style,
       left: '0',
       width: '100%',
       borderRadius: '0' // No rounding
     };
-  } else if (isEndDay && !isStartDay) {
-    // Check-out only - position at the left edge, full width
-    positionStyle = {
-      ...positionStyle,
-      left: '0',
-      width: '43%',
-      borderRadius: '0 9999px 9999px 0' // Rounded on right side
-    };
-  } else if (isStartDay && !isEndDay) {
-    // Check-in only - position at the right edge, full width
-    positionStyle = {
-      ...positionStyle,
-      left: '57%',
-      width: '43%',
-      borderRadius: '9999px 0 0 9999px' // Rounded on left side
-    };
-  } else if (isStartDay && isEndDay) {
-    // Both check-in and check-out (1-day stay)
-    positionStyle = {
-      ...positionStyle,
-      left: '25%',
-      width: '50%',
-      borderRadius: '9999px' // Fully rounded
-    };
-  } else {
-    // Middle of a stay
-    positionStyle = {
-      ...positionStyle,
-      left: '0',
-      width: '100%',
-      borderRadius: '0' // No rounding
-    };
-  }
+  }, [topPosition, isStartDay, isEndDay, forceDisplayAsMiddle]);
   
   // Display status if it's a blocked reservation
   const isBlocked = reservation.status === 'Blocked';
@@ -94,7 +99,7 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
     reservation.platform === 'Other' ? 'Manual' : reservation.platform;
 
   // Create tooltip content
-  let tooltipContent = (
+  const tooltipContent = (
     <div className="text-xs space-y-1.5">
       <p className="font-semibold text-sm">{reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
       <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
@@ -138,6 +143,6 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
       </div>
     );
   }
-};
+});
 
 export default ReservationTooltip;

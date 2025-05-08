@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { format } from 'date-fns';
 import { Reservation } from '@/types';
 import { getPlatformColorClass } from '@/data/mockData';
@@ -23,7 +23,8 @@ interface ReservationBarProps {
   forceContinuous?: boolean;
 }
 
-const ReservationBar: React.FC<ReservationBarProps> = ({
+// Added memoization to prevent unnecessary re-renders
+const ReservationBar: React.FC<ReservationBarProps> = memo(({
   reservation,
   week,
   weekIndex,
@@ -103,6 +104,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
       </Tooltip>
     </TooltipProvider>
   );
-};
+});
 
 export default ReservationBar;

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
 import { Reservation } from '@/types';
@@ -12,16 +12,15 @@ import {
 import { findReservationPositionInWeek } from './utils/reservationPosition';
 import { calculateBarPositionAndStyle } from './utils/styleCalculation';
 
-interface PropagatedBlockBarProps {
+// Added memoization to prevent unnecessary re-renders
+const PropagatedBlockBar: React.FC<{
   block: Reservation;
   week: (Date | null)[];
   weekIndex: number;
   lane: number;
   laneHeight: number;
   baseOffset: number;
-}
-
-const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
+}> = memo(({
   block,
   week,
   weekIndex,
@@ -86,6 +85,6 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
       </Tooltip>
     </TooltipProvider>
   );
-};
+});
 
 export default PropagatedBlockBar;
