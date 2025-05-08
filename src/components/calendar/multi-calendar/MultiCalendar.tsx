@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/property';
@@ -110,8 +111,8 @@ const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertyClick }) => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <div className="flex flex-col h-[calc(100%-60px)]">
-          <ScrollArea className="flex-1 w-full">
+        <div className="flex flex-col h-[calc(100%-60px)] content-start">
+          <ScrollArea className="w-full flex-grow">
             <div className="relative min-w-max">
               <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
                 {/* Property header cell */}

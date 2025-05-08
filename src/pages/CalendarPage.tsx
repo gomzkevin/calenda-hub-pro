@@ -115,7 +115,7 @@ const CalendarPage: React.FC = () => {
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="monthly" className="w-full flex-1 flex flex-col">
+        <TabsContent value="monthly" className="w-full flex-1 flex flex-col mt-0">
           <Card className="w-full h-full flex flex-col">
             <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
               {selectedPropertyId && (
@@ -127,7 +127,7 @@ const CalendarPage: React.FC = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="multi" className="w-full flex-1 flex flex-col">
+        <TabsContent value="multi" className="w-full flex-1 flex flex-col mt-0">
           <Card className="w-full h-full flex flex-col">
             <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
               <MultiCalendar onPropertyClick={handlePropertyClick} />
