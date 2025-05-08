@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'user';
 
 export type Platform = 'Airbnb' | 'Booking' | 'Vrbo' | 'Other';
@@ -15,6 +16,11 @@ export interface Operator {
   slug: string;
   logoUrl?: string;
   createdAt: Date;
+}
+
+export interface GenericResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface User {

@@ -15,6 +15,9 @@ export function usePropertyRelationships(properties: Property[]) {
     // Map of parent property IDs to arrays of their child property IDs
     const parentToChildren = new Map<string, string[]>();
     
+    // Map of parent property IDs to arrays of sibling groups
+    const siblingGroups = new Map<string, string[]>();
+    
     // Build the relationship maps in a single pass through properties
     properties.forEach(property => {
       // If this property has a parent, record the child-parent relationship
@@ -29,6 +32,14 @@ export function usePropertyRelationships(properties: Property[]) {
         
         // Mark the parent ID for later
         parentIds.add(property.parentId);
+        
+        // Add to sibling groups
+        if (!siblingGroups.has(property.parentId)) {
+          siblingGroups.set(property.parentId, []);
+        }
+        if (!siblingGroups.get(property.parentId)?.includes(property.id)) {
+          siblingGroups.get(property.parentId)?.push(property.id);
+        }
       }
     });
     
@@ -37,6 +48,7 @@ export function usePropertyRelationships(properties: Property[]) {
       parentIds,
       childToParent,
       parentToChildren,
+      siblingGroups,
       
       // Helper method to get all related properties for a given property
       getRelatedProperties(propertyId: string): string[] {

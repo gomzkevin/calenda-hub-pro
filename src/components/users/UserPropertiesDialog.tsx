@@ -2,9 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserPropertyAccess, updateUserPropertyAccess } from '@/services/userService';
+import { getUserPropertyAccess, updateUserPropertyAccess, Profile } from '@/services/userService';
 import { getProperties } from '@/services/propertyService';
-import { User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -12,7 +11,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface UserPropertiesDialogProps {
-  user: User | null;
+  user: Profile | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

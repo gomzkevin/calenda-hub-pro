@@ -14,17 +14,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUsers, updateUserStatus, getCurrentUser } from '@/services/userService';
+import { getUsers, updateUserStatus, getCurrentUser, Profile } from '@/services/userService';
 import { getProperties } from '@/services/propertyService';
 import CreateUserDialog from '@/components/users/CreateUserDialog';
 import UserPropertiesDialog from '@/components/users/UserPropertiesDialog';
 import { toast } from 'sonner';
-import { User } from '@/types';
 
 const UsersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const queryClient = useQueryClient();
   
   // Obtener el usuario actual para verificar permisos
@@ -132,9 +131,9 @@ const UsersPage: React.FC = () => {
                 {users.length} usuarios
               </Badge>
             </div>
-            {isAdmin && currentUser?.operatorId && (
+            {isAdmin && currentUser?.operator_id && (
               <Badge variant="secondary" className="text-xs">
-                Operador: {currentUser.operatorId}
+                Operador: {currentUser.operator_id}
               </Badge>
             )}
           </CardTitle>
@@ -186,7 +185,7 @@ const UsersPage: React.FC = () => {
                           {user.role === 'admin' ? 'Admin' : 'Usuario'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{user.operatorId}</TableCell>
+                      <TableCell>{user.operator_id}</TableCell>
                       <TableCell>
                         {user.active ? (
                           <Check className="w-5 h-5 text-green-500" />
@@ -194,7 +193,7 @@ const UsersPage: React.FC = () => {
                           <X className="w-5 h-5 text-red-500" />
                         )}
                       </TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           {isAdmin && (
@@ -211,10 +210,12 @@ const UsersPage: React.FC = () => {
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => {
-                                  updateStatusMutation.mutate({
-                                    userId: user.id,
-                                    active: !user.active
-                                  });
+                                  if (currentUser && user.id) {
+                                    updateStatusMutation.mutate({
+                                      userId: user.id,
+                                      active: !user.active
+                                    });
+                                  }
                                 }}
                                 className={user.active ? "text-red-500" : "text-green-500"}
                                 disabled={user.id === currentUser?.id}
