@@ -1,133 +1,63 @@
 
-import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getReservationsForMonth } from '@/services/reservation';
 import { Reservation, Property } from '@/types';
-import { normalizeDate } from '../utils';
+import { addDays, format, subDays, getMonth, getYear } from 'date-fns';
 
-export const useReservationData = (
-  reservations: Reservation[],
-  properties: Property[],
-  propertyRelationships: {
-    parentToChildren: Map<string, string[]>;
-    childToParent: Map<string, string>;
-    siblingGroups: Map<string, string[]>;
+interface MonthInfo {
+  month: number;
+  year: number;
+}
+
+// Enhanced version of the useReservations hook with better naming
+export const useReservationData = (startDate: Date, endDate: Date) => {
+  // Determine which months to fetch - including padding for better reservation visibility
+  const paddedStartDate = subDays(startDate, 7); // Fetch 1 week before
+  const paddedEndDate = addDays(endDate, 7);     // Fetch 1 week after
+  
+  const startMonth = paddedStartDate.getMonth() + 1;
+  const startYear = paddedStartDate.getFullYear();
+  const endMonth = paddedEndDate.getMonth() + 1;
+  const endYear = paddedEndDate.getFullYear();
+  
+  console.log(`Fetching reservations from ${format(paddedStartDate, 'yyyy-MM-dd')} to ${format(paddedEndDate, 'yyyy-MM-dd')}`);
+  
+  // Generate array of all months to fetch
+  const monthsToFetch: MonthInfo[] = [];
+  
+  let currentDate = new Date(startYear, startMonth - 1, 1);
+  const finalDate = new Date(endYear, endMonth - 1, 1);
+  
+  while (currentDate <= finalDate) {
+    monthsToFetch.push({
+      month: getMonth(currentDate) + 1,
+      year: getYear(currentDate)
+    });
+    
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1);
   }
-) => {
-  // Helper function to get reservations for a property
-  const getReservationsForProperty = useCallback((propertyId: string): Reservation[] => {
-    return reservations.filter(res => {
-      // Basic filter - direct reservations for this property
-      if (res.propertyId === propertyId) return true;
-      
-      // For blocks: check if it's not a sibling block
-      if (res.status === 'Blocked' && res.sourceReservationId) {
-        // Get source reservation
-        const sourceReservation = reservations.find(r => r.id === res.sourceReservationId);
-        if (!sourceReservation) return false;
-        
-        // Check if this property is a sibling of the source property
-        const parentId = propertyRelationships.childToParent.get(propertyId);
-        const sourceParentId = propertyRelationships.childToParent.get(sourceReservation.propertyId);
-        
-        // If both have the same parent (siblings), don't show the block
-        if (parentId && sourceParentId && parentId === sourceParentId) {
-          console.log(`Filtering sibling block from ${sourceReservation.propertyId} to ${propertyId}`);
-          return false;
-        }
-      }
-      
-      return false;
-    });
-  }, [reservations, propertyRelationships.childToParent]);
-
-  // Get source reservation info for linked reservations
-  const getSourceReservationInfo = useCallback((reservation: Reservation): { property?: Property, reservation?: Reservation } => {
-    if (!reservation.sourceReservationId) return {};
-    
-    const sourceReservation = reservations.find(r => r.id === reservation.sourceReservationId);
-    if (!sourceReservation) return {};
-    
-    const sourceProperty = properties.find(p => p.id === sourceReservation.propertyId);
-    
-    return { property: sourceProperty, reservation: sourceReservation };
-  }, [reservations, properties]);
-
-  // Determine reservation status for a property on a specific day
-  const getDayReservationStatus = useCallback((property: Property, day: Date) => {
-    const normalizedDay = normalizeDate(day);
-    
-    // Check for direct reservations on this property
-    const directReservations = getReservationsForProperty(property.id).filter(res => {
-      const normalizedStart = normalizeDate(res.startDate);
-      const normalizedEnd = normalizeDate(res.endDate);
-      return normalizedDay >= normalizedStart && normalizedDay <= normalizedEnd;
-    });
-    
-    if (directReservations.length > 0) {
-      return { 
-        hasReservation: true, 
-        isIndirect: false,
-        reservations: directReservations
-      };
-    }
-    
-    // For parent properties, check child reservations 
-    // (but avoid sibling blocks between children)
-    if (property.type === 'parent') {
-      const childrenIds = propertyRelationships.parentToChildren.get(property.id) || [];
-      
-      for (const childId of childrenIds) {
-        const childReservations = reservations.filter(res => {
-          // Only include direct reservations for this child, not blocks
-          if (res.propertyId !== childId) return false;
-          if (res.status === 'Blocked' && res.sourceReservationId) return false;
-          
-          const normalizedStart = normalizeDate(res.startDate);
-          const normalizedEnd = normalizeDate(res.endDate);
-          return normalizedDay >= normalizedStart && normalizedDay <= normalizedEnd;
-        });
-        
-        if (childReservations.length > 0) {
-          return { 
-            hasReservation: true, 
-            isIndirect: true,
-            reservations: childReservations
-          };
-        }
-      }
-    }
-    
-    // For child properties, check parent reservations
-    if (property.type === 'child' && property.parentId) {
-      const parentReservations = reservations.filter(res => {
-        // Only include direct reservations for the parent, not blocks
-        if (res.propertyId !== property.parentId) return false;
-        if (res.status === 'Blocked' && res.sourceReservationId) return false;
-        
-        const normalizedStart = normalizeDate(res.startDate);
-        const normalizedEnd = normalizeDate(res.endDate);
-        return normalizedDay >= normalizedStart && normalizedDay <= normalizedEnd;
-      });
-      
-      if (parentReservations.length > 0) {
-        return { 
-          hasReservation: true, 
-          isIndirect: true,
-          reservations: parentReservations
-        };
-      }
-    }
-    
-    // No reservations found
-    return { 
-      hasReservation: false, 
-      isIndirect: false,
-      reservations: []
-    };
-  }, [getReservationsForProperty, propertyRelationships.parentToChildren, reservations]);
-
+  
+  console.log(`Months to fetch: ${monthsToFetch.map(m => `${m.year}-${m.month}`).join(', ')}`);
+  
+  // Fetch reservations for all months in range with improved caching
+  const { data: reservations = [], isLoading } = useQuery({
+    queryKey: ['reservations', 'multi', monthsToFetch],
+    queryFn: async () => {
+      const promises = monthsToFetch.map(({ month, year }) => 
+        getReservationsForMonth(month, year)
+      );
+      const results = await Promise.all(promises);
+      return results.flat();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false
+  });
+  
+  console.log(`Fetched ${reservations.length} reservations across ${monthsToFetch.length} months`);
+  
   return {
-    getReservationsForProperty,
-    getSourceReservationInfo,
-    getDayReservationStatus
+    reservations,
+    isLoading
   };
 };

@@ -1,98 +1,61 @@
 
-import React, { useState } from 'react';
-import { format, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
 
 interface MultiCalendarHeaderProps {
   startDate: Date;
-  visibleDays: Date[];
-  onPrev: () => void;
-  onNext: () => void;
+  endDate: Date;
+  goForward: () => void;
+  goBackward: () => void;
 }
 
 const MultiCalendarHeader: React.FC<MultiCalendarHeaderProps> = ({
   startDate,
-  visibleDays,
-  onPrev,
-  onNext
+  endDate,
+  goForward,
+  goBackward
 }) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  const getDateRangeDisplay = () => {
-    if (visibleDays.length === 0) return '';
+  // Format the date range for display
+  const dateRangeText = React.useMemo(() => {
+    const startMonth = format(startDate, 'MMMM');
+    const endMonth = format(endDate, 'MMMM');
+    const startYear = format(startDate, 'yyyy');
+    const endYear = format(endDate, 'yyyy');
     
-    const firstDay = visibleDays[0];
-    const lastDay = visibleDays[visibleDays.length - 1];
-    
-    if (firstDay.getMonth() === lastDay.getMonth()) {
-      return `${format(firstDay, 'MMMM yyyy')} (${format(firstDay, 'd')}-${format(lastDay, 'd')})`;
-    }
-    
-    return `${format(firstDay, 'MMMM d')} - ${format(lastDay, 'MMMM d, yyyy')}`;
-  };
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      const calendar = document.querySelector('.multi-calendar-container');
-      if (calendar) {
-        calendar.requestFullscreen().catch(err => {
-          console.error(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-      }
-      setIsFullscreen(true);
+    if (startMonth === endMonth && startYear === endYear) {
+      // Same month and year
+      return `${startMonth} ${startYear}`;
+    } else if (startYear === endYear) {
+      // Same year, different months
+      return `${startMonth} - ${endMonth} ${startYear}`;
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-      setIsFullscreen(false);
+      // Different years
+      return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
     }
-  };
-
-  // Listen for fullscreen change events
-  React.useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
+  }, [startDate, endDate]);
 
   return (
-    <div className="sticky top-0 z-30 bg-white border-b">
-      <div className="flex items-center justify-between p-4">
-        <h2 className="text-xl font-semibold">{getDateRangeDisplay()}</h2>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={onPrev}
-            title="Previous 15 Days"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={onNext}
-            title="Next 15 Days"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-        </div>
+    <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white">
+      <h2 className="text-xl font-semibold text-gray-800">{dateRangeText}</h2>
+      <div className="flex space-x-2">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={goBackward}
+          aria-label="Previous"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={goForward}
+          aria-label="Next"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

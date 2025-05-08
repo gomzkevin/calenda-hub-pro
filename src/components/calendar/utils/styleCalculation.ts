@@ -1,9 +1,29 @@
 
 import { isSameDay } from "date-fns";
 import { normalizeDate } from "./dateUtils";
+import { Reservation } from "@/types";
 
 /**
- * Calculate bar position and width
+ * Get styling for a reservation based on platform
+ */
+export const getReservationStyle = (reservation: Reservation, isIndirect: boolean): string => {
+  // If this is a propagated block, use gray color
+  if (isIndirect || reservation.status === 'Blocked' || reservation.notes === 'Blocked') {
+    return 'bg-gray-400';
+  }
+  
+  // For direct reservations, use platform-specific colors
+  switch (reservation.platform.toLowerCase()) {
+    case 'airbnb': return 'bg-rose-500';
+    case 'booking': return 'bg-blue-600';
+    case 'vrbo': return 'bg-green-600';
+    case 'other': return 'bg-purple-600';
+    default: return 'bg-purple-600';
+  }
+};
+
+/**
+ * Calculate bar position and style
  */
 export const calculateBarPositionAndStyle = (
   startPos: number,
