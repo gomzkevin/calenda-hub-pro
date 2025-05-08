@@ -98,7 +98,7 @@ const DayCell: React.FC<DayCellProps> = ({
   
   return (
     <div
-      className={`border border-gray-100 relative min-h-[4rem] h-16 transition-colors duration-200 ${bgColorClass} ${propertyTypeStyles}`}
+      className={`border-[0.5px] border-gray-100/70 relative min-h-[4rem] h-16 transition-colors duration-200 ${bgColorClass} ${propertyTypeStyles}`}
     >
       {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">

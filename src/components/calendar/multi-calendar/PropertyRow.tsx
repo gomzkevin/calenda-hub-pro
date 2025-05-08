@@ -48,7 +48,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
 
   return (
     <React.Fragment>
-      <div className={`sticky left-0 z-10 bg-white border-b border-r border-gray-100 p-3 font-medium truncate h-16 transition-colors ${propertyTypeStyles} shadow-sm`}>
+      <div className={`sticky left-0 z-10 bg-white border-b border-r border-gray-100/80 p-3 font-medium truncate h-16 transition-colors ${propertyTypeStyles} shadow-sm`}>
         <div className="flex flex-col">
           <span className="font-semibold text-gray-800">{property.name}</span>
           {typeIndicator && (

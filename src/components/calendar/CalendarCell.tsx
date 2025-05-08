@@ -21,7 +21,7 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
   if (!day) {
     return (
       <div 
-        className="calendar-day border border-gray-100 bg-gray-50/50"
+        className="calendar-day border-[0.5px] border-gray-100/70 bg-gray-50/50"
         style={{ height: `${cellHeight}px` }}
       />
     );
@@ -55,7 +55,7 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
   
   return (
     <div 
-      className={`calendar-day border border-gray-100 relative ${bgColorClass} transition-all duration-200`}
+      className={`calendar-day border-[0.5px] border-gray-100/70 relative ${bgColorClass} transition-all duration-200`}
       style={{ height: `${cellHeight}px` }}
     >
       <div className={`text-sm p-1.5 ${isToday ? 'font-bold' : 'font-medium'} ${textColorClass}`}>

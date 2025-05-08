@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -155,7 +154,7 @@
   
   /* Estilos mejorados para el calendario multi-propiedad */
   .multi-calendar-container .calendar-day {
-    @apply border-gray-100;
+    @apply border-[0.5px] border-gray-100/70;
   }
   
   .multi-calendar-container thead th {
