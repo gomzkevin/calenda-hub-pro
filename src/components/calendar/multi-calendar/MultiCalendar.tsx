@@ -8,7 +8,7 @@ import DayHeader from './DayHeader';
 import PropertyRow from './PropertyRow';
 import { Property } from '@/types';
 import { Card } from '@/components/ui/card';
-import { getReservationStyle } from '../utils/styleCalculation';
+import { calculateBarPositionAndStyle, getReservationStyle } from '../utils/styleCalculation';
 import {
   normalizeDate,
   isSameDate,
@@ -97,10 +97,10 @@ const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       <MultiCalendarHeader 
-        currentMonth={currentMonth}
-        currentYear={currentYear}
-        goToPreviousMonth={goToPreviousMonth}
-        goToNextMonth={goToNextMonth}
+        startDate={currentMonth}
+        visibleDays={visibleDays}
+        onPrev={goToPreviousMonth}
+        onNext={goToNextMonth}
       />
       
       <div className="flex-1 overflow-auto">
@@ -108,7 +108,7 @@ const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect
           <div className="grid grid-cols-[200px_repeat(7,_1fr)] sticky top-0 z-10">
             <div className="bg-white border-b border-gray-200 h-10"></div>
             {visibleDays.map((day, i) => (
-              <DayHeader key={i} day={day} />
+              <DayHeader key={i} day={day} index={i} />
             ))}
           </div>
           

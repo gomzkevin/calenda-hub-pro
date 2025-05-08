@@ -1,4 +1,5 @@
-import { eachDayOfInterval, eachWeekOfInterval, endOfMonth, format, startOfMonth } from "date-fns";
+
+import { eachDayOfInterval, eachWeekOfInterval, endOfMonth, format, startOfMonth, isSameDay } from "date-fns";
 
 // Helper to normalize date to local noon to avoid timezone issues
 export const normalizeDate = (date: Date): Date => {
@@ -50,4 +51,14 @@ export const generateMonthDays = (currentMonth: Date): (Date | null)[][] => {
   }
   
   return weeks;
+};
+
+// Función auxiliar para comparar fechas (alias para isSameDay para mantener consistencia de nombres)
+export const isSameDate = isSameDay;
+
+// Función para ordenar reservaciones por fecha de inicio
+export const sortReservationsByStartDate = (resA: any, resB: any): number => {
+  const dateA = new Date(resA.startDate);
+  const dateB = new Date(resB.startDate);
+  return dateA.getTime() - dateB.getTime();
 };
