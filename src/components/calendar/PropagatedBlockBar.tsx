@@ -60,7 +60,7 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-7 bg-gray-300 border border-dashed border-gray-500 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-gray-700 font-medium text-xs pointer-events-auto cursor-pointer overflow-hidden`}
+            className={`absolute h-7 bg-gray-300 border border-dashed border-gray-500 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-gray-700 font-medium text-xs pointer-events-auto cursor-pointer overflow-hidden transition-all duration-200 hover:bg-gray-350 hover:shadow-sm hover:scale-[1.02] hover:z-30`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
@@ -73,9 +73,9 @@ const PropagatedBlockBar: React.FC<PropagatedBlockBarProps> = ({
             <span className="truncate">Bloqueado</span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
-          <div className="text-xs">
-            <p><strong>Bloqueado automáticamente</strong></p>
+        <TooltipContent className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 rounded-lg p-3 z-30">
+          <div className="text-xs space-y-1.5">
+            <p className="font-semibold text-sm">Bloqueado automáticamente</p>
             <p><strong>Check-in:</strong> {format(block.startDate, 'MMM d, yyyy')}</p>
             <p><strong>Check-out:</strong> {format(block.endDate, 'MMM d, yyyy')}</p>
             {block.sourceReservationId && (

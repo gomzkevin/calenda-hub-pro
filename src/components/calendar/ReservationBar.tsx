@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Reservation } from '@/types';
@@ -35,11 +36,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   const startDate = normalizeDate(new Date(reservation.startDate));
   const endDate = normalizeDate(new Date(reservation.endDate));
   
-  console.log(`==== Processing reservation ${reservation.id} ====`);
-  console.log(`Reservation dates: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
-  console.log(`Week dates: ${week[0]?.toLocaleDateString() || 'null'} to ${week[6]?.toLocaleDateString() || 'null'}`);
-  console.log(`Force continuous: ${forceContinuous}`);
-  
   // Find positions in the week
   const { startPos, endPos, continuesFromPrevious, continuesToNext } = findReservationPositionInWeek(
     week,
@@ -49,7 +45,6 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   
   // If not in this week, don't render
   if (startPos === -1) {
-    console.log(`Reservation not in week ${weekIndex} - skipping render`);
     return null;
   }
   
@@ -76,15 +71,12 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
   // Determine the label to display
   let displayLabel = reservation.platform === 'Other' ? 'Manual' : reservation.platform;
   
-  // Debug output
-  console.log(`Final render: Week ${weekIndex}, Lane ${lane}, Position: ${barLeft}, Width: ${barWidth}, Style: ${borderRadiusStyle}`);
-  
   return (
     <TooltipProvider key={`res-${weekIndex}-${reservation.id}`}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer overflow-hidden`}
+            className={`absolute h-8 ${getPlatformColorClass(reservation.platform)} ${borderRadiusStyle} flex items-center pl-2 text-white font-medium ${isShortReservation ? 'text-xs' : 'text-sm'} pointer-events-auto cursor-pointer overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md hover:brightness-95 hover:scale-[1.02] hover:z-30`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
@@ -97,9 +89,9 @@ const ReservationBar: React.FC<ReservationBarProps> = ({
             {reservation.isBlocking && <span className="ml-1 text-xs">(Block)</span>}
           </div>
         </TooltipTrigger>
-        <TooltipContent>
-          <div className="text-xs">
-            <p><strong>Platform:</strong> {reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
+        <TooltipContent className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 rounded-lg p-3 z-50">
+          <div className="text-xs space-y-1.5">
+            <p className="font-semibold text-sm">{reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
             <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
             <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
             {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}

@@ -95,8 +95,8 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
 
   // Create tooltip content
   let tooltipContent = (
-    <div className="text-xs space-y-1">
-      <p><strong>Platform:</strong> {reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
+    <div className="text-xs space-y-1.5">
+      <p className="font-semibold text-sm">{reservation.platform === 'Other' ? 'Manual' : reservation.platform}</p>
       <p><strong>Check-in:</strong> {format(startDate, 'MMM d, yyyy')}</p>
       <p><strong>Check-out:</strong> {format(endDate, 'MMM d, yyyy')}</p>
       {reservation.status && <p><strong>Status:</strong> {reservation.status}</p>}
@@ -115,13 +115,13 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div 
-              className={`absolute flex items-center justify-center text-white text-xs font-medium cursor-pointer ${bgClass}`}
+              className={`absolute flex items-center justify-center text-white text-xs font-medium cursor-pointer ${bgClass} shadow-sm transition-all duration-200 hover:shadow-md hover:brightness-95 hover:scale-[1.02]`}
               style={positionStyle}
             >
               <span className="truncate px-1">{forceDisplayAsMiddle ? '' : displayLabel}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 rounded-lg p-3 z-50">
             {tooltipContent}
           </TooltipContent>
         </Tooltip>
@@ -131,7 +131,7 @@ const ReservationTooltip: React.FC<ReservationTooltipProps> = ({
     // For non-check-in days, just render the bar without a label
     return (
       <div 
-        className={`absolute flex items-center justify-center text-white text-xs font-medium ${bgClass}`}
+        className={`absolute flex items-center justify-center text-white text-xs font-medium ${bgClass} shadow-sm`}
         style={positionStyle}
       >
         <span className="truncate px-1"></span>

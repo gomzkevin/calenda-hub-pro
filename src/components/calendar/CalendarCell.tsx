@@ -21,7 +21,7 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
   if (!day) {
     return (
       <div 
-        className="calendar-day border border-gray-200 bg-gray-50"
+        className="calendar-day border border-gray-100 bg-gray-50/50"
         style={{ height: `${cellHeight}px` }}
       />
     );
@@ -46,21 +46,21 @@ const CalendarCell: React.FC<CalendarCellProps> = ({
     bgColorClass = 'bg-blue-50 border-blue-500 border-2';
     textColorClass = 'text-blue-800';
   } else if (hasRelationshipBlock) {
-    bgColorClass = hasChildToParentBlock ? 'bg-amber-50' : 'bg-gray-100';
+    bgColorClass = hasChildToParentBlock ? 'bg-amber-50/70' : 'bg-gray-100/70';
   } else if (!isCurrentMonth) {
-    bgColorClass = 'bg-gray-50';
+    bgColorClass = 'bg-gray-50/70';
   } else {
-    bgColorClass = 'bg-white hover:bg-gray-50 transition-colors';
+    bgColorClass = 'bg-white hover:bg-gray-50/80 transition-colors duration-200';
   }
   
   return (
     <div 
-      className={`calendar-day border border-gray-200 relative ${bgColorClass}`}
+      className={`calendar-day border border-gray-100 relative ${bgColorClass} transition-all duration-200`}
       style={{ height: `${cellHeight}px` }}
     >
       <div className={`text-sm p-1.5 ${isToday ? 'font-bold' : 'font-medium'} ${textColorClass}`}>
         {isToday ? (
-          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white">
+          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white shadow-sm">
             {day.getDate()}
           </div>
         ) : (

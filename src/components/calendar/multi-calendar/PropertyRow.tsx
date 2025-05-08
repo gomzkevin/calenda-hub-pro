@@ -2,8 +2,6 @@
 import React, { useMemo } from 'react';
 import { Property, Reservation } from '@/types';
 import DayCell from './DayCell';
-import { findReservationPositionInWeek } from '../utils/reservationPosition';
-import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
 interface PropertyRowProps {
   property: Property;
@@ -45,12 +43,12 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
 
   // Apply different background colors based on property type
   const propertyTypeStyles = 
-    property.type === 'parent' ? 'bg-blue-50/30' : 
-    property.type === 'child' ? 'bg-amber-50/30' : '';
+    property.type === 'parent' ? 'bg-blue-50/40 border-l-4 border-l-blue-400' : 
+    property.type === 'child' ? 'bg-amber-50/40 border-l-2 border-l-amber-400' : '';
 
   return (
     <React.Fragment>
-      <div className={`sticky left-0 z-10 bg-white border-b border-r border-gray-200 p-3 font-medium truncate h-16 ${propertyTypeStyles}`}>
+      <div className={`sticky left-0 z-10 bg-white border-b border-r border-gray-100 p-3 font-medium truncate h-16 transition-colors ${propertyTypeStyles} shadow-sm`}>
         <div className="flex flex-col">
           <span className="font-semibold text-gray-800">{property.name}</span>
           {typeIndicator && (

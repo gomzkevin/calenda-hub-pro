@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
@@ -60,7 +61,7 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`absolute h-7 bg-amber-400 ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs pointer-events-auto cursor-pointer overflow-hidden`}
+            className={`absolute h-7 bg-amber-400 shadow-sm ${borderRadiusStyle} flex items-center gap-1 pl-2 text-white font-medium text-xs pointer-events-auto cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-md hover:brightness-95 hover:scale-[1.02] hover:z-30`}
             style={{
               top: `${verticalPosition}px`,
               left: barLeft,
@@ -73,9 +74,9 @@ const RelationshipBlockBar: React.FC<RelationshipBlockBarProps> = ({
             <span className="truncate">Bloqueado</span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
-          <div className="text-xs">
-            <p><strong>Bloqueado automáticamente</strong></p>
+        <TooltipContent className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 rounded-lg p-3 z-40">
+          <div className="text-xs space-y-1.5">
+            <p className="font-semibold text-sm">Bloqueado automáticamente</p>
             <p><strong>Reserva en {block.platform}</strong></p>
             <p><strong>Check-in:</strong> {format(block.startDate, 'MMM d, yyyy')}</p>
             <p><strong>Check-out:</strong> {format(block.endDate, 'MMM d, yyyy')}</p>

@@ -3,7 +3,6 @@ import React from 'react';
 import { isSameDay, addDays, subDays } from 'date-fns';
 import { Property } from '@/types';
 import ReservationTooltip from './ReservationTooltip';
-import { Link } from 'lucide-react';
 import { findReservationPositionInWeek } from '../utils/reservationPosition';
 import { calculateBarPositionAndStyle } from '../utils/styleCalculation';
 
@@ -64,13 +63,13 @@ const DayCell: React.FC<DayCellProps> = ({
   
   // Add property type specific styling
   const propertyTypeStyles = 
-    property.type === 'parent' ? 'hover:bg-blue-50/50' : 
-    property.type === 'child' ? 'hover:bg-amber-50/50' : '';
+    property.type === 'parent' ? 'hover:bg-blue-50/70' : 
+    property.type === 'child' ? 'hover:bg-amber-50/70' : '';
 
   let bgColorClass = isToday ? 'bg-blue-50' : '';
   
   if (hasReservation && sortedDayReservations.length === 0) {
-    bgColorClass = isIndirect ? 'bg-gray-100' : bgColorClass;
+    bgColorClass = isIndirect ? 'bg-gray-100/70' : bgColorClass;
   }
   
   // For parent properties, check if we have both check-in and check-out reservations on the same day
@@ -99,11 +98,11 @@ const DayCell: React.FC<DayCellProps> = ({
   
   return (
     <div
-      className={`border border-gray-200 relative min-h-[4rem] h-16 transition-colors ${bgColorClass} ${propertyTypeStyles}`}
+      className={`border border-gray-100 relative min-h-[4rem] h-16 transition-colors duration-200 ${bgColorClass} ${propertyTypeStyles}`}
     >
       {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+          <div className="w-3 h-3 rounded-full bg-gray-300 shadow-sm"></div>
         </div>
       )}
       

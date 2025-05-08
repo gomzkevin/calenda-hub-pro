@@ -140,6 +140,7 @@
     @apply p-1 h-24 overflow-hidden transition-colors duration-200;
   }
   
+  /* Mejoradas las estéticas de las barras de reserva */
   .reservation-bar {
     @apply rounded-md shadow-sm transition-all duration-200 text-xs font-medium cursor-pointer;
   }
@@ -154,15 +155,20 @@
   
   /* Estilos mejorados para el calendario multi-propiedad */
   .multi-calendar-container .calendar-day {
-    @apply border-gray-200;
+    @apply border-gray-100;
   }
   
   .multi-calendar-container thead th {
-    @apply sticky top-0 z-10 bg-white shadow-sm;
+    @apply sticky top-0 z-10 bg-white/90 backdrop-blur-sm shadow-sm;
   }
   
   /* Estilos mejorados para los calendarios */
   .multi-calendar-container {
-    @apply shadow-lg rounded-lg;
+    @apply shadow-lg rounded-lg overflow-hidden;
+  }
+
+  /* Tooltip styles */
+  .calendar-tooltip {
+    @apply bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 rounded-lg p-3 z-50;
   }
 }
