@@ -24,17 +24,22 @@ import {
   calculatePropertyLanes
 } from './utils';
 
-const MultiCalendar: React.FC = () => {
+interface MultiCalendarProps {
+  onPropertyClick?: (propertyId: string) => void;
+}
+
+const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertyClick }) => {
   // Set up date navigation
   const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
   
   // Fetch reservations for the visible date range
   const { reservations, isLoading: isLoadingReservations } = useReservations(startDate, endDate);
   
-  // Fetch properties
+  // Fetch properties with caching
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
     queryKey: ['properties'],
-    queryFn: getProperties
+    queryFn: getProperties,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
   
   // Create property relationship maps
@@ -94,6 +99,7 @@ const MultiCalendar: React.FC = () => {
                     getReservationStyle={getReservationStyle}
                     getSourceReservationInfo={getSourceReservationInfo}
                     normalizeDate={normalizeDate}
+                    onClick={onPropertyClick ? () => onPropertyClick(property.id) : undefined}
                   />
                 ))}
               </div>

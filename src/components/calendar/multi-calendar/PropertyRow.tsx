@@ -16,6 +16,7 @@ interface PropertyRowProps {
   getReservationStyle: (reservation: any, isIndirect: boolean) => string;
   getSourceReservationInfo: (reservation: any) => { property?: Property, reservation?: any };
   normalizeDate: (date: Date) => Date;
+  onClick?: () => void;
 }
 
 const PropertyRow: React.FC<PropertyRowProps> = ({
@@ -26,7 +27,8 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   propertyLanes,
   getReservationStyle,
   getSourceReservationInfo,
-  normalizeDate
+  normalizeDate,
+  onClick
 }) => {
   // Determinar el tipo de indicador según el tipo de propiedad
   let typeIndicator = '';
@@ -57,9 +59,17 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
     propertyTypeStyles = 'bg-purple-50/40 border-l-3 border-l-purple-400';
   }
 
+  // Add cursor-pointer if onClick is provided
+  const cursorStyle = onClick ? 'cursor-pointer hover:bg-gray-50' : '';
+
   return (
     <React.Fragment>
-      <div className={`sticky left-0 z-10 bg-white border-b border-r border-gray-100/80 p-3 font-medium truncate h-16 transition-colors ${propertyTypeStyles} shadow-sm`}>
+      <div
+        className={`sticky left-0 z-10 bg-white border-b border-r border-gray-100/80 p-3 font-medium truncate h-16 transition-colors ${propertyTypeStyles} shadow-sm ${cursorStyle}`}
+        onClick={onClick}
+        role={onClick ? "button" : undefined}
+        aria-label={onClick ? `View ${property.name} calendar` : undefined}
+      >
         <div className="flex flex-col">
           <span className="font-semibold text-gray-800">{property.name}</span>
           {typeIndicator && (
