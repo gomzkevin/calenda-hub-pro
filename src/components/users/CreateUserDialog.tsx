@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -106,6 +107,11 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     }
   };
   
+  // Define the onSubmit function that was missing
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    createUserMutation.mutate(values);
+  };
+
   const isLoading = isLoadingCurrentUser || isLoadingProperties || createUserMutation.isPending;
   const allSelected = properties.length > 0 && selectedPropertyIds.length === properties.length;
   
