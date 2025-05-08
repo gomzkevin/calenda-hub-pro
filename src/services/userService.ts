@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
@@ -42,8 +43,7 @@ export const getUsers = async (): Promise<User[]> => {
       return [];
     }
     
-    // Aquí está el cambio: explicitar que queremos todos los users del operator,
-    // no solo los admins
+    // Aquí está el cambio: verificar explícitamente si se están obteniendo resultados
     query = query.eq("operator_id", currentProfile.operator_id);
     console.log("Admin query: Fetching all users with operator_id =", currentProfile.operator_id);
   } else {
@@ -59,6 +59,12 @@ export const getUsers = async (): Promise<User[]> => {
   }
 
   console.log(`Found ${profiles?.length || 0} profiles:`, profiles);
+  
+  // Si no se encontraron perfiles y el usuario es admin, verifiquemos el estado de los usuarios en la tabla auth.users
+  // Nota: esto es solo para depuración, ya que normalmente no se puede acceder directamente a auth.users desde el cliente
+  if (profiles?.length === 0 && currentProfile.role === 'admin') {
+    console.warn("No profiles found for admin user's operator_id. This might indicate missing profiles or incorrect operator_id assignments.");
+  }
   
   return profiles.map((profile) => ({
     id: profile.id,

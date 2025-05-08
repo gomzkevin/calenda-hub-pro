@@ -52,6 +52,9 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Mostrar información del usuario que está creando el nuevo usuario
+    console.log(`Creating user with operator_id: ${requestingUserProfile.operator_id} from requesting user with ID: ${requestingUserId}`);
     
     // 1. Create the user in auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -68,6 +71,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log(`User created with ID: ${authData.user.id}`);
 
     // 2. Update the profile that's automatically created to include the operator_id
     const { error: updateError } = await supabase
@@ -86,6 +91,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(`Profile updated for user: ${authData.user.id} with operator_id: ${requestingUserProfile.operator_id}`);
 
     // 3. If property IDs were provided, create access records
     // IMPORTANTE: Sólo crear accesos para las propiedades explícitamente seleccionadas
@@ -106,6 +113,8 @@ serve(async (req) => {
       if (accessError) {
         console.error("Error creating property access:", accessError);
         // Don't fail the request, but log the error
+      } else {
+        console.log(`Created ${propertyIds.length} property access records for user: ${authData.user.id}`);
       }
     } else {
       console.log("No properties selected, skipping property access creation");
@@ -132,6 +141,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(`User creation complete. Returning user profile with operator_id: ${profile.operator_id}`);
 
     // Return the created user profile
     return new Response(
