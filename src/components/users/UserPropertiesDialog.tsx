@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserPropertyAccess, updateUserPropertyAccess, Profile } from '@/services/userService';
-import { getProperties } from '@/services/propertyService';
+import { getProperties } from '@/services/property';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';

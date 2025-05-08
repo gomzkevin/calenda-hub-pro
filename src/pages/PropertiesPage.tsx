@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
-import { getProperties } from '@/services/propertyService';
+import { getProperties } from '@/services/property';
 import { getCurrentUser } from '@/services/userService';
 import { toast } from 'sonner';
 import { Property } from '@/types';

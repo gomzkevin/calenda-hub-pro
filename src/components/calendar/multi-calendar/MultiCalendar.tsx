@@ -1,7 +1,6 @@
-
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getProperties } from '@/services/propertyService';
+import { getProperties } from '@/services/property';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CalendarLegend from '../CalendarLegend';
 
