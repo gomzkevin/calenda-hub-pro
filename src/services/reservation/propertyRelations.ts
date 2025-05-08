@@ -1,5 +1,4 @@
-
-import { getProperties } from "../propertyService";
+import { getProperties } from "../property";
 import { Reservation } from "@/types";
 
 // Maps to store parent-child relationships

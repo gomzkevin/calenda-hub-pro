@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getUserPropertyAccess } from "@/services/userService";
 
@@ -65,7 +64,7 @@ export const getRlsPolicyDebugInfo = async () => {
   try {
     // En producción, esta función requeriría permisos de admin
     const { data, error } = await supabase
-      .rpc('debug_rls_policy', { table_name: 'properties' });
+      .rpc('debug_rls_policy_info', { table_name: 'properties' });
       
     if (error) {
       console.error("Error debugging RLS policy:", error);

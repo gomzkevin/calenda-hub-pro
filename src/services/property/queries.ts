@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Property } from "@/types";
 import { mapPropertyFromDatabase } from "./mapper";
@@ -18,7 +17,7 @@ export const getProperties = async (): Promise<Property[]> => {
     throw error;
   }
   
-  return data ? data.map(mapPropertyFromDatabase) : [];
+  return data ? data.map((prop) => mapPropertyFromDatabase(prop as PropertyRaw)) : [];
 };
 
 /**

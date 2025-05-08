@@ -12,7 +12,7 @@ export interface PropertyRaw {
   bedrooms: number;
   bathrooms: number;
   capacity: number;
-  type?: PropertyType;
+  type?: string; // Changed from PropertyType to string to match the database structure
   parent_id?: string;
   description?: string;
   ical_token?: string;
