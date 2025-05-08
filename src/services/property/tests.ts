@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getUserPropertyAccess } from "@/services/userService";
 
@@ -63,6 +64,7 @@ export const debugPropertyAccess = async (userId: string): Promise<{
 export const getRlsPolicyDebugInfo = async () => {
   try {
     // En producción, esta función requeriría permisos de admin
+    // Note: Using rpc for a custom database function that would need to be created
     const { data, error } = await supabase
       .rpc('debug_rls_policy_info', { table_name: 'properties' });
       

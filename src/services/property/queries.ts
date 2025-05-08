@@ -1,7 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Property } from "@/types";
 import { mapPropertyFromDatabase } from "./mapper";
 import { PropertyRaw } from "./types";
+import { refreshPermissions } from "./permissions";
 
 /**
  * Fetch all properties from the database
@@ -97,6 +99,11 @@ export const getPropertiesForRelation = async (currentPropertyId: string): Promi
  */
 export const getUserAccessibleProperties = async (): Promise<Property[]> => {
   try {
+    // First refresh permissions to ensure RLS is applied correctly
+    await refreshPermissions();
+    
+    console.log("Fetching user accessible properties with RLS...");
+    
     // The RLS policies will automatically filter properties based on the user's access
     const { data, error } = await supabase
       .from("properties")
@@ -106,6 +113,8 @@ export const getUserAccessibleProperties = async (): Promise<Property[]> => {
       console.error("Error fetching user accessible properties:", error);
       throw error;
     }
+    
+    console.log(`User has access to ${data?.length || 0} properties`);
     
     return data ? data.map(prop => mapPropertyFromDatabase(prop as PropertyRaw)) : [];
   } catch (error) {

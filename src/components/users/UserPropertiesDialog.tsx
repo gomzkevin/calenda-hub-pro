@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserPropertyAccess, updateUserPropertyAccess, Profile } from '@/services/userService';
 import { getProperties } from '@/services/property';
+import { refreshPermissions } from '@/services/property/permissions';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -62,15 +64,25 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   
   // Mutación para actualizar los accesos
   const updateAccessMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       setUpdateError(null);
       console.log("Updating access for user", user?.id, "with properties:", selectedProperties);
-      return updateUserPropertyAccess(user?.id || '', selectedProperties);
+      const result = await updateUserPropertyAccess(user?.id || '', selectedProperties);
+      
+      // After updating access, refresh permissions to ensure RLS changes take effect
+      if (result.success) {
+        await refreshPermissions();
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userAccess'] });
       // También invalidamos la consulta de usuarios para refrescar la lista
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      // Invalidate properties query to ensure the UI reflects the new permissions
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+      
       toast.success('Accesos actualizados exitosamente');
       onOpenChange(false);
     },

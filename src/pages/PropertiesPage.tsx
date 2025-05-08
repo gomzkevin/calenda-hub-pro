@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Loader2, MapPin, Building2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
-import { getProperties } from '@/services/property';
+import { getUserAccessibleProperties } from '@/services/property';
 import { getCurrentUser } from '@/services/userService';
 import { toast } from 'sonner';
 import { Property } from '@/types';
+import { refreshPermissions } from '@/services/property/permissions';
 
 const PropertiesPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [refreshingPermissions, setRefreshingPermissions] = useState(false);
   
   // Get current user to check if admin
   const { data: currentUser } = useQuery({
@@ -30,10 +32,22 @@ const PropertiesPage = () => {
     queryFn: getCurrentUser
   });
   
-  const { data: properties, isLoading, error, isRefetching } = useQuery({
+  // On component mount, refresh permissions to ensure RLS is applied correctly
+  useEffect(() => {
+    const refreshUserPermissions = async () => {
+      setRefreshingPermissions(true);
+      await refreshPermissions();
+      setRefreshingPermissions(false);
+    };
+    
+    refreshUserPermissions();
+  }, []);
+  
+  const { data: properties, isLoading, error, isRefetching, refetch } = useQuery({
     queryKey: ['properties'],
-    queryFn: getProperties,
-    refetchOnWindowFocus: true
+    queryFn: getUserAccessibleProperties, // Use the function that respects RLS
+    refetchOnWindowFocus: true,
+    enabled: !refreshingPermissions // Only run the query after permissions have been refreshed
   });
   
   const isAdmin = currentUser?.role === 'admin';
@@ -69,7 +83,7 @@ const PropertiesPage = () => {
     }
   };
   
-  if (isLoading) {
+  if (isLoading || refreshingPermissions) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -78,11 +92,10 @@ const PropertiesPage = () => {
   }
   
   if (error) {
-    toast({
-      variant: "destructive",
-      title: "Error al cargar propiedades",
+    toast.error("Error al cargar propiedades", {
       description: "No pudimos cargar las propiedades. Por favor intenta de nuevo."
     });
+    
     return (
       <div className="text-center py-10">
         <h3 className="text-lg font-semibold mb-2">No se pudieron cargar las propiedades</h3>

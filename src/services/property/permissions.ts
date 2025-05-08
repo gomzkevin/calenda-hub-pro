@@ -8,6 +8,8 @@ import { getCurrentUser } from "../userService";
  */
 export const refreshPermissions = async (): Promise<boolean> => {
   try {
+    console.log("Refreshing permissions and session...");
+    
     // 1. Forzar recarga de la sesión para actualizar permisos
     const { data: session, error: sessionError } = await supabase.auth.refreshSession();
     
@@ -16,6 +18,7 @@ export const refreshPermissions = async (): Promise<boolean> => {
       return false;
     }
     
+    console.log("Session refreshed successfully");
     return true;
   } catch (error) {
     console.error("Error refreshing permissions:", error);
