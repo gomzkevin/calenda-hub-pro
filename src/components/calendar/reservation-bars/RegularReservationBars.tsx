@@ -10,6 +10,7 @@ interface RegularReservationBarsProps {
   laneHeight: number;
   baseOffset: number;
   laneGap: number;
+  cellHeight: number;
 }
 
 const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
@@ -18,11 +19,9 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   weekReservationLanes,
   laneHeight,
   baseOffset,
-  laneGap
+  laneGap,
+  cellHeight
 }) => {
-  // Calculate cell height based on the number of weeks
-  const cellHeight = 120; // Fixed cell height for consistency
-  
   return (
     <>
       {weeks.map((week, weekIndex) => (

@@ -3,7 +3,7 @@ import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
 
 /**
- * Improved lane calculation with consistent lane assignment
+ * Improved lane calculation with consistent lane assignment across weeks
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -17,7 +17,6 @@ export const calculateReservationLanes = (
   
   // Create a global lane assignment for consistency across weeks
   const globalLaneAssignment: Record<string, number> = {};
-  let nextLane = 0;
   
   // Pre-assign lanes to all reservations based on priority
   const sortedReservations = [...reservations].sort((a, b) => {
@@ -33,7 +32,8 @@ export const calculateReservationLanes = (
     return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
   });
   
-  // Assign global lanes
+  // Simplified lane assignment algorithm - assign lanes sequentially
+  let nextLane = 0;
   sortedReservations.forEach(res => {
     if (!globalLaneAssignment[res.id]) {
       globalLaneAssignment[res.id] = nextLane;
@@ -112,13 +112,14 @@ export const calculateBlockLanes = (
   
   // Create a global lane assignment for consistency across weeks
   const globalLaneAssignment: Record<string, number> = {};
-  let nextLane = 0;
   
-  // Pre-assign lanes to all blocks
+  // Pre-assign lanes to all blocks - sort by start date for consistent assignment
   const sortedBlocks = [...blocks].sort((a, b) => 
     new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
   );
   
+  // Assign global lanes sequentially
+  let nextLane = 0;
   sortedBlocks.forEach(block => {
     if (!globalLaneAssignment[block.id]) {
       globalLaneAssignment[block.id] = nextLane;

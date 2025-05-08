@@ -32,24 +32,8 @@ export const useCalendarGrid = (
     return calculateBlockLanes(weeks, relationshipBlocks);
   }, [weeks, relationshipBlocks]);
   
-  // Use fixed cell height for consistency across all cells
-  const cellHeight = useMemo(() => {
-    // Calculate maximum number of lanes needed for any week
-    const maxLanes = Math.max(
-      ...Object.values(weekReservationLanes).map(lanes => 
-        Object.values(lanes).length > 0 ? Math.max(...Object.values(lanes)) + 1 : 1
-      ),
-      ...Object.values(weekRelationshipBlockLanes).map(lanes => 
-        Object.values(lanes).length > 0 ? Math.max(...Object.values(lanes)) + 1 : 0
-      ),
-      ...Object.values(weekPropagatedBlockLanes).map(lanes => 
-        Object.values(lanes).length > 0 ? Math.max(...Object.values(lanes)) + 1 : 0
-      )
-    );
-    
-    // Fixed cell height regardless of content
-    return 120;
-  }, [weekReservationLanes, weekRelationshipBlockLanes, weekPropagatedBlockLanes]);
+  // Fixed cell height for all calendar cells
+  const cellHeight = 120; // Fixed height for consistent layout
   
   // Navigation handlers
   const nextMonth = () => {
