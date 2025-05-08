@@ -1,6 +1,13 @@
 
 import React from 'react';
-import MultiCalendar from './multi-calendar/MultiCalendar';
+import MultiCalendarComponent from './multi-calendar/MultiCalendar';
 
-// This is a barrel file to maintain backward compatibility
+interface MultiCalendarProps {
+  onPropertySelect?: (propertyId: string) => void;
+}
+
+const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
+  return <MultiCalendarComponent onPropertySelect={onPropertySelect} />;
+};
+
 export default MultiCalendar;

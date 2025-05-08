@@ -24,7 +24,11 @@ import {
   calculatePropertyLanes
 } from './utils';
 
-const MultiCalendar: React.FC = () => {
+interface MultiCalendarProps {
+  onPropertySelect?: (propertyId: string) => void;
+}
+
+const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
   // Set up date navigation
   const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
   
@@ -53,6 +57,13 @@ const MultiCalendar: React.FC = () => {
   [properties, getReservationsForProperty]);
 
   const isLoading = isLoadingReservations || isLoadingProperties;
+
+  // Handler for property selection
+  const handlePropertySelect = (propertyId: string) => {
+    if (onPropertySelect) {
+      onPropertySelect(propertyId);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden multi-calendar-container">
@@ -94,6 +105,7 @@ const MultiCalendar: React.FC = () => {
                     getReservationStyle={getReservationStyle}
                     getSourceReservationInfo={getSourceReservationInfo}
                     normalizeDate={normalizeDate}
+                    onPropertySelect={handlePropertySelect}
                   />
                 ))}
               </div>
