@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
@@ -29,25 +28,20 @@ export const getUsers = async (): Promise<User[]> => {
       return [];
     }
 
-    console.log("Perfil del usuario actual:", currentProfile);
-
     // Consulta base para perfiles
-    let query = supabase.from("profiles");
+    let query = supabase.from("profiles").select("*");
     
     if (currentProfile.role === 'admin') {
       // Los administradores pueden ver todos los usuarios de su operador
       if (currentProfile.operator_id) {
-        // Importante: Primero hacer el select y luego el filtro
-        query = query.select("*").eq("operator_id", currentProfile.operator_id);
-        console.log(`Admin: Buscando usuarios con operator_id=${currentProfile.operator_id}`);
+        query = query.eq("operator_id", currentProfile.operator_id);
       } else {
         console.error("Error: Admin sin operator_id asignado");
         return [];
       }
     } else {
       // Los usuarios normales solo pueden ver su propio perfil
-      query = query.select("*").eq("id", currentUser.id);
-      console.log("Usuario regular: Mostrando solo su perfil");
+      query = query.eq("id", currentUser.id);
     }
 
     // Ejecutar la consulta
@@ -56,14 +50,6 @@ export const getUsers = async (): Promise<User[]> => {
     if (fetchError) {
       console.error("Error obteniendo perfiles:", fetchError);
       return [];
-    }
-    
-    console.log(`Encontrados ${profiles?.length || 0} perfiles de usuario`);
-    
-    if (profiles && profiles.length > 0) {
-      console.log("Primer perfil encontrado:", profiles[0]);
-    } else {
-      console.log("No se encontraron perfiles para este operador");
     }
     
     // Transformar los perfiles al formato User

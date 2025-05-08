@@ -1,123 +1,138 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getProperties } from '@/services/propertyService';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import CalendarLegend from '../CalendarLegend';
-
-// Import hooks
+import React, { useMemo } from 'react';
 import { useReservations } from './hooks/useReservations';
 import { useDateNavigation } from './hooks/useDateNavigation';
 import { usePropertyRelationships } from './hooks/usePropertyRelationships';
-import { useReservationData } from './hooks/useReservationData';
-
-// Import components
 import MultiCalendarHeader from './MultiCalendarHeader';
 import DayHeader from './DayHeader';
 import PropertyRow from './PropertyRow';
-
-// Import utilities
-import { 
-  normalizeDate, 
-  sortReservations, 
-  getReservationStyle,
-  calculatePropertyLanes
-} from './utils';
+import { Property } from '@/types';
+import { Card } from '@/components/ui/card';
+import { getReservationStyle } from '../utils/styleCalculation';
+import {
+  normalizeDate,
+  isSameDate,
+  sortReservationsByStartDate
+} from '../utils/dateUtils';
 
 interface MultiCalendarProps {
   onPropertySelect?: (propertyId: string) => void;
 }
 
-const MultiCalendar: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
-  // Set up date navigation
-  const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
+const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
+  // Custom hooks for data and navigation
+  const { visibleDays, currentMonth, currentYear, goToPreviousMonth, goToNextMonth } = useDateNavigation();
+  const { reservations, properties, isLoading } = useReservations(currentMonth, currentYear);
+  const { propertyLanes, getSourceReservationInfo } = usePropertyRelationships(properties, reservations);
   
-  // Fetch reservations for the visible date range
-  const { reservations, isLoading: isLoadingReservations } = useReservations(startDate, endDate);
-  
-  // Fetch properties
-  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
-    queryKey: ['properties'],
-    queryFn: getProperties
-  });
-  
-  // Create property relationship maps
-  const propertyRelationships = usePropertyRelationships(properties);
-
-  // Set up reservation-related functions
-  const { 
-    getReservationsForProperty, 
-    getSourceReservationInfo, 
-    getDayReservationStatus 
-  } = useReservationData(reservations, properties, propertyRelationships);
-
-  // Calculate property lanes for positioning reservations
-  const propertyLanes = React.useMemo(() => 
-    calculatePropertyLanes(properties, getReservationsForProperty),
-  [properties, getReservationsForProperty]);
-
-  const isLoading = isLoadingReservations || isLoadingProperties;
-
-  // Handler for property selection
-  const handlePropertySelect = (propertyId: string) => {
-    if (onPropertySelect) {
-      onPropertySelect(propertyId);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow flex flex-col h-full overflow-hidden multi-calendar-container">
-      <MultiCalendarHeader 
-        startDate={startDate}
-        visibleDays={visibleDays}
-        onPrev={goBackward}
-        onNext={goForward}
-      />
+  // Memoize property sorting to prevent recalculations
+  const sortedProperties = useMemo(() => {
+    return [...properties].sort((a, b) => {
+      // Parent properties first, then sort alphabetically
+      if (a.type === 'parent' && b.type !== 'parent') return -1;
+      if (a.type !== 'parent' && b.type === 'parent') return 1;
       
-      {isLoading ? (
-        <div className="flex justify-center items-center p-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      // Then children
+      if (a.type === 'child' && b.type !== 'child') return -1;
+      if (a.type !== 'child' && b.type === 'child') return 1;
+      
+      // When both have same type, sort by name
+      return a.name.localeCompare(b.name);
+    });
+  }, [properties]);
+  
+  // getDayReservationStatus is memoized to improve performance
+  const getDayReservationStatus = useMemo(() => {
+    return (property: Property, day: Date) => {
+      // Efficiently check if there are any reservations for this property on this day
+      const normalizedDate = normalizeDate(day);
+      const propertyReservations = reservations.filter(res => 
+        res.propertyId === property.id && 
+        normalizedDate >= normalizeDate(res.startDate) && 
+        normalizedDate < normalizeDate(res.endDate)
+      );
+      
+      // Check if any reservations are indirect (from relationships)
+      const isIndirect = propertyReservations.some(res => res.isRelationshipBlock || res.sourceReservationId);
+      
+      return {
+        hasReservation: propertyReservations.length > 0,
+        isIndirect,
+        reservations: propertyReservations
+      };
+    };
+  }, [reservations]);
+  
+  if (isLoading) {
+    return (
+      <Card className="w-full h-full p-4 flex flex-col">
+        <div className="flex justify-between items-center mb-6">
+          <div className="w-32 h-8 bg-gray-200 animate-pulse rounded"></div>
+          <div className="flex space-x-2">
+            <div className="w-8 h-8 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-8 h-8 bg-gray-200 animate-pulse rounded"></div>
+          </div>
         </div>
-      ) : (
-        <div className="flex flex-col h-[calc(100%-60px)]">
-          <ScrollArea className="flex-1 w-full">
-            <div className="relative min-w-max">
-              <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
-                {/* Property header cell */}
-                <div className="sticky top-0 left-0 z-20 bg-white border-b border-r border-gray-200 h-12 flex items-center justify-center font-medium text-gray-700 shadow-sm">
-                  Properties
-                </div>
-                
-                {/* Day header cells */}
-                {visibleDays.map((day, index) => (
-                  <DayHeader key={index} day={day} index={index} />
-                ))}
-                
-                {/* Property rows with day cells */}
-                {properties.map((property) => (
-                  <PropertyRow
-                    key={property.id}
-                    property={property}
-                    visibleDays={visibleDays}
-                    getDayReservationStatus={getDayReservationStatus}
-                    sortReservations={sortReservations}
-                    propertyLanes={propertyLanes}
-                    getReservationStyle={getReservationStyle}
-                    getSourceReservationInfo={getSourceReservationInfo}
-                    normalizeDate={normalizeDate}
-                    onPropertySelect={handlePropertySelect}
-                  />
+        <div className="grid grid-cols-7 gap-1 mb-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="h-8 bg-gray-200 animate-pulse rounded"></div>
+          ))}
+        </div>
+        <div className="flex-grow">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex mb-2">
+              <div className="w-40 h-16 bg-gray-200 animate-pulse rounded"></div>
+              <div className="flex-grow grid grid-cols-7 gap-1">
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <div key={j} className="h-16 bg-gray-100 animate-pulse rounded"></div>
                 ))}
               </div>
             </div>
-          </ScrollArea>
-          
-          {/* Calendar Legend */}
-          <CalendarLegend className="mt-auto border-t border-gray-200 py-2" />
+          ))}
         </div>
-      )}
+      </Card>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      <MultiCalendarHeader 
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+        goToPreviousMonth={goToPreviousMonth}
+        goToNextMonth={goToNextMonth}
+      />
+      
+      <div className="flex-1 overflow-auto">
+        <div className="min-w-[1000px]">
+          <div className="grid grid-cols-[200px_repeat(7,_1fr)] sticky top-0 z-10">
+            <div className="bg-white border-b border-gray-200 h-10"></div>
+            {visibleDays.map((day, i) => (
+              <DayHeader key={i} day={day} />
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-[200px_repeat(7,_1fr)]">
+            {sortedProperties.map((property) => (
+              <React.Fragment key={property.id}>
+                <PropertyRow
+                  property={property}
+                  visibleDays={visibleDays}
+                  getDayReservationStatus={getDayReservationStatus}
+                  sortReservations={sortReservationsByStartDate}
+                  propertyLanes={propertyLanes}
+                  getReservationStyle={getReservationStyle}
+                  getSourceReservationInfo={getSourceReservationInfo}
+                  normalizeDate={normalizeDate}
+                  onPropertySelect={onPropertySelect}
+                />
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default MultiCalendar;
+export default MultiCalendarComponent;

@@ -1,12 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
 import AddReservationButton from '@/components/calendar/AddReservationButton';
-import { Property } from '@/types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
@@ -14,100 +12,76 @@ import { getProperties } from '@/services/propertyService';
 const CalendarPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
-  const initialPropertyId = queryParams.get('property') || '';
-  // Change default view to 'multi' instead of 'monthly'
-  const initialView = queryParams.get('view') || 'multi';
   
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
-  const [activeView, setActiveView] = useState<string>(initialView);
+  // Extract query parameters only once on component mount
+  const initialQueryParams = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      propertyId: params.get('property') || '',
+      view: params.get('view') || 'multi' // Default view is multi
+    };
+  }, []);
   
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialQueryParams.propertyId);
+  const [activeView, setActiveView] = useState<string>(initialQueryParams.view);
+  
+  // Optimize property data fetching with staleTime to reduce API calls
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
-    queryFn: getProperties
+    queryFn: getProperties,
+    staleTime: 5 * 60 * 1000, // 5 minutes caching
+    refetchOnWindowFocus: false // Prevent refetch on window focus
   });
   
-  useEffect(() => {
-    if (properties.length > 0 && !selectedPropertyId && activeView === 'monthly') {
-      // Only set a default property when in monthly view
-      const firstPropertyId = properties[0]?.id || '';
-      setSelectedPropertyId(firstPropertyId);
-      updateUrlParams(firstPropertyId, activeView);
-    } else if (activeView === 'multi' && selectedPropertyId) {
-      // When switching to multi view, clear property selection from URL
-      updateUrlParams('', 'multi');
-    }
-  }, [properties, selectedPropertyId, activeView]);
+  // Find the selected property name for display - memoized to prevent recalculations
+  const selectedProperty = useMemo(() => 
+    properties.find(p => p.id === selectedPropertyId),
+    [selectedPropertyId, properties]
+  );
   
+  // Update URL parameters efficiently
   const updateUrlParams = (propertyId: string, view: string) => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams();
+    
     if (propertyId) {
       params.set('property', propertyId);
-    } else {
-      params.delete('property');
     }
+    
     params.set('view', view);
     navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
   
-  const handlePropertyChange = (propertyId: string) => {
+  // Handle view changes
+  const handleViewChange = (view: string) => {
+    setActiveView(view);
+    
+    if (view === 'multi') {
+      // Clear property selection when switching to multi view
+      setSelectedPropertyId('');
+      updateUrlParams('', view);
+    } else if (view === 'monthly' && selectedPropertyId) {
+      updateUrlParams(selectedPropertyId, view);
+    }
+  };
+  
+  // Handle property selection
+  const handlePropertySelect = (propertyId: string) => {
     if (!propertyId) return;
     setSelectedPropertyId(propertyId);
     setActiveView('monthly'); // Switch to monthly view when selecting a property
     updateUrlParams(propertyId, 'monthly');
   };
   
-  const handleViewChange = (view: string) => {
-    setActiveView(view);
-    if (view === 'multi') {
-      // Clear property selection when switching to multi view
-      setSelectedPropertyId('');
-      updateUrlParams('', view);
-    } else if (view === 'monthly' && !selectedPropertyId && properties.length > 0) {
-      // Set default property when switching to monthly view
-      const firstPropertyId = properties[0]?.id || '';
-      setSelectedPropertyId(firstPropertyId);
-      updateUrlParams(firstPropertyId, view);
-    } else {
-      updateUrlParams(selectedPropertyId, view);
-    }
-  };
-  
-  // Find the selected property name for display
-  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
-  
-  // Only show property selector in monthly view
-  const showPropertySelector = activeView === 'monthly';
-  
   return (
     <div className="space-y-6 w-full max-w-full h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold">Calendar</h1>
-        <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
-          {showPropertySelector && (
-            <div className="w-full sm:w-64">
-              {isLoading ? (
-                <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
-              ) : (
-                <Select
-                  value={selectedPropertyId}
-                  onValueChange={handlePropertyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a property" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties.map((property: Property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          )}
-          {selectedPropertyId && activeView === 'monthly' && (
+        <h1 className="text-2xl font-bold">
+          {activeView === 'monthly' && selectedProperty 
+            ? `Calendar - ${selectedProperty.name}` 
+            : 'Calendar'}
+        </h1>
+        <div className="flex items-center gap-3">
+          {activeView === 'monthly' && selectedPropertyId && (
             <AddReservationButton 
               propertyId={selectedPropertyId} 
               className="w-full sm:w-auto"
@@ -137,7 +111,7 @@ const CalendarPage: React.FC = () => {
         <TabsContent value="multi" className="w-full flex-1 flex flex-col">
           <Card className="w-full h-full flex flex-col">
             <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
-              <MultiCalendar onPropertySelect={handlePropertyChange} />
+              <MultiCalendar onPropertySelect={handlePropertySelect} />
             </CardContent>
           </Card>
         </TabsContent>
