@@ -5,10 +5,23 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarIcon, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import ICalLinkCard from '@/components/ical/ICalLinkCard';
 import { getICalLinksForProperty, syncICalLink } from '@/services/icalLinkService';
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { format, formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Edit, ExternalLink, Trash } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { deleteICalLink } from '@/services/icalLinkService';
 
 interface PropertyICalLinksProps {
   propertyId: string;
@@ -17,6 +30,10 @@ interface PropertyICalLinksProps {
 const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => {
   const navigate = useNavigate();
   const [syncingAll, setSyncingAll] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [linkToDelete, setLinkToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Get iCal links for this property
   const { data: icalLinks, isLoading: isIcalLoading, refetch } = useQuery({
@@ -25,6 +42,53 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     enabled: !!propertyId
   });
 
+  const getPlatformBadgeVariant = (platform: string) => {
+    switch (platform) {
+      case 'Airbnb': return 'destructive';
+      case 'Booking': return 'default';
+      case 'Vrbo': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
+  const handleSyncSingle = async (id: string) => {
+    const link = icalLinks?.find(l => l.id === id);
+    if (!link) return;
+    
+    setSyncingId(id);
+    try {
+      toast({
+        title: "Sincronizando calendario",
+        description: "Obteniendo reservas desde el origen..."
+      });
+      
+      const result = await syncICalLink(link);
+      
+      if (result.success && result.results) {
+        toast({
+          title: "Calendario sincronizado",
+          description: `Se encontraron ${result.results.total} eventos. ${result.results.added} nuevas reservas añadidas, ${result.results.updated} actualizadas.`
+        });
+        refetch();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error al sincronizar",
+          description: result.error || "No se pudieron sincronizar las reservas."
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing iCal:', error);
+      toast({
+        variant: "destructive",
+        title: "Error de sincronización",
+        description: "Ocurrió un error al sincronizar el calendario."
+      });
+    } finally {
+      setSyncingId(null);
+    }
+  };
+  
   // Function to sync all iCal links for this property
   const syncAllICalLinks = async () => {
     if (!icalLinks || icalLinks.length === 0) return;
@@ -81,6 +145,52 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
     }
   };
   
+  const openDeleteDialog = (id: string) => {
+    setLinkToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!linkToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const success = await deleteICalLink(linkToDelete);
+      if (success) {
+        toast({
+          title: "Enlace iCal eliminado",
+          description: "El enlace iCal ha sido eliminado correctamente."
+        });
+        refetch();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error al eliminar",
+          description: "No se pudo eliminar el enlace iCal. Intenta de nuevo."
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting iCal link:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al eliminar",
+        description: "Ocurrió un error al eliminar el enlace iCal."
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
+  const getLastSyncedText = (lastSynced?: Date) => {
+    if (!lastSynced) return "Nunca";
+    
+    return formatDistanceToNow(lastSynced, { 
+      addSuffix: true,
+      locale: es
+    });
+  };
+  
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -121,15 +231,74 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : icalLinks && icalLinks.length > 0 ? (
-          <div className="space-y-4">
-            {icalLinks.map((icalLink) => (
-              <ICalLinkCard 
-                key={icalLink.id} 
-                icalLink={icalLink} 
-                onSyncComplete={() => refetch()}
-              />
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Plataforma</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead>Última sincronización</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {icalLinks.map((link) => (
+                <TableRow key={link.id}>
+                  <TableCell>
+                    <Badge variant={getPlatformBadgeVariant(link.platform)}>
+                      {link.platform}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <span className="max-w-xs truncate text-xs sm:text-sm" title={link.url}>
+                        {link.url}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="ml-2"
+                        onClick={() => window.open(link.url, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {getLastSyncedText(link.lastSynced)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSyncSingle(link.id)}
+                        disabled={syncingId === link.id}
+                      >
+                        <RefreshCw 
+                          className={`h-4 w-4 ${syncingId === link.id ? "animate-spin" : ""}`} 
+                        />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/properties/${propertyId}/ical-links/edit/${link.id}`)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => openDeleteDialog(link.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <div className="text-center py-6">
             <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
@@ -140,6 +309,34 @@ const PropertyICalLinks: React.FC<PropertyICalLinksProps> = ({ propertyId }) => 
           </div>
         )}
       </CardContent>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas eliminar este enlace iCal?
+              Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)} 
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

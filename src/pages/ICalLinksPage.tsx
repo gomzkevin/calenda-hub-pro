@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import ICalLinkCard from '@/components/ical/ICalLinkCard';
 import { useQuery } from '@tanstack/react-query';
 import { getICalLinks, syncAllICalLinks } from '@/services/icalLinkService';
 import { getProperties } from '@/services/propertyService';
 import { toast } from 'sonner';
-import { Property } from '@/types';
+import { Property, ICalLink } from '@/types';
+import ICalLinksTable from '@/components/ical/ICalLinksTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ICalLinksPage = () => {
@@ -62,32 +62,6 @@ const ICalLinksPage = () => {
     }
   };
   
-  const handleDeleteICalLink = (id: string) => {
-    // This will be implemented and passed to the ICalLinkCard
-    // The actual implementation is handled in the component's code
-  };
-  
-  const groupICalLinksByProperty = () => {
-    if (!icalLinks || !properties) return {};
-    
-    const grouped: Record<string, {property: Property, links: typeof icalLinks}> = {};
-    
-    icalLinks.forEach(link => {
-      const property = properties.find(p => p.id === link.propertyId);
-      if (property) {
-        if (!grouped[property.id]) {
-          grouped[property.id] = {
-            property,
-            links: []
-          };
-        }
-        grouped[property.id].links.push(link);
-      }
-    });
-    
-    return grouped;
-  };
-  
   const isLoading = isIcalLoading || isPropertiesLoading;
   
   if (isLoading) {
@@ -109,9 +83,6 @@ const ICalLinksPage = () => {
       </div>
     );
   }
-  
-  const groupedLinks = groupICalLinksByProperty();
-  const groupCount = Object.keys(groupedLinks).length;
   
   return (
     <div>
@@ -140,38 +111,18 @@ const ICalLinksPage = () => {
       </div>
       
       {icalLinks && icalLinks.length > 0 ? (
-        <div className="space-y-8">
-          {groupCount > 0 ? (
-            Object.values(groupedLinks).map(({ property, links }) => (
-              <Card key={property.id} className="overflow-hidden">
-                <CardHeader className="bg-alanto-forest-pale">
-                  <CardTitle className="text-lg text-alanto-forest">
-                    {property.name}
-                    <span className="ml-2 text-sm font-normal text-alanto-forest-dark">
-                      ({links.length} {links.length === 1 ? 'calendario' : 'calendarios'})
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {links.map((icalLink) => (
-                      <ICalLinkCard 
-                        key={icalLink.id} 
-                        icalLink={icalLink} 
-                        onSyncComplete={() => refetchIcal()}
-                        onDelete={handleDeleteICalLink}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="text-center py-6 bg-alanto-forest-pale rounded-lg">
-              <p className="text-alanto-forest">No se pudieron agrupar los enlaces por propiedad.</p>
-            </div>
-          )}
-        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Enlaces de calendario</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ICalLinksTable 
+              icalLinks={icalLinks} 
+              properties={properties || []} 
+              onRefetch={refetchIcal}
+            />
+          </CardContent>
+        </Card>
       ) : (
         <div className="text-center py-10 bg-alanto-forest-pale rounded-lg">
           <h3 className="text-lg font-semibold mb-2 text-alanto-forest">No hay enlaces iCal</h3>
