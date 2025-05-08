@@ -30,6 +30,12 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   normalizeDate,
   onPropertySelect
 }) => {
+  // Verificar que las propiedades sean válidas
+  if (!property || !property.id) {
+    console.error("Invalid property provided to PropertyRow", property);
+    return null;
+  }
+
   // Determinar el tipo de indicador según el tipo de propiedad
   let typeIndicator = '';
   if (property.type === 'parent') {

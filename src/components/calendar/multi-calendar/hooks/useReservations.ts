@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getReservationsForMonth } from '@/services/reservation';
 import { Reservation } from '@/types';
-import { addDays, format, subDays, getMonth, getYear } from 'date-fns';
+import { addDays, format, subDays, getMonth, getYear, isValid } from 'date-fns';
 
 interface MonthInfo {
   month: number;
@@ -10,6 +10,15 @@ interface MonthInfo {
 }
 
 export const useReservations = (startDate: Date, endDate: Date) => {
+  // Validar fechas antes de continuar
+  if (!isValid(startDate) || !isValid(endDate)) {
+    console.error("useReservations received invalid dates:", { startDate, endDate });
+    // Proporcionar un valor predeterminado seguro
+    const today = new Date();
+    startDate = isValid(startDate) ? startDate : today;
+    endDate = isValid(endDate) ? endDate : today;
+  }
+  
   // Determine which months to fetch - including padding for better reservation visibility
   const paddedStartDate = subDays(startDate, 7); // Fetch 1 week before
   const paddedEndDate = addDays(endDate, 7);     // Fetch 1 week after
