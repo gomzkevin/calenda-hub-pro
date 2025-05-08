@@ -59,7 +59,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const createUserMutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       setCreationError(null);
-      console.log("Creating user with properties:", selectedPropertyIds);
+      console.log("Creating user with selected properties:", selectedPropertyIds);
       console.log("Current user (creating):", currentUser);
       return createUser(values.email, values.password, values.name, selectedPropertyIds);
     },

@@ -25,6 +25,7 @@ serve(async (req) => {
     const { email, password, name, propertyIds, requestingUserId } = await req.json();
     
     console.log(`Creating user: ${email}, requested by: ${requestingUserId}`);
+    console.log(`Selected property IDs: ${propertyIds.length ? propertyIds.join(', ') : 'none'}`);
     
     // Verify that the requesting user exists and is an admin
     const { data: requestingUserProfile, error: profileError } = await supabase
@@ -84,7 +85,11 @@ serve(async (req) => {
     }
 
     // 3. If property IDs were provided, create access records
+    // IMPORTANTE: Sólo crear accesos para las propiedades explícitamente seleccionadas
     if (propertyIds && propertyIds.length > 0) {
+      // Log para depuración de las propiedades seleccionadas
+      console.log(`Creating access for properties: ${propertyIds.join(", ")}`);
+      
       const accessRecords = propertyIds.map(propertyId => ({
         user_id: authData.user.id,
         property_id: propertyId,
@@ -99,6 +104,8 @@ serve(async (req) => {
         console.error("Error creating property access:", accessError);
         // Don't fail the request, but log the error
       }
+    } else {
+      console.log("No properties selected, skipping property access creation");
     }
 
     // 4. Get the updated profile

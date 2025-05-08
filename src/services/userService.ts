@@ -43,6 +43,8 @@ export const getUsers = async (): Promise<User[]> => {
       return [];
     }
     
+    // Aquí está el cambio: explicitar que queremos todos los users del operator,
+    // no solo los admins
     query = query.eq("operator_id", currentProfile.operator_id);
     console.log("Admin query: Fetching all users with operator_id =", currentProfile.operator_id);
   } else {
@@ -116,7 +118,7 @@ export const createUser = async (
     throw new Error("Usuario no autenticado");
   }
   
-  console.log("Calling create-user edge function");
+  console.log("Calling create-user edge function with selected properties:", propertyIds);
   
   // Call the Edge Function to create the user
   const { data, error } = await supabase.functions.invoke("create-user", {
