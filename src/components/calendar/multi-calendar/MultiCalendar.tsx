@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { useReservationData } from './hooks/useReservationData';
+import { useReservations } from './hooks/useReservations';
 import { useDateNavigation } from './hooks/useDateNavigation';
 import { usePropertyRelationships } from './hooks/usePropertyRelationships';
 import MultiCalendarHeader from './MultiCalendarHeader';
@@ -14,8 +14,6 @@ import {
   isSameDate,
   sortReservationsByStartDate
 } from '../utils/dateUtils';
-import { useQuery } from '@tanstack/react-query';
-import { getProperties } from '@/services/propertyService';
 
 interface MultiCalendarProps {
   onPropertySelect?: (propertyId: string) => void;
@@ -23,46 +21,29 @@ interface MultiCalendarProps {
 
 const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect }) => {
   // Custom hooks for data and navigation
-  const { startDate, endDate, visibleDays, goForward, goBackward } = useDateNavigation();
-  const { reservations, isLoading: isLoadingReservations } = useReservationData(startDate, endDate);
-  const { parentToChildren, childToParent, siblingGroups } = usePropertyRelationships(reservations);
+  const { visibleDays, currentMonth, currentYear, goToPreviousMonth, goToNextMonth } = useDateNavigation();
+  const { reservations, properties, isLoading } = useReservations(currentMonth, currentYear);
+  const { propertyLanes, getSourceReservationInfo } = usePropertyRelationships(properties, reservations);
   
-  // Fetch properties data
-  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
-    queryKey: ['properties'],
-    queryFn: getProperties,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    refetchOnWindowFocus: false
-  });
-  
-  // Extract month and year from the first visible day
-  const currentMonth = useMemo(() => visibleDays[7]?.getMonth() + 1 || new Date().getMonth() + 1, [visibleDays]);
-  const currentYear = useMemo(() => visibleDays[7]?.getFullYear() || new Date().getFullYear(), [visibleDays]);
-  
-  // Determine if loading
-  const isLoading = isLoadingReservations || isLoadingProperties;
-  
-  // Create helper function to get source reservation info 
-  const getSourceReservationInfo = (reservation: any) => {
-    // Return empty object as a placeholder
-    return { property: undefined, reservation: undefined };
-  };
-  
-  // Create a simple property lanes structure
-  const propertyLanes = useMemo(() => {
-    const lanes = new Map<string, number>();
-    properties.forEach(property => {
-      lanes.set(property.id, 0);
+  // Memoize property sorting to prevent recalculations
+  const sortedProperties = useMemo(() => {
+    return [...properties].sort((a, b) => {
+      // Parent properties first, then sort alphabetically
+      if (a.type === 'parent' && b.type !== 'parent') return -1;
+      if (a.type !== 'parent' && b.type === 'parent') return 1;
+      
+      // Then children
+      if (a.type === 'child' && b.type !== 'child') return -1;
+      if (a.type !== 'child' && b.type === 'child') return 1;
+      
+      // When both have same type, sort by name
+      return a.name.localeCompare(b.name);
     });
-    return lanes;
   }, [properties]);
   
   // getDayReservationStatus is memoized to improve performance
   const getDayReservationStatus = useMemo(() => {
     return (property: Property, day: Date) => {
-      // Skip if reservations aren't loaded yet
-      if (!reservations) return { hasReservation: false, isIndirect: false, reservations: [] };
-      
       // Efficiently check if there are any reservations for this property on this day
       const normalizedDate = normalizeDate(day);
       const propertyReservations = reservations.filter(res => 
@@ -116,10 +97,10 @@ const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       <MultiCalendarHeader 
-        startDate={startDate}
-        endDate={endDate}
-        goForward={goForward}
-        goBackward={goBackward}
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+        goToPreviousMonth={goToPreviousMonth}
+        goToNextMonth={goToNextMonth}
       />
       
       <div className="flex-1 overflow-auto">
@@ -127,12 +108,12 @@ const MultiCalendarComponent: React.FC<MultiCalendarProps> = ({ onPropertySelect
           <div className="grid grid-cols-[200px_repeat(7,_1fr)] sticky top-0 z-10">
             <div className="bg-white border-b border-gray-200 h-10"></div>
             {visibleDays.map((day, i) => (
-              <DayHeader key={i} day={day} dayIndex={i} />
+              <DayHeader key={i} day={day} />
             ))}
           </div>
           
           <div className="grid grid-cols-[200px_repeat(7,_1fr)]">
-            {properties.map((property) => (
+            {sortedProperties.map((property) => (
               <React.Fragment key={property.id}>
                 <PropertyRow
                   property={property}

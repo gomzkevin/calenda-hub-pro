@@ -117,15 +117,17 @@ export const checkAvailability = async (
   return count === 0;
 };
 
-// Memory cache for property names
-const propertyNameCache = new Map<string, {name: string, timestamp: number}>();
-
 /**
  * Get the property name for a given property ID - with caching
  */
 export const getPropertyName = async (propertyId: string): Promise<string> => {
+  // Add memory cache to prevent repeated lookups
+  if (!getPropertyName.cache) {
+    getPropertyName.cache = new Map<string, {name: string, timestamp: number}>();
+  }
+  
   // Check cache first (5 minute TTL)
-  const cached = propertyNameCache.get(propertyId);
+  const cached = getPropertyName.cache.get(propertyId);
   const now = Date.now();
   if (cached && (now - cached.timestamp) < 300000) {
     return cached.name;
@@ -145,10 +147,15 @@ export const getPropertyName = async (propertyId: string): Promise<string> => {
   const propertyName = data?.name || 'Propiedad desconocida';
   
   // Update cache
-  propertyNameCache.set(propertyId, {
+  getPropertyName.cache.set(propertyId, {
     name: propertyName,
     timestamp: now
   });
   
   return propertyName;
 };
+
+// Add TypeScript declaration for the cache
+declare namespace getPropertyName {
+  var cache: Map<string, {name: string, timestamp: number}>;
+}

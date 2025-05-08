@@ -1,30 +1,24 @@
 
 import React from 'react';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 
-export interface DayHeaderProps {
+interface DayHeaderProps {
   day: Date;
-  dayIndex: number;
+  index: number;
 }
 
-const DayHeader: React.FC<DayHeaderProps> = ({ day, dayIndex }) => {
-  const isWeekend = dayIndex === 0 || dayIndex === 6;
-  const isToday = new Date().toDateString() === day.toDateString();
+const DayHeader: React.FC<DayHeaderProps> = ({ day, index }) => {
+  const isToday = isSameDay(day, new Date());
   
   return (
     <div 
-      className={`
-        h-10 flex flex-col items-center justify-center border-b border-gray-200 
-        ${isWeekend ? 'bg-gray-50' : 'bg-white'} 
-        ${isToday ? 'font-bold' : ''}
-      `}
+      key={`header-${index}`}
+      className={`sticky top-0 z-10 ${
+        isToday ? 'bg-blue-50/80 border-b-[1px] border-blue-500 text-blue-700' : 'bg-white/90 text-gray-700'
+      } border-b-[0.5px] border-gray-100/90 h-12 flex flex-col items-center justify-center font-medium text-xs backdrop-blur-sm transition-colors`}
     >
-      <div className={`text-xs uppercase text-gray-500`}>
-        {format(day, 'EEE')}
-      </div>
-      <div className={`text-sm ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>
-        {format(day, 'd')}
-      </div>
+      <span className="font-bold">{format(day, 'EEE')}</span>
+      <span className="mt-0.5">{format(day, 'd MMM')}</span>
     </div>
   );
 };
