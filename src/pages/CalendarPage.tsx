@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
 import AddReservationButton from '@/components/calendar/AddReservationButton';
@@ -16,7 +14,7 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const initialPropertyId = queryParams.get('property') || '';
-  // Change default view to 'multi' instead of 'monthly'
+  // Keep multi view as default
   const initialView = queryParams.get('view') || 'multi';
   
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
@@ -73,44 +71,18 @@ const CalendarPage: React.FC = () => {
     }
   };
   
-  // Find the selected property name for display
+  // Find the selected property for display
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
-  
-  // Only show property selector in monthly view
-  const showPropertySelector = activeView === 'monthly';
   
   return (
     <div className="space-y-6 w-full max-w-full h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
-        <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
-          {showPropertySelector && (
-            <div className="w-full sm:w-64">
-              {isLoading ? (
-                <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
-              ) : (
-                <Select
-                  value={selectedPropertyId}
-                  onValueChange={handlePropertyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a property" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties.map((property: Property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          )}
+        <div className="flex items-center gap-3">
+          {/* Only show the Add Reservation button when in monthly view with a selected property */}
           {selectedPropertyId && activeView === 'monthly' && (
             <AddReservationButton 
-              propertyId={selectedPropertyId} 
-              className="w-full sm:w-auto"
+              propertyId={selectedPropertyId}
             />
           )}
         </div>
@@ -119,7 +91,12 @@ const CalendarPage: React.FC = () => {
       <Tabs value={activeView} onValueChange={handleViewChange} className="w-full flex-1 flex flex-col">
         <TabsList className="w-full grid grid-cols-2 sm:w-auto">
           <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
-          <TabsTrigger value="monthly">Monthly View</TabsTrigger>
+          <TabsTrigger value="monthly">
+            {activeView === 'monthly' && selectedProperty 
+              ? `${selectedProperty.name}` 
+              : 'Monthly View'
+            }
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="monthly" className="w-full flex-1 flex flex-col">
