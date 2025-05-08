@@ -54,21 +54,18 @@ export const getReservations = async (filters?: {
 };
 
 /**
- * Fetch reservations for a specific month with optimized query
- * This significantly reduces data transfer by only fetching the exact date range needed
+ * Fetch reservations for a specific month
  */
 export const getReservationsForMonth = async (
   month: number,
   year: number
 ): Promise<Reservation[]> => {
-  // Calculate start and end dates more efficiently
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 0);
   
   const startDate = startOfMonth.toISOString().split('T')[0];
   const endDate = endOfMonth.toISOString().split('T')[0];
   
-  // Optimized query to only fetch reservations that overlap with the month
   const { data, error } = await supabase
     .from("reservations")
     .select("*")
@@ -83,7 +80,7 @@ export const getReservationsForMonth = async (
 };
 
 /**
- * Check if a property is available for a given date range - optimized
+ * Check if a property is available for a given date range
  */
 export const checkAvailability = async (
   propertyId: string,
@@ -94,10 +91,13 @@ export const checkAvailability = async (
   const start = normalizeDate(startDate).toISOString().split('T')[0];
   const end = normalizeDate(endDate).toISOString().split('T')[0];
   
-  // Optimized query to detect overlapping date ranges
+  // Correct query to detect overlapping date ranges
+  // A reservation overlaps if:
+  // - Start date of existing reservation is BEFORE the end date of the requested range
+  // - End date of existing reservation is AFTER the start date of the requested range
   let query = supabase
     .from("reservations")
-    .select("id", { count: 'exact', head: true }) // Only count records, don't fetch all data
+    .select("id")
     .eq("property_id", propertyId)
     .lt("start_date", end)   // Existing reservation starts before our end
     .gt("end_date", start);  // Existing reservation ends after our start
@@ -106,33 +106,21 @@ export const checkAvailability = async (
     query = query.neq("id", excludeReservationId);
   }
   
-  const { count, error } = await query;
+  const { data, error } = await query;
   
   if (error) {
     console.error("Error checking availability:", error);
     throw error;
   }
   
-  // If count is 0, the property is available
-  return count === 0;
+  // If data is empty, the property is available
+  return !data || data.length === 0;
 };
 
 /**
- * Get the property name for a given property ID - with caching
+ * Get the property name for a given property ID
  */
 export const getPropertyName = async (propertyId: string): Promise<string> => {
-  // Add memory cache to prevent repeated lookups
-  if (!getPropertyName.cache) {
-    getPropertyName.cache = new Map<string, {name: string, timestamp: number}>();
-  }
-  
-  // Check cache first (5 minute TTL)
-  const cached = getPropertyName.cache.get(propertyId);
-  const now = Date.now();
-  if (cached && (now - cached.timestamp) < 300000) {
-    return cached.name;
-  }
-  
   const { data, error } = await supabase
     .from("properties")
     .select("name")
@@ -144,18 +132,5 @@ export const getPropertyName = async (propertyId: string): Promise<string> => {
     return 'Propiedad desconocida';
   }
   
-  const propertyName = data?.name || 'Propiedad desconocida';
-  
-  // Update cache
-  getPropertyName.cache.set(propertyId, {
-    name: propertyName,
-    timestamp: now
-  });
-  
-  return propertyName;
+  return data?.name || 'Propiedad desconocida';
 };
-
-// Add TypeScript declaration for the cache
-declare namespace getPropertyName {
-  var cache: Map<string, {name: string, timestamp: number}>;
-}
