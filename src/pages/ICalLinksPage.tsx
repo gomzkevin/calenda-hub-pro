@@ -113,7 +113,7 @@ const ICalLinksPage = () => {
       {icalLinks && icalLinks.length > 0 ? (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Enlaces de calendario</CardTitle>
+            <CardTitle className="text-lg">Enlaces de calendario agrupados por propiedad</CardTitle>
           </CardHeader>
           <CardContent>
             <ICalLinksTable 
