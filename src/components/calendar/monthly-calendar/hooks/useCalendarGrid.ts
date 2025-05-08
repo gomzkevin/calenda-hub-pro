@@ -17,17 +17,17 @@ export const useCalendarGrid = (
   // Generate the days for the current month
   const weeks = useMemo(() => generateMonthDays(currentMonth), [currentMonth]);
   
-  // Calculate reservation lanes for each week - now using simplified single-lane approach
+  // Calculate reservation lanes for each week
   const weekReservationLanes = useMemo(() => {
     return calculateReservationLanes(weeks, filteredReservations || []);
   }, [weeks, filteredReservations]);
   
-  // Calculate propagated block lanes for each week - now using simplified single-lane approach
+  // Calculate propagated block lanes for each week
   const weekPropagatedBlockLanes = useMemo(() => {
     return calculateBlockLanes(weeks, propagatedBlocks);
   }, [weeks, propagatedBlocks]);
   
-  // Calculate relationship block lanes for each week - now using simplified single-lane approach
+  // Calculate relationship block lanes for each week
   const weekRelationshipBlockLanes = useMemo(() => {
     return calculateBlockLanes(weeks, relationshipBlocks);
   }, [weeks, relationshipBlocks]);
@@ -48,7 +48,8 @@ export const useCalendarGrid = (
     );
     
     // Base height + extra space for each lane
-    return Math.max(110, 80 + (maxLanes * 30));
+    // Increased base height to provide more vertical space
+    return Math.max(120, 90 + (maxLanes * 30));
   }, [weekReservationLanes, weekRelationshipBlockLanes, weekPropagatedBlockLanes]);
   
   // Navigation handlers

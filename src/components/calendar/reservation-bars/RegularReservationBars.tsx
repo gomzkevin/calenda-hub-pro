@@ -23,20 +23,28 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   return (
     <>
       {weeks.map((week, weekIndex) => (
-        <div key={`reservations-week-${weekIndex}`} className="grid grid-cols-7 w-full absolute" style={{ top: `${weekIndex * 100}px`, height: '100px' }}>
+        <div 
+          key={`reservations-week-${weekIndex}`} 
+          className="grid grid-cols-7 w-full absolute" 
+          style={{ 
+            top: `${weekIndex * 100}px`, 
+            // Set a consistent height for each week
+            height: '100px' 
+          }}
+        >
           <div className="col-span-7 relative h-full w-full">
             {filteredReservations.map((reservation) => {
-              // Verificar si la reserva intersecta con esta semana
+              // Check if reservation intersects with this week
               const startDate = new Date(reservation.startDate);
               const endDate = new Date(reservation.endDate);
               
-              // Verificar si la semana intersecta con la reserva
+              // Check if week intersects with reservation
               const weekStart = week.find(day => day !== null);
               const weekEnd = [...week].reverse().find(day => day !== null);
               
               if (!weekStart || !weekEnd) return null;
               
-              // Normalizar fechas para comparación
+              // Normalize dates for comparison
               const normalizedWeekStart = new Date(weekStart);
               normalizedWeekStart.setHours(12, 0, 0, 0);
               
@@ -49,7 +57,7 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
               const normalizedEndDate = new Date(endDate);
               normalizedEndDate.setHours(12, 0, 0, 0);
               
-              // Comprobar si hay intersección
+              // Check for intersection
               const reservationStartsBeforeWeekEnds = normalizedStartDate <= normalizedWeekEnd;
               const reservationEndsAfterWeekStarts = normalizedEndDate >= normalizedWeekStart;
               

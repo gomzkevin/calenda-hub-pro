@@ -63,7 +63,8 @@ const ReservationBar: React.FC<ReservationBarProps> = memo(({
     false  // isOriginalBlock 
   );
   
-  // Calculate vertical position relative to the week
+  // Calculate vertical position - this stays fixed relative to the week container
+  // The vertical position is calculated the same for all weeks
   const verticalPosition = baseOffset + (lane * laneHeight);
   
   // Determine text size based on bar width - smaller text for short reservations

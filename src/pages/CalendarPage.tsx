@@ -73,8 +73,8 @@ const CalendarPage: React.FC = () => {
   );
   
   return (
-    <div className="space-y-6 w-full max-w-full h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+    <div className="space-y-4 w-full max-w-full h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
           {activeView === 'monthly' && (

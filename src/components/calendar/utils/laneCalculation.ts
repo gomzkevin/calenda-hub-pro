@@ -1,8 +1,9 @@
+
 import { normalizeDate } from "./dateUtils";
 import { Reservation } from "@/types";
 
 /**
- * Improved lane calculation with better week-specific filtering and priority lanes
+ * Improved lane calculation with better week-specific assignment to ensure consistent positioning
  */
 export const calculateReservationLanes = (
   weeks: (Date | null)[][],
@@ -12,6 +13,7 @@ export const calculateReservationLanes = (
   
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
+    const usedLanes: boolean[] = []; // Track which lanes are used in this week
     
     // Get valid week start and end days
     const validDays = week.filter(day => day !== null) as Date[];
@@ -46,12 +48,23 @@ export const calculateReservationLanes = (
       }
       
       // If same priority, sort by start date
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
     
-    // Assign lanes based on priority and overlapping
+    // Assign lanes based on priority and ensure consistent lane assignment
     weekReservations.forEach(reservation => {
-      const lane = getPriorityValue(reservation);
+      // For regular reservations, start with lane 0
+      let lane = 0;
+      
+      // Find the first available lane (not used by another reservation)
+      while (usedLanes[lane]) {
+        lane++;
+      }
+      
+      // Mark this lane as used
+      usedLanes[lane] = true;
+      
+      // Assign the lane to this reservation
       weekLanes[reservation.id] = lane;
     });
     
@@ -82,7 +95,7 @@ const getPriorityValue = (reservation: Reservation): number => {
 };
 
 /**
- * Simplified block lanes calculation
+ * Simplified block lanes calculation with improved positioning
  */
 export const calculateBlockLanes = (
   weeks: (Date | null)[][],
@@ -95,6 +108,7 @@ export const calculateBlockLanes = (
   
   weeks.forEach((week, weekIndex) => {
     const weekLanes: Record<string, number> = {};
+    const usedLanes: boolean[] = []; // Track which lanes are used in this week
     
     // Get valid week start and end days
     const validDays = week.filter(day => day !== null) as Date[];
@@ -118,9 +132,24 @@ export const calculateBlockLanes = (
       return normalizedStartDate <= normalizedLastDay && normalizedEndDate >= normalizedFirstDay;
     });
     
-    // All blocks get lane 0 in our simplified approach
+    // Sort blocks by start date for consistent lane assignment
+    weekBlocks.sort((a, b) => 
+      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+    
+    // Assign lanes with proper spacing for each block
     weekBlocks.forEach(block => {
-      weekLanes[block.id] = 0;
+      // Find the first available lane
+      let lane = 0;
+      while (usedLanes[lane]) {
+        lane++;
+      }
+      
+      // Mark this lane as used
+      usedLanes[lane] = true;
+      
+      // Assign the lane
+      weekLanes[block.id] = lane;
     });
     
     lanes[weekIndex] = weekLanes;
