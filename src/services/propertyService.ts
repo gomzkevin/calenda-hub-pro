@@ -3,6 +3,7 @@ import { Property, PropertyType } from "@/types";
 
 /**
  * Fetch all properties from the database
+ * The RLS policies will automatically filter properties based on user access
  */
 export const getProperties = async (): Promise<Property[]> => {
   const { data, error } = await supabase
@@ -120,6 +121,52 @@ export const getPropertiesForRelation = async (currentPropertyId: string): Promi
     property.id !== currentPropertyId && 
     property.parentId !== currentPropertyId
   );
+};
+
+/**
+ * Get properties accessible to the current user
+ * This is useful for getting a list of properties a user can access
+ */
+export const getUserAccessibleProperties = async (): Promise<Property[]> => {
+  try {
+    // The RLS policies will automatically filter properties based on the user's access
+    const { data, error } = await supabase
+      .from("properties")
+      .select("*");
+    
+    if (error) {
+      console.error("Error fetching user accessible properties:", error);
+      throw error;
+    }
+    
+    return data ? data.map(mapPropertyFromDatabase) : [];
+  } catch (error) {
+    console.error("Error fetching user accessible properties:", error);
+    return [];
+  }
+};
+
+/**
+ * Check if the current user has access to a specific property
+ */
+export const hasPropertyAccess = async (propertyId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("id", propertyId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error(`Error checking property access for ${propertyId}:`, error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error(`Error checking property access for ${propertyId}:`, error);
+    return false;
+  }
 };
 
 /**

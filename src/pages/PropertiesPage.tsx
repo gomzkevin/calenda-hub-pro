@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Loader2, MapPin, Building2 } from 'lucide-react';
+import { Plus, Search, Loader2, MapPin, Building2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,19 +13,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
 import { getProperties } from '@/services/propertyService';
-import { toast } from '@/hooks/use-toast';
+import { getCurrentUser } from '@/services/userService';
+import { toast } from 'sonner';
 import { Property } from '@/types';
 
 const PropertiesPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   
-  const { data: properties, isLoading, error } = useQuery({
-    queryKey: ['properties'],
-    queryFn: getProperties
+  // Get current user to check if admin
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: getCurrentUser
   });
+  
+  const { data: properties, isLoading, error, isRefetching } = useQuery({
+    queryKey: ['properties'],
+    queryFn: getProperties,
+    refetchOnWindowFocus: true
+  });
+  
+  const isAdmin = currentUser?.role === 'admin';
   
   // Filtrar propiedades según la búsqueda
   const filteredProperties = React.useMemo(() => {
@@ -105,6 +116,23 @@ const PropertiesPage = () => {
         </div>
       </div>
       
+      {!isAdmin && properties && properties.length === 0 ? (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Acceso limitado</AlertTitle>
+          <AlertDescription>
+            No tienes acceso a ninguna propiedad. Contacta a un administrador para que te asigne propiedades.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      
+      {isRefetching && (
+        <div className="flex items-center justify-center py-2 mb-4">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <span className="text-sm text-muted-foreground">Actualizando propiedades...</span>
+        </div>
+      )}
+      
       {properties && properties.length > 0 ? (
         <div className="rounded-md border overflow-hidden">
           <Table>
@@ -174,15 +202,19 @@ const PropertiesPage = () => {
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">No hay propiedades</h3>
           <p className="text-gray-500 mb-4">
-            Todavía no has agregado ninguna propiedad para gestionar.
+            {!isAdmin 
+              ? "No tienes acceso a ninguna propiedad. Contacta a un administrador."
+              : "Todavía no has agregado ninguna propiedad para gestionar."}
           </p>
-          <Button 
-            onClick={() => navigate('/properties/new')}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Añadir tu primera propiedad</span>
-          </Button>
+          {isAdmin && (
+            <Button 
+              onClick={() => navigate('/properties/new')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Añadir tu primera propiedad</span>
+            </Button>
+          )}
         </div>
       )}
     </div>
