@@ -40,7 +40,7 @@ const UsersPage: React.FC = () => {
     enabled: !isLoadingCurrentUser && !!currentUser && currentUser.role === 'admin'
   });
   
-  // Obtener todos los usuarios
+  // Obtener todos los usuarios con staleTime muy bajo para forzar recargar datos frescos
   const { 
     data: users = [], 
     isLoading: isLoadingUsers, 
@@ -52,7 +52,7 @@ const UsersPage: React.FC = () => {
     queryFn: getUsers,
     retry: 1,
     enabled: !isLoadingCurrentUser && !!currentUser,
-    staleTime: 30000  // Considerar datos frescos por 30 segundos
+    staleTime: 5000  // Considerar datos frescos por 5 segundos
   });
   
   const isAdmin = currentUser?.role === 'admin';
@@ -125,11 +125,18 @@ const UsersPage: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>
-            Gestión de Usuarios 
-            <Badge variant="outline" className="ml-2">
-              {users.length} usuarios
-            </Badge>
+          <CardTitle className="flex items-center justify-between">
+            <div>
+              Gestión de Usuarios 
+              <Badge variant="outline" className="ml-2">
+                {users.length} usuarios
+              </Badge>
+            </div>
+            {isAdmin && currentUser?.operatorId && (
+              <Badge variant="secondary" className="text-xs">
+                Operador: {currentUser.operatorId}
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -144,15 +151,16 @@ const UsersPage: React.FC = () => {
               {usersError && (
                 <div className="text-red-500 mt-2">
                   Error al cargar usuarios: {usersError instanceof Error ? usersError.message : "Ocurrió un error desconocido"}
-                  <Button 
-                    variant="outline" 
-                    className="mt-2" 
-                    onClick={handleRefresh}
-                  >
-                    Reintentar
-                  </Button>
                 </div>
               )}
+              <Button 
+                variant="outline" 
+                className="mt-2" 
+                onClick={handleRefresh}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reintentar
+              </Button>
             </div>
           ) : (
             <div className="relative overflow-x-auto">
@@ -162,6 +170,7 @@ const UsersPage: React.FC = () => {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Rol</TableHead>
+                    <TableHead>OperadorID</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Creado</TableHead>
                     <TableHead>Acciones</TableHead>
@@ -177,6 +186,7 @@ const UsersPage: React.FC = () => {
                           {user.role === 'admin' ? 'Admin' : 'Usuario'}
                         </Badge>
                       </TableCell>
+                      <TableCell>{user.operatorId}</TableCell>
                       <TableCell>
                         {user.active ? (
                           <Check className="w-5 h-5 text-green-500" />
