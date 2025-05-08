@@ -8,7 +8,8 @@ import { User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface UserPropertiesDialogProps {
   user: User | null;
@@ -24,6 +25,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   const queryClient = useQueryClient();
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   
   // Obtenemos todas las propiedades disponibles
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
@@ -63,6 +65,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   // Mutación para actualizar los accesos
   const updateAccessMutation = useMutation({
     mutationFn: () => {
+      setUpdateError(null);
       console.log("Updating access for user", user?.id, "with properties:", selectedProperties);
       return updateUserPropertyAccess(user?.id || '', selectedProperties);
     },
@@ -73,8 +76,9 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
       toast.success('Accesos actualizados exitosamente');
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Error al actualizar los accesos');
+      setUpdateError(error.message || 'Ocurrió un error al actualizar los accesos');
       console.error('Error updating access:', error);
     }
   });
@@ -108,6 +112,15 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
+          {accessError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error al cargar los accesos: {accessError.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {isLoading ? (
             <div className="flex justify-center items-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -159,13 +172,27 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
               </div>
             </>
           )}
+          
+          {updateError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {updateError}
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         <DialogFooter>
           <Button 
             onClick={handleSave}
             disabled={updateAccessMutation.isPending || isLoading}
           >
-            {updateAccessMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+            {updateAccessMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : 'Guardar Cambios'}
           </Button>
         </DialogFooter>
       </DialogContent>

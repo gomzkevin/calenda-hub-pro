@@ -28,6 +28,7 @@ export const getUsers = async (): Promise<User[]> => {
     return [];
   }
 
+  // Depuración adicional
   console.log("Current user profile:", currentProfile);
   console.log("Is admin?", currentProfile.role === 'admin');
   console.log("Operator ID:", currentProfile.operator_id);
@@ -37,6 +38,11 @@ export const getUsers = async (): Promise<User[]> => {
   // Si el usuario es admin, obtener todos los usuarios de su mismo operator_id
   // Si no es admin, solo obtener su propio perfil
   if (currentProfile.role === 'admin') {
+    if (!currentProfile.operator_id) {
+      console.error("Admin user has no operator_id");
+      return [];
+    }
+    
     query = query.eq("operator_id", currentProfile.operator_id);
     console.log("Admin query: Fetching all users with operator_id =", currentProfile.operator_id);
   } else {
@@ -103,90 +109,39 @@ export const createUser = async (
   name: string,
   propertyIds: string[] = []
 ): Promise<User> => {
-  // Obtener el usuario actual y su perfil para obtener el operator_id
+  // Obtener el usuario actual
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   
   if (!currentUser) {
     throw new Error("Usuario no autenticado");
   }
   
-  const { data: currentProfile } = await supabase
-    .from("profiles")
-    .select("operator_id")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (!currentProfile) {
-    throw new Error("No se pudo obtener el perfil del usuario actual");
-  }
-
-  // 1. Create the user in auth
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { name }
-  });
-
-  if (authError) {
-    console.error("Error creating user:", authError);
-    throw authError;
-  }
-
-  // 2. Actualizar el perfil que se crea automáticamente para incluir el operator_id
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({ 
+  console.log("Calling create-user edge function");
+  
+  // Call the Edge Function to create the user
+  const { data, error } = await supabase.functions.invoke("create-user", {
+    body: {
+      email,
+      password,
       name,
-      operator_id: currentProfile.operator_id,
-      role: 'user' // Por defecto todos los nuevos usuarios tienen rol 'user'
-    })
-    .eq("id", authData.user.id);
-
-  if (updateError) {
-    console.error("Error updating profile:", updateError);
-    throw updateError;
-  }
-
-  // 3. If property IDs were provided, create access records
-  if (propertyIds.length > 0) {
-    const { error: accessError } = await supabase
-      .from("user_property_access")
-      .insert(
-        propertyIds.map(propertyId => ({
-          user_id: authData.user.id,
-          property_id: propertyId,
-          created_by: currentUser.id
-        }))
-      );
-
-    if (accessError) {
-      console.error("Error creating property access:", accessError);
-      throw accessError;
+      propertyIds,
+      requestingUserId: currentUser.id
     }
+  });
+  
+  if (error) {
+    console.error("Error from create-user function:", error);
+    throw new Error(`Error al crear usuario: ${error.message}`);
   }
-
-  // 4. Get the updated profile
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", authData.user.id)
-    .single();
-
-  if (profileError) {
-    console.error("Error fetching created profile:", profileError);
-    throw profileError;
+  
+  if (!data.success) {
+    console.error("Error creating user:", data.error);
+    throw new Error(`Error al crear usuario: ${data.error}`);
   }
-
-  return {
-    id: profile.id,
-    operatorId: profile.operator_id || '',
-    name: profile.name,
-    email: profile.email,
-    role: profile.role as 'admin' | 'user',
-    active: profile.active,
-    createdAt: new Date(profile.created_at)
-  };
+  
+  console.log("User created successfully:", data.user);
+  
+  return data.user;
 };
 
 /**
@@ -264,4 +219,3 @@ export const updateUserStatus = async (userId: string, active: boolean): Promise
     throw error;
   }
 };
-

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +31,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [creationError, setCreationError] = useState<string | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,6 +58,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   
   const createUserMutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
+      setCreationError(null);
       console.log("Creating user with properties:", selectedPropertyIds);
       console.log("Current user (creating):", currentUser);
       return createUser(values.email, values.password, values.name, selectedPropertyIds);
@@ -65,10 +68,12 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       toast.success('Usuario creado exitosamente');
       form.reset();
       setSelectedPropertyIds([]);
+      setCreationError(null);
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Error al crear el usuario');
+      setCreationError(error.message || 'Ocurrió un error al crear el usuario');
       console.error('Error creating user:', error);
     }
   });
@@ -191,12 +196,23 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               </div>
             </div>
             
+            {creationError && (
+              <div className="text-destructive text-sm py-2 px-3 bg-destructive/10 rounded-md">
+                {creationError}
+              </div>
+            )}
+            
             <DialogFooter>
               <Button 
                 type="submit" 
                 disabled={createUserMutation.isPending}
               >
-                {createUserMutation.isPending ? 'Creando...' : 'Crear Usuario'}
+                {createUserMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creando...
+                  </>
+                ) : 'Crear Usuario'}
               </Button>
             </DialogFooter>
           </form>

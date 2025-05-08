@@ -1,12 +1,4 @@
 
-# This file is used to configure your Supabase project.
-# It's very minimal at the moment and uses default values.
-# You can find out more about the power of this file here:
-# https://supabase.io/docs/guides/hosting/overview#project-configuration
-
 project_id = "akqzaaniiflyxfrzipqq"
-functions_deploy_mode = "local_emulator"
-
-[functions]
-[functions.generate-ical]
-verify_jwt = false
+[functions.create-user]
+verify_jwt = true
