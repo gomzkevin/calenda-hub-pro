@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Check, X, Loader2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUsers, updateUserStatus, getCurrentUser, getUserPropertyAccess } from '@/services/userService';
+import { getUsers, updateUserStatus, getCurrentUser } from '@/services/userService';
 import { getProperties } from '@/services/propertyService';
 import CreateUserDialog from '@/components/users/CreateUserDialog';
 import UserPropertiesDialog from '@/components/users/UserPropertiesDialog';
@@ -46,16 +46,6 @@ const UsersPage: React.FC = () => {
     queryFn: getUsers,
     enabled: !isLoadingCurrentUser
   });
-  
-  useEffect(() => {
-    // Depuración
-    console.log("Current user:", currentUser);
-    console.log("Users fetched:", users);
-    console.log("Properties count:", properties.length);
-    if (usersError) {
-      console.error("Error fetching users:", usersError);
-    }
-  }, [currentUser, users, properties, usersError]);
   
   const isAdmin = currentUser?.role === 'admin';
   
@@ -104,7 +94,7 @@ const UsersPage: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Gestión de Usuarios</CardTitle>
+          <CardTitle>Gestión de Usuarios ({users.length} usuarios encontrados)</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -202,13 +192,25 @@ const UsersPage: React.FC = () => {
         <>
           <CreateUserDialog
             open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
+            onOpenChange={(open) => {
+              setIsCreateDialogOpen(open);
+              if (!open) {
+                // Refrescar la lista de usuarios cuando se cierra el diálogo
+                queryClient.invalidateQueries({ queryKey: ['users'] });
+              }
+            }}
           />
 
           <UserPropertiesDialog
             user={selectedUser}
             open={selectedUser !== null}
-            onOpenChange={(open) => !open && setSelectedUser(null)}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedUser(null);
+                // Refrescar la lista de usuarios cuando se cierra el diálogo
+                queryClient.invalidateQueries({ queryKey: ['users'] });
+              }
+            }}
           />
         </>
       )}

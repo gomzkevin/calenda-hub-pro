@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
@@ -6,17 +5,15 @@ import { User } from "@/types";
  * Get all users with their profiles
  */
 export const getUsers = async (): Promise<User[]> => {
-  // Primero obtenemos el perfil del usuario actual para saber si es admin
+  // Primero obtenemos el perfil del usuario actual
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   
   if (!currentUser) {
-    console.error("No current user found");
+    console.log("No current user found");
     return [];
   }
 
-  console.log("Current user ID:", currentUser.id);
-
-  // Obtenemos el perfil del usuario actual para verificar si es admin
+  // Obtenemos el perfil del usuario actual
   const { data: currentProfile, error: profileError } = await supabase
     .from("profiles")
     .select("role, operator_id")
@@ -28,45 +25,28 @@ export const getUsers = async (): Promise<User[]> => {
     return [];
   }
 
-  // Depuración adicional
-  console.log("Current user profile:", currentProfile);
-  console.log("Is admin?", currentProfile.role === 'admin');
-  console.log("Operator ID:", currentProfile.operator_id);
-
-  let query = supabase.from("profiles").select("*");
-  
   // Si el usuario es admin, obtener todos los usuarios de su mismo operator_id
   // Si no es admin, solo obtener su propio perfil
+  let query = supabase.from("profiles").select("*");
+  
   if (currentProfile.role === 'admin') {
-    if (!currentProfile.operator_id) {
-      console.error("Admin user has no operator_id");
-      return [];
-    }
-    
-    // Aquí está el cambio: verificar explícitamente si se están obteniendo resultados
     query = query.eq("operator_id", currentProfile.operator_id);
-    console.log("Admin query: Fetching all users with operator_id =", currentProfile.operator_id);
+    console.log(`Fetching users with operator_id: ${currentProfile.operator_id}`);
   } else {
     query = query.eq("id", currentUser.id);
-    console.log("Non-admin query: Only fetching current user profile");
+    console.log("Non-admin, only fetching current user");
   }
   
   const { data: profiles, error } = await query.order("created_at", { ascending: false });
   
   if (error) {
     console.error("Error fetching users:", error);
-    throw error;
-  }
-
-  console.log(`Found ${profiles?.length || 0} profiles:`, profiles);
-  
-  // Si no se encontraron perfiles y el usuario es admin, verifiquemos el estado de los usuarios en la tabla auth.users
-  // Nota: esto es solo para depuración, ya que normalmente no se puede acceder directamente a auth.users desde el cliente
-  if (profiles?.length === 0 && currentProfile.role === 'admin') {
-    console.warn("No profiles found for admin user's operator_id. This might indicate missing profiles or incorrect operator_id assignments.");
+    return [];
   }
   
-  return profiles.map((profile) => ({
+  console.log(`Found ${profiles?.length || 0} profiles`);
+  
+  return (profiles || []).map((profile) => ({
     id: profile.id,
     operatorId: profile.operator_id || '',
     name: profile.name,
