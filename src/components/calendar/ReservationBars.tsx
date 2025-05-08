@@ -25,9 +25,9 @@ const ReservationBars: React.FC<ReservationBarsProps> = ({
   weekPropagatedBlockLanes
 }) => {
   // Constantes optimizadas para una mejor presentación visual
-  const laneHeight = 28; // Altura ligeramente aumentada para mejor legibilidad
-  const baseOffset = 28; // Offset ajustado
-  const laneGap = 3;    // Más espacio entre carriles
+  const laneHeight = 30; // Altura ligeramente aumentada para mejor legibilidad
+  const baseOffset = 30; // Offset ajustado
+  const laneGap = 4;    // Más espacio entre carriles
   
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none">

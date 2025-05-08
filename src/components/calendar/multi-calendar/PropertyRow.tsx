@@ -43,13 +43,18 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
     return result;
   }, [visibleDays]);
 
+  // Apply different background colors based on property type
+  const propertyTypeStyles = 
+    property.type === 'parent' ? 'bg-blue-50/30' : 
+    property.type === 'child' ? 'bg-amber-50/30' : '';
+
   return (
     <React.Fragment>
-      <div className="sticky left-0 z-10 bg-white border-b border-r p-2 font-medium truncate h-16">
+      <div className={`sticky left-0 z-10 bg-white border-b border-r border-gray-200 p-3 font-medium truncate h-16 ${propertyTypeStyles}`}>
         <div className="flex flex-col">
-          <span>{property.name}</span>
+          <span className="font-semibold text-gray-800">{property.name}</span>
           {typeIndicator && (
-            <span className="text-xs text-muted-foreground mt-1">
+            <span className="text-xs text-gray-500 mt-1">
               {typeIndicator}
             </span>
           )}

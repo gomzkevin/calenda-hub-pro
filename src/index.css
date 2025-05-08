@@ -160,4 +160,9 @@
   .multi-calendar-container thead th {
     @apply sticky top-0 z-10 bg-white shadow-sm;
   }
+  
+  /* Estilos mejorados para los calendarios */
+  .multi-calendar-container {
+    @apply shadow-lg rounded-lg;
+  }
 }

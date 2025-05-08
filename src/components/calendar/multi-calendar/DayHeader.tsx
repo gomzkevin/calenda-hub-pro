@@ -13,11 +13,11 @@ const DayHeader: React.FC<DayHeaderProps> = ({ day, index }) => {
   return (
     <div 
       key={`header-${index}`}
-      className={`sticky top-0 z-10 bg-white border-b h-10 flex flex-col items-center justify-center font-medium text-xs ${
-        isToday ? 'bg-blue-100 border-blue-500 border-2 text-blue-700' : ''
+      className={`sticky top-0 z-10 bg-white border-b border-gray-200 h-12 flex flex-col items-center justify-center font-medium text-xs ${
+        isToday ? 'bg-blue-50 border-b-2 border-blue-500 text-blue-700' : 'text-gray-600'
       }`}
     >
-      <span>{format(day, 'EEE')}</span>
+      <span className="font-bold">{format(day, 'EEE')}</span>
       <span>{format(day, 'd MMM')}</span>
     </div>
   );

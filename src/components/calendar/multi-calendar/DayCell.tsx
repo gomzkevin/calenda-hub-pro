@@ -62,6 +62,11 @@ const DayCell: React.FC<DayCellProps> = ({
     return sortReservations(a, b);
   });
   
+  // Add property type specific styling
+  const propertyTypeStyles = 
+    property.type === 'parent' ? 'hover:bg-blue-50/50' : 
+    property.type === 'child' ? 'hover:bg-amber-50/50' : '';
+
   let bgColorClass = isToday ? 'bg-blue-50' : '';
   
   if (hasReservation && sortedDayReservations.length === 0) {
@@ -94,7 +99,7 @@ const DayCell: React.FC<DayCellProps> = ({
   
   return (
     <div
-      className={`border relative min-h-[4rem] h-16 ${bgColorClass}`}
+      className={`border border-gray-200 relative min-h-[4rem] h-16 transition-colors ${bgColorClass} ${propertyTypeStyles}`}
     >
       {hasReservation && isIndirect && sortedDayReservations.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -118,11 +123,9 @@ const DayCell: React.FC<DayCellProps> = ({
         const sourceInfo = getSourceReservationInfo(res);
         
         // Check if this is a check-in day (reservation starts on this day)
-        // Ensure we're comparing normalized dates
         const isCheckInDay = isSameDay(normalizeDate(new Date(res.startDate)), normalizedDay);
         
         // Check if this is a check-out day (reservation ends on this day)
-        // Ensure we're comparing normalized dates
         const isCheckOutDay = isSameDay(normalizeDate(new Date(res.endDate)), normalizedDay);
         
         // Special logic for parent properties to visualize continuous occupation

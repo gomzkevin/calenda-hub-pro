@@ -73,7 +73,7 @@ const MultiCalendar: React.FC = () => {
             <div className="relative min-w-max">
               <div className="grid grid-cols-[160px_repeat(15,minmax(45px,1fr))]">
                 {/* Property header cell */}
-                <div className="sticky top-0 left-0 z-20 bg-white border-b border-r h-10 flex items-center justify-center font-medium">
+                <div className="sticky top-0 left-0 z-20 bg-white border-b border-r border-gray-200 h-12 flex items-center justify-center font-medium text-gray-700 shadow-sm">
                   Properties
                 </div>
                 
@@ -101,7 +101,7 @@ const MultiCalendar: React.FC = () => {
           </ScrollArea>
           
           {/* Calendar Legend */}
-          <CalendarLegend className="mt-auto" />
+          <CalendarLegend className="mt-auto border-t border-gray-200 py-2" />
         </div>
       )}
     </div>
