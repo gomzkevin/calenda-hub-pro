@@ -26,6 +26,14 @@ serve(async (req) => {
     
     console.log(`Creando usuario: ${email}, solicitado por: ${requestingUserId}`);
     
+    if (!requestingUserId) {
+      console.error("Error: No se proporcionó ID del usuario solicitante");
+      return new Response(
+        JSON.stringify({ success: false, error: "Se requiere ID del usuario solicitante" }), 
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Verificar que el usuario solicitante existe y es un administrador
     const { data: requestingUserProfile, error: profileError } = await supabase
       .from("profiles")
@@ -40,6 +48,8 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log("Perfil del solicitante:", requestingUserProfile);
     
     if (requestingUserProfile.role !== 'admin') {
       console.error("Usuario no-admin intentó crear un usuario");

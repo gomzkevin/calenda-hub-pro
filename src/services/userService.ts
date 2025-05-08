@@ -140,39 +140,52 @@ export const createUser = async (
   propertyIds: string[] = []
 ): Promise<GenericResponse> => {
   try {
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { name }
-    });
+    // Get the current user's ID to identify the admin creating the user
+    const currentUser = await getCurrentUser();
 
-    if (authError) throw authError;
-
-    // If user creation was successful, assign properties if any
-    if (authData.user && propertyIds.length > 0) {
-      const accessRecords = propertyIds.map(propertyId => ({
-        user_id: authData.user.id,
-        property_id: propertyId
-      }));
-
-      const { error: accessError } = await supabase
-        .from('user_property_access')
-        .insert(accessRecords);
-
-      if (accessError) {
-        console.error('Error assigning properties to user:', accessError);
-        // We don't throw here, as the user was still created successfully
-      }
+    if (!currentUser || !currentUser.id) {
+      return {
+        success: false,
+        message: 'No authenticated user found. Please log in again.'
+      };
     }
 
+    console.log('Current admin user creating new user:', currentUser);
+    
+    // Call the edge function instead of using auth.admin directly
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: {
+        email,
+        password,
+        name,
+        propertyIds,
+        requestingUserId: currentUser.id
+      }
+    });
+
+    if (error) {
+      console.error('Error from create-user function:', error);
+      return { 
+        success: false, 
+        message: error.message || 'An error occurred while creating the user'
+      };
+    }
+
+    if (!data.success) {
+      console.error('Error response from create-user function:', data.error);
+      return { 
+        success: false, 
+        message: data.error || 'Failed to create user'
+      };
+    }
+
+    console.log('User created successfully:', data.user);
     return { 
       success: true, 
       message: 'User created successfully'
     };
   } catch (error: any) {
-    console.error('Error creating user:', error);
+    console.error('Exception creating user:', error);
     return { 
       success: false, 
       message: error.message || 'Failed to create user'
