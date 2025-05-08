@@ -25,7 +25,10 @@ serve(async (req) => {
     const { email, password, name, propertyIds, requestingUserId } = await req.json();
     
     console.log(`Creating user: ${email}, requested by: ${requestingUserId}`);
-    console.log(`Selected property IDs: ${propertyIds.length ? propertyIds.join(', ') : 'none'}`);
+    console.log(`Selected property IDs: ${propertyIds ? propertyIds.length : 0} properties selected`);
+    if (propertyIds && propertyIds.length > 0) {
+      console.log(`Property IDs submitted: ${propertyIds.join(', ')}`);
+    }
     
     // Verify that the requesting user exists and is an admin
     const { data: requestingUserProfile, error: profileError } = await supabase
