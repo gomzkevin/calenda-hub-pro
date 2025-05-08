@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,6 +25,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   // Obtenemos todas las propiedades disponibles
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
@@ -75,8 +75,15 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
         // After updating access, refresh permissions to ensure RLS changes take effect immediately
         await refreshPermissions();
         
-        // Add a slight delay to ensure the session refresh has propagated
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Add a more significant delay to ensure the session refresh has propagated
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Get debug info to verify permissions were applied correctly
+        if (user?.id) {
+          const accessCheck = await debugPropertyAccess(user.id);
+          setDebugInfo(accessCheck);
+          console.log("Permission verification after update:", accessCheck);
+        }
       }
       
       return result;
@@ -86,6 +93,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['userAccess'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['properties'] });
+      queryClient.invalidateQueries({ queryKey: ['accessible-properties'] });
       
       toast.success('Accesos actualizados exitosamente');
       onOpenChange(false);
@@ -120,7 +128,7 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Propiedades - {user.name}</DialogTitle>
+          <DialogTitle>Propiedades - {user?.name}</DialogTitle>
           <DialogDescription>
             Selecciona las propiedades a las que el usuario tendrá acceso
           </DialogDescription>
@@ -194,6 +202,17 @@ const UserPropertiesDialog: React.FC<UserPropertiesDialogProps> = ({
                 {updateError}
               </AlertDescription>
             </Alert>
+          )}
+          
+          {debugInfo && (
+            <div className="mt-4 p-2 bg-muted rounded-md text-xs">
+              <details>
+                <summary className="font-medium cursor-pointer">Información de diagnóstico</summary>
+                <pre className="mt-2 overflow-auto max-h-[200px]">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </details>
+            </div>
           )}
         </div>
         <DialogFooter>

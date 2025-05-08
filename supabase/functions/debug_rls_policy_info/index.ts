@@ -60,18 +60,35 @@ serve(async (req) => {
       SELECT 
         upa.user_id, 
         p.name as user_name,
-        COUNT(upa.property_id) as access_count
+        p.role as user_role,
+        COUNT(upa.property_id) as access_count,
+        array_agg(upa.property_id) as property_ids
       FROM 
         user_property_access upa
       JOIN
         profiles p ON p.id = upa.user_id
       GROUP BY 
-        upa.user_id, p.name
+        upa.user_id, p.name, p.role
+      ORDER BY
+        p.name
     `
     
     const { data: accessData, error: accessError } = await supabaseAdmin.rpc('exec_sql', { query: accessQuery })
     
     if (accessError) throw accessError
+
+    // Get statistics about properties to help with debugging
+    const propertyStatsQuery = `
+      SELECT 
+        COUNT(*) as total_properties,
+        COUNT(DISTINCT operator_id) as total_operators
+      FROM
+        properties
+    `
+    
+    const { data: propertyStats, error: propertyStatsError } = await supabaseAdmin.rpc('exec_sql', { query: propertyStatsQuery })
+    
+    if (propertyStatsError) throw propertyStatsError
 
     return new Response(
       JSON.stringify({ 
@@ -79,6 +96,8 @@ serve(async (req) => {
         policies: policiesData,
         user: userData,
         userAccess: accessData,
+        propertyStats: propertyStats,
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { 

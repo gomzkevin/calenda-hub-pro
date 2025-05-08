@@ -9,6 +9,7 @@ export const debugPropertyAccess = async (userId: string): Promise<{
   userRole?: string,
   userProperties: string[],
   directAccessTest: boolean,
+  policiesTest?: boolean,
   error?: string
 }> => {
   try {
@@ -33,7 +34,10 @@ export const debugPropertyAccess = async (userId: string): Promise<{
     
     // 3. Probar acceso directo a una propiedad (para verificar RLS)
     let directAccessResult = false;
+    let policiesTestResult = false;
+    
     if (userProperties.length > 0) {
+      // 3.1 Probar una propiedad asignada
       const { data, error } = await supabase
         .from("properties")
         .select("id")
@@ -41,12 +45,28 @@ export const debugPropertyAccess = async (userId: string): Promise<{
         .maybeSingle();
       
       directAccessResult = !error && !!data;
+      
+      // 3.2 Probar acceso a una propiedad no asignada
+      if (directAccessResult && userData?.role !== 'admin') {
+        // Intentamos obtener una propiedad que no debería ser accesible para verificar RLS
+        const { data: allProps } = await supabase
+          .from("properties")
+          .select("id")
+          .not("id", "in", `(${userProperties.join(',')})`);
+          
+        // Si es un usuario regular y no puede ver propiedades no asignadas, la política funciona
+        policiesTestResult = allProps?.length === 0;
+      } else if (userData?.role === 'admin') {
+        // Para administradores, deberían poder ver todas las propiedades
+        policiesTestResult = true;
+      }
     }
     
     return {
       userRole: userData?.role,
       userProperties,
-      directAccessTest: directAccessResult
+      directAccessTest: directAccessResult,
+      policiesTest: policiesTestResult
     };
   } catch (error: any) {
     return {

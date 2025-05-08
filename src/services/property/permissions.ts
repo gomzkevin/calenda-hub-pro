@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser } from "../userService";
+import { debugPropertyAccess } from "./tests";
 
 /**
  * Verifica si es necesario volver a cargar los permisos
@@ -27,8 +28,18 @@ export const refreshPermissions = async (): Promise<boolean> => {
     // 3. Log para debuggear
     console.log("Session refreshed successfully with new token");
     
-    // 4. Pequeña pausa para permitir que el token se propague
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // 4. Espera más prolongada para garantizar que los permisos se apliquen
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 5. Verificación adicional para confirmar que los permisos están aplicados
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.id) {
+      console.error("Could not get current user after refreshing permissions");
+      return false;
+    }
+    
+    const accessCheck = await debugPropertyAccess(currentUser.id);
+    console.log("Permission verification after refresh:", accessCheck);
     
     return true;
   } catch (error) {
@@ -51,7 +62,8 @@ export const isUserAdmin = async (): Promise<boolean> => {
  */
 export const ensurePropertyAccessPermissions = async (userId: string): Promise<{
   success: boolean,
-  message?: string
+  message?: string,
+  debugInfo?: any
 }> => {
   try {
     const currentUser = await getCurrentUser();
@@ -78,11 +90,15 @@ export const ensurePropertyAccessPermissions = async (userId: string): Promise<{
     // Forzamos una actualización de la sesión para que RLS funcione correctamente
     const refreshed = await refreshPermissions();
     
+    // Realizar una verificación completa después de actualizar permisos
+    const accessCheck = await debugPropertyAccess(userId);
+    
     return { 
-      success: refreshed,
+      success: refreshed && accessCheck.directAccessTest === true,
       message: refreshed 
         ? `Usuario tiene acceso a ${accessData.length} propiedades` 
-        : "Error al actualizar permisos"
+        : "Error al actualizar permisos",
+      debugInfo: accessCheck
     };
   } catch (error: any) {
     console.error("Error ensuring property access:", error);
