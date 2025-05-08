@@ -20,6 +20,9 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
   baseOffset,
   laneGap
 }) => {
+  // Calculate cell height based on the number of weeks
+  const cellHeight = 120; // Fixed cell height for consistency
+  
   return (
     <>
       {weeks.map((week, weekIndex) => (
@@ -27,9 +30,8 @@ const RegularReservationBars: React.FC<RegularReservationBarsProps> = ({
           key={`reservations-week-${weekIndex}`} 
           className="grid grid-cols-7 w-full absolute" 
           style={{ 
-            top: `${weekIndex * 100}px`, 
-            // Set a consistent height for each week
-            height: '100px' 
+            top: `${weekIndex * cellHeight}px`, 
+            height: `${cellHeight}px` 
           }}
         >
           <div className="col-span-7 relative h-full w-full">

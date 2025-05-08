@@ -32,7 +32,7 @@ export const useCalendarGrid = (
     return calculateBlockLanes(weeks, relationshipBlocks);
   }, [weeks, relationshipBlocks]);
   
-  // Improved cell height calculation for better visibility
+  // Use fixed cell height for consistency across all cells
   const cellHeight = useMemo(() => {
     // Calculate maximum number of lanes needed for any week
     const maxLanes = Math.max(
@@ -47,9 +47,8 @@ export const useCalendarGrid = (
       )
     );
     
-    // Base height + extra space for each lane
-    // Increased base height to provide more vertical space
-    return Math.max(120, 90 + (maxLanes * 30));
+    // Fixed cell height regardless of content
+    return 120;
   }, [weekReservationLanes, weekRelationshipBlockLanes, weekPropagatedBlockLanes]);
   
   // Navigation handlers

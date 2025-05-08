@@ -16,13 +16,9 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   relationshipBlocks,
   cellHeight 
 }) => {
-  // Calculate the total grid height based on the number of weeks and cell height
-  const gridHeight = weeks.length * cellHeight;
-  
   return (
     <div 
       className="grid grid-cols-7 w-full border-collapse bg-white rounded-lg overflow-hidden shadow-sm"
-      style={{ height: `${gridHeight}px` }} // Set explicit height for the grid
     >
       {weeks.map((week, weekIndex) => (
         <React.Fragment key={`week-${weekIndex}`}>
