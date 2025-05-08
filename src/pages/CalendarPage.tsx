@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import MultiCalendar from '@/components/calendar/MultiCalendar';
@@ -16,8 +16,7 @@ const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const initialPropertyId = queryParams.get('property') || '';
-  // Change default view to 'multi' instead of 'monthly'
-  const initialView = queryParams.get('view') || 'multi';
+  const initialView = queryParams.get('view') || 'monthly';
   
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialPropertyId);
   const [activeView, setActiveView] = useState<string>(initialView);
@@ -28,86 +27,61 @@ const CalendarPage: React.FC = () => {
   });
   
   useEffect(() => {
-    if (properties.length > 0 && !selectedPropertyId && activeView === 'monthly') {
-      // Only set a default property when in monthly view
+    if (properties.length > 0 && !selectedPropertyId) {
       const firstPropertyId = properties[0]?.id || '';
       setSelectedPropertyId(firstPropertyId);
       updateUrlParams(firstPropertyId, activeView);
-    } else if (activeView === 'multi' && selectedPropertyId) {
-      // When switching to multi view, clear property selection from URL
-      updateUrlParams('', 'multi');
     }
   }, [properties, selectedPropertyId, activeView]);
   
   const updateUrlParams = (propertyId: string, view: string) => {
     const params = new URLSearchParams(location.search);
-    if (propertyId) {
-      params.set('property', propertyId);
-    } else {
-      params.delete('property');
-    }
+    if (propertyId) params.set('property', propertyId);
     params.set('view', view);
     navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
   
   const handlePropertyChange = (propertyId: string) => {
-    if (!propertyId) return;
+    if (!propertyId) return; // Added check to prevent empty property IDs
     setSelectedPropertyId(propertyId);
-    setActiveView('monthly'); // Switch to monthly view when selecting a property
-    updateUrlParams(propertyId, 'monthly');
+    updateUrlParams(propertyId, activeView);
   };
   
   const handleViewChange = (view: string) => {
     setActiveView(view);
-    if (view === 'multi') {
-      // Clear property selection when switching to multi view
-      setSelectedPropertyId('');
-      updateUrlParams('', view);
-    } else if (view === 'monthly' && !selectedPropertyId && properties.length > 0) {
-      // Set default property when switching to monthly view
-      const firstPropertyId = properties[0]?.id || '';
-      setSelectedPropertyId(firstPropertyId);
-      updateUrlParams(firstPropertyId, view);
-    } else {
-      updateUrlParams(selectedPropertyId, view);
-    }
+    updateUrlParams(selectedPropertyId, view);
   };
   
   // Find the selected property name for display
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
-  
-  // Only show property selector in monthly view
-  const showPropertySelector = activeView === 'monthly';
   
   return (
     <div className="space-y-6 w-full max-w-full h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Calendar</h1>
         <div className="flex flex-col w-full sm:flex-row sm:w-auto items-stretch sm:items-center gap-3">
-          {showPropertySelector && (
-            <div className="w-full sm:w-64">
-              {isLoading ? (
-                <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
-              ) : (
-                <Select
-                  value={selectedPropertyId}
-                  onValueChange={handlePropertyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a property" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties.map((property: Property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          )}
-          {selectedPropertyId && activeView === 'monthly' && (
+          <div className="w-full sm:w-64">
+            {isLoading ? (
+              <div className="h-10 w-full bg-gray-200 animate-pulse rounded"></div>
+            ) : (
+              <Select
+                value={selectedPropertyId}
+                onValueChange={handlePropertyChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a property" />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties.map((property: Property) => (
+                    <SelectItem key={property.id} value={property.id}>
+                      {property.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          {selectedPropertyId && (
             <AddReservationButton 
               propertyId={selectedPropertyId} 
               className="w-full sm:w-auto"
@@ -118,8 +92,8 @@ const CalendarPage: React.FC = () => {
       
       <Tabs value={activeView} onValueChange={handleViewChange} className="w-full flex-1 flex flex-col">
         <TabsList className="w-full grid grid-cols-2 sm:w-auto">
-          <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
+          <TabsTrigger value="multi">Multi-Property View</TabsTrigger>
         </TabsList>
         
         <TabsContent value="monthly" className="w-full flex-1 flex flex-col">
@@ -137,7 +111,7 @@ const CalendarPage: React.FC = () => {
         <TabsContent value="multi" className="w-full flex-1 flex flex-col">
           <Card className="w-full h-full flex flex-col">
             <CardContent className="p-0 h-full flex-1 flex flex-col overflow-hidden">
-              <MultiCalendar onPropertySelect={handlePropertyChange} />
+              <MultiCalendar />
             </CardContent>
           </Card>
         </TabsContent>

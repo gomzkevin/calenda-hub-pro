@@ -79,36 +79,6 @@ export const getReservationsForMonth = async (
   return data ? data.map(mapReservationFromDatabase) : [];
 };
 
-// In-memory cache for property names to reduce database calls
-const propertyNameCache = new Map<string, string>();
-
-/**
- * Get the property name for a given property ID with memory caching
- */
-export const getPropertyName = async (propertyId: string): Promise<string> => {
-  // Check cache first
-  if (propertyNameCache.has(propertyId)) {
-    return propertyNameCache.get(propertyId) || 'Propiedad desconocida';
-  }
-  
-  const { data, error } = await supabase
-    .from("properties")
-    .select("name")
-    .eq("id", propertyId)
-    .single();
-  
-  if (error) {
-    console.error(`Error fetching property name for ${propertyId}:`, error);
-    return 'Propiedad desconocida';
-  }
-  
-  // Cache the result
-  const propertyName = data?.name || 'Propiedad desconocida';
-  propertyNameCache.set(propertyId, propertyName);
-  
-  return propertyName;
-};
-
 /**
  * Check if a property is available for a given date range
  */
@@ -145,4 +115,22 @@ export const checkAvailability = async (
   
   // If data is empty, the property is available
   return !data || data.length === 0;
+};
+
+/**
+ * Get the property name for a given property ID
+ */
+export const getPropertyName = async (propertyId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from("properties")
+    .select("name")
+    .eq("id", propertyId)
+    .single();
+  
+  if (error) {
+    console.error(`Error fetching property name for ${propertyId}:`, error);
+    return 'Propiedad desconocida';
+  }
+  
+  return data?.name || 'Propiedad desconocida';
 };
