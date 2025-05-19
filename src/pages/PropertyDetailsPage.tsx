@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { getPropertyById } from '@/services/propertyService';
 import PropertyDetails from '@/components/properties/PropertyDetails';
 import PropertyEditForm from '@/components/properties/PropertyEditForm';
-import PropertyICalLinks from '@/components/properties/PropertyICalLinks';
 
 const PropertyDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -64,10 +63,7 @@ const PropertyDetailsPage: React.FC = () => {
           onCancel={() => setIsEditing(false)} 
         />
       ) : (
-        <div className="space-y-6">
-          <PropertyDetails property={property} />
-          <PropertyICalLinks propertyId={property.id} />
-        </div>
+        <PropertyDetails property={property} />
       )}
     </div>
   );

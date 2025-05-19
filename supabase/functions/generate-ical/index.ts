@@ -85,12 +85,11 @@ serve(async (req) => {
 
     console.log(`Found property with id ${property.id} for token ${token}`);
 
-    // Fetch ONLY MANUAL reservations for the property (where platform is 'Other')
+    // Fetch ALL reservations for the property (not just manual ones)
     const { data: reservations, error: reservationsError } = await supabase
       .from('reservations')
       .select('id, start_date, end_date, guest_name, status, notes, source, platform')
       .eq('property_id', property.id)
-      .eq('platform', 'Other')
       .order('start_date', { ascending: true });
 
     if (reservationsError) {
@@ -101,16 +100,16 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${reservations?.length || 0} manual reservations for property ${property.id}`);
+    console.log(`Found ${reservations?.length || 0} reservations for property ${property.id}`);
 
-    // Generate iCal content in Airbnb format
-    const icalContent = generateAirbnbFormatICalContent(property, reservations || []);
+    // Generate iCal content in standard format
+    const icalContent = generateICalContent(property, reservations || []);
 
     // Return iCal file
     return new Response(icalContent, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'text/calendar',
+        'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': `attachment; filename="${property.internal_code}.ics"`,
       },
     });
@@ -124,33 +123,63 @@ serve(async (req) => {
   }
 });
 
-function generateAirbnbFormatICalContent(property: Property, reservations: Reservation[]): string {
+function generateICalContent(property: Property, reservations: Reservation[]): string {
   const now = new Date().toISOString().replace(/[-:.]/g, '');
+  const prodId = `-//Alanto Property Manager//Property ${property.internal_code}//ES`;
   
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Converted Calendar//EN',
-    'CALSCALE:GREGORIAN'
+    `PRODID:${prodId}`,
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH'
   ];
 
-  // Add each reservation as an event with Airbnb format
+  // Add each reservation as an event with standard format
   for (const reservation of reservations) {
+    // Format dates properly for iCalendar - must be in YYYYMMDD format
     const startDate = reservation.start_date.replace(/-/g, '');
+    
+    // For iCalendar, the end date is exclusive, so we don't need to adjust it
     const endDate = reservation.end_date.replace(/-/g, '');
     
+    // Create a clean summary from the guest name or a default
+    const summary = reservation.guest_name 
+      ? `Reservation: ${reservation.guest_name}` 
+      : `${reservation.platform} Reservation`;
+    
+    // Create an organized description with all relevant details
+    let description = `Platform: ${reservation.platform}\nSource: ${reservation.source}`;
+    if (reservation.status) description += `\nStatus: ${reservation.status}`;
+    if (reservation.notes) description += `\nNotes: ${reservation.notes}`;
+    
+    // Ensure description is properly escaped for iCalendar format
+    const escapedDescription = description
+      .replace(/\n/g, '\\n')
+      .replace(/,/g, '\\,')
+      .replace(/;/g, '\\;');
+    
+    // Create a unique identifier for the event
+    const uid = `${reservation.id}@${property.internal_code.replace(/\s+/g, '-')}`;
+    
+    // Add this event to the calendar
     icalContent = icalContent.concat([
       'BEGIN:VEVENT',
+      `UID:${uid}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${startDate}`,
       `DTEND;VALUE=DATE:${endDate}`,
-      'SUMMARY:Airbnb (Not available)',
-      `UID:${reservation.id}@${property.internal_code}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${escapedDescription}`,
+      'TRANSP:OPAQUE',
+      'STATUS:CONFIRMED',
+      'SEQUENCE:0',
       'END:VEVENT'
     ]);
   }
 
   icalContent.push('END:VCALENDAR');
+  
+  // Ensure proper line endings according to RFC 5545
   return icalContent.join('\r\n');
 }
-

@@ -1,12 +1,13 @@
 
-import React from 'react';
-import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, BedDouble, Bath, Users, Home, Calendar, Copy, RefreshCw, Check, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Property } from '@/types';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { generateICalToken } from '@/services/propertyService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PropertyDetailsProps {
   property: Property;
@@ -14,6 +15,7 @@ interface PropertyDetailsProps {
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
   
   const generateTokenMutation = useMutation({
     mutationFn: (propertyId: string) => generateICalToken(propertyId),
@@ -32,7 +34,19 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
       // Format with token directly in the path with .ics extension
       const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.ical_token}.ics`;
       navigator.clipboard.writeText(icalUrl);
+      setCopied(true);
       toast.success('URL del calendario copiada al portapapeles');
+      
+      setTimeout(() => setCopied(false), 3000);
+    } else {
+      toast.error('No se ha generado un token de calendario para esta propiedad');
+    }
+  };
+  
+  const openICalUrlInNewTab = () => {
+    if (property.ical_token) {
+      const icalUrl = `https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.ical_token}.ics`;
+      window.open(icalUrl, '_blank');
     } else {
       toast.error('No se ha generado un token de calendario para esta propiedad');
     }
@@ -108,23 +122,44 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
           <div className="mt-6 pt-4 border-t">
             <h3 className="font-medium flex items-center gap-2 mb-2">
               <Calendar className="w-4 h-4" />
-              Calendario iCal para Reservas Manuales
+              Calendario iCal
             </h3>
             
             <p className="text-sm text-muted-foreground mb-3">
-              Este enlace iCal <strong>solo contiene las reservas manuales</strong> (plataforma "Other") 
+              Este enlace iCal contiene <strong>todas las reservas</strong> de esta propiedad
               para compartir con otros sistemas.
             </p>
             
             {property.ical_token ? (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={copyICalUrl}
-              >
-                <Copy className="w-4 h-4" />
-                Copiar URL del Calendario iCal (.ics)
-              </Button>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={copyICalUrl}
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                    Copiar URL del Calendario
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={openICalUrlInNewTab}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Abrir/Descargar Calendario
+                  </Button>
+                </div>
+                
+                <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all border border-gray-200 text-muted-foreground">
+                  {`https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical/${property.ical_token}.ics`}
+                </div>
+              </div>
             ) : (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
@@ -143,7 +178,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
             )}
             
             <p className="text-sm text-muted-foreground mt-2">
-              Usa este enlace para importar las reservas manuales de esta propiedad en otros calendarios.
+              Usa este enlace para importar las reservas de esta propiedad en otros calendarios.
             </p>
           </div>
         </CardContent>
