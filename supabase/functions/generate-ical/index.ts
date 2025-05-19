@@ -21,7 +21,6 @@ type Reservation = {
 type Property = {
   id: string;
   name: string;
-  ical_token: string;
   internal_code: string;
 };
 
@@ -37,28 +36,41 @@ serve(async (req) => {
     
     console.log("Request path:", path);
     
-    // Extract token from path
-    let token = null;
+    // Extract property identifier from path
+    let propertyId = null;
+    let isInternalCode = false;
     
     if (path.endsWith('.ics')) {
-      // Format: /generate-ical/TOKEN.ics
+      // Format: /generate-ical/PROPERTY_ID.ics or /generate-ical/code/INTERNAL_CODE.ics
       const segments = path.split('/');
       const filename = segments[segments.length - 1];
-      token = filename.replace('.ics', '');
       
-      console.log(`Extracted token from path: ${token}`);
+      if (segments.includes('code') && segments.length >= 3) {
+        // This is an internal code request
+        const codeIndex = segments.indexOf('code');
+        if (segments.length > codeIndex + 1) {
+          propertyId = segments[codeIndex + 1].replace('.ics', '');
+          isInternalCode = true;
+          console.log(`Using internal code: ${propertyId}`);
+        }
+      } else {
+        // This is a UUID request
+        propertyId = filename.replace('.ics', '');
+        console.log(`Using property ID: ${propertyId}`);
+      }
     }
     
-    // Fallback to query parameter if path-based token is not found
-    if (!token) {
-      token = url.searchParams.get('token');
-      console.log(`Using query parameter token: ${token}`);
+    // Fallback to query parameter if path-based identifier is not found
+    if (!propertyId) {
+      propertyId = url.searchParams.get('id') || url.searchParams.get('code');
+      isInternalCode = url.searchParams.has('code');
+      console.log(`Using query parameter: ${propertyId}, isInternalCode: ${isInternalCode}`);
     }
 
-    if (!token) {
-      console.error('No token provided in URL');
+    if (!propertyId) {
+      console.error('No property identifier provided in URL');
       return new Response(
-        JSON.stringify({ error: 'Token requerido' }),
+        JSON.stringify({ error: 'Identificador de propiedad requerido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -68,22 +80,28 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find property by token
-    const { data: property, error: propertyError } = await supabase
+    // Find property by ID or internal code
+    let propertyQuery = supabase
       .from('properties')
-      .select('id, name, ical_token, internal_code')
-      .eq('ical_token', token)
-      .single();
+      .select('id, name, internal_code');
+      
+    if (isInternalCode) {
+      propertyQuery = propertyQuery.eq('internal_code', propertyId);
+    } else {
+      propertyQuery = propertyQuery.eq('id', propertyId);
+    }
+    
+    const { data: property, error: propertyError } = await propertyQuery.single();
 
     if (propertyError || !property) {
-      console.error('Property not found for token:', token, propertyError);
+      console.error('Property not found for identifier:', propertyId, propertyError);
       return new Response(
         JSON.stringify({ error: 'Propiedad no encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found property with id ${property.id} for token ${token}`);
+    console.log(`Found property with id ${property.id} for identifier ${propertyId}`);
 
     // Fetch ALL reservations for the property (not just manual ones)
     const { data: reservations, error: reservationsError } = await supabase
