@@ -14,32 +14,37 @@ interface PropertyDetailsProps {
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   const [copied, setCopied] = useState(false);
   
-  // Formatear la URL del calendario usando el ID de la propiedad directamente
-  const getICalUrl = () => {
-    const baseUrl = 'https://app.alanto.mx/api/calendar';
-    
-    // Si hay código interno, usarlo, de lo contrario usar el ID
-    if (property.internalCode) {
-      return `${baseUrl}/code/${encodeURIComponent(property.internalCode)}.ics`;
-    } else {
-      return `${baseUrl}/${property.id}.ics`;
-    }
-  };
-  
-  // URL alternativa de Supabase (como fallback)
+  // Usar la URL de Supabase como URL principal
   const getSupabaseICalUrl = () => {
     const baseUrl = 'https://akqzaaniiflyxfrzipqq.supabase.co/functions/v1/generate-ical';
     
     // Si hay código interno, usarlo, de lo contrario usar el ID
     if (property.internalCode) {
-      return `${baseUrl}/code/${encodeURIComponent(property.internalCode)}.ics`;
+      // Aseguramos la codificación correcta del código interno
+      const encodedCode = encodeURIComponent(property.internalCode);
+      // Formato que espera la función: /code/{codigo}.ics
+      return `${baseUrl}/code/${encodedCode}.ics`;
     } else {
+      // Para IDs de propiedades, usamos el formato /{id}.ics
       return `${baseUrl}/${property.id}.ics`;
     }
   };
   
+  // URL alternativa (ahora como fallback)
+  const getAlternativeICalUrl = () => {
+    const baseUrl = 'https://app.alanto.mx/api/calendar';
+    
+    // Si hay código interno, usarlo, de lo contrario usar el ID
+    if (property.internalCode) {
+      const encodedCode = encodeURIComponent(property.internalCode);
+      return `${baseUrl}?code=${encodedCode}`;
+    } else {
+      return `${baseUrl}?id=${property.id}`;
+    }
+  };
+  
   const copyICalUrl = () => {
-    const icalUrl = getICalUrl();
+    const icalUrl = getSupabaseICalUrl();
     navigator.clipboard.writeText(icalUrl);
     setCopied(true);
     toast.success('URL del calendario copiada al portapapeles');
@@ -48,7 +53,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
   };
   
   const openICalUrlInNewTab = () => {
-    const icalUrl = getICalUrl();
+    const icalUrl = getSupabaseICalUrl();
     window.open(icalUrl, '_blank');
   };
 
@@ -152,7 +157,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
               </div>
               
               <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all border border-gray-200 text-muted-foreground">
-                {getICalUrl()}
+                {getSupabaseICalUrl()}
               </div>
               
               <Tabs defaultValue="principal" className="mt-4">
@@ -163,13 +168,13 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
                 <TabsContent value="principal">
                   <div className="text-sm text-muted-foreground mt-2">
                     <p>Usa este enlace para importar las reservas de esta propiedad en Airbnb, Booking, VRBO y otros servicios.</p>
-                    <p className="mt-1">URL: <code>{getICalUrl()}</code></p>
+                    <p className="mt-1">URL: <code>{getSupabaseICalUrl()}</code></p>
                   </div>
                 </TabsContent>
                 <TabsContent value="alternativo">
                   <div className="text-sm text-muted-foreground mt-2">
                     <p>Si el enlace principal no funciona, puedes usar esta URL alternativa:</p>
-                    <p className="mt-1">URL: <code>{getSupabaseICalUrl()}</code></p>
+                    <p className="mt-1">URL: <code>{getAlternativeICalUrl()}</code></p>
                   </div>
                 </TabsContent>
               </Tabs>
